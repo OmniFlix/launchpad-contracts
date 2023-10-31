@@ -25,19 +25,3 @@ pub enum ExecuteMsg {
     UpdateAdmin { admin: String },
     Freeze {},
 }
-
-#[cw_serde]
-pub enum QueryMsg {
-    HasStarted {},
-    HasEnded {},
-    IsActive {},
-    Members {
-        start_after: Option<String>,
-        limit: Option<u32>,
-    },
-    HasMember {
-        member: String,
-    },
-    Config {},
-    PerAddressLimit {},
-}

@@ -1,8 +1,8 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Order, Response, StdResult, Timestamp,
-    Uint128,
+    to_binary, to_json_binary, Binary, Deps, DepsMut, Env, MessageInfo, Order, Response, StdResult,
+    Timestamp, Uint128,
 };
 use cw2::set_contract_version;
 use cw_storage_plus::Bound;
@@ -10,8 +10,9 @@ use cw_utils::{maybe_addr, must_pay};
 // use cw2::set_contract_version;
 
 use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::msg::{ExecuteMsg, InstantiateMsg};
 use crate::state::{Config, CONFIG, MEMBERS};
+use types::query::WhitelistQueryMsgs;
 
 const CONTRACT_NAME: &str = "crates.io:omniflix-whitelist";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -406,17 +407,21 @@ pub fn freeze(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response, Co
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
+pub fn query(deps: Deps, env: Env, msg: WhitelistQueryMsgs) -> StdResult<Binary> {
     match msg {
-        QueryMsg::HasStarted {} => to_binary(&query_has_started(deps, env)?),
-        QueryMsg::HasEnded {} => to_binary(&query_has_ended(deps, env)?),
-        QueryMsg::IsActive {} => to_binary(&query_is_active(deps, env)?),
-        QueryMsg::Members { start_after, limit } => {
-            to_binary(&query_members(deps, env, start_after, limit)?)
+        WhitelistQueryMsgs::HasStarted {} => to_json_binary(&query_has_started(deps, env)?),
+        WhitelistQueryMsgs::HasEnded {} => to_json_binary(&query_has_ended(deps, env)?),
+        WhitelistQueryMsgs::IsActive {} => to_json_binary(&query_is_active(deps, env)?),
+        WhitelistQueryMsgs::Members { start_after, limit } => {
+            to_json_binary(&query_members(deps, env, start_after, limit)?)
         }
-        QueryMsg::HasMember { member } => to_binary(&query_has_member(deps, env, member)?),
-        QueryMsg::Config {} => to_binary(&query_config(deps, env)?),
-        QueryMsg::PerAddressLimit {} => to_binary(&query_config(deps, env)?.per_address_limit),
+        WhitelistQueryMsgs::HasMember { member } => {
+            to_json_binary(&query_has_member(deps, env, member)?)
+        }
+        WhitelistQueryMsgs::Config {} => to_json_binary(&query_config(deps, env)?),
+        WhitelistQueryMsgs::PerAddressLimit {} => {
+            to_json_binary(&query_config(deps, env)?.per_address_limit)
+        }
     }
 }
 

@@ -44,4 +44,5 @@ cw-controllers       = { workspace = true }
 cw2                  = { workspace = true }
 cw-storage-plus      = { workspace = true }
 cw-utils             = { workspace = true }
-serde = { version = "1.0.145", features = ["derive"] }
+serde = { workspace = true }
+types = { workspace = true }
