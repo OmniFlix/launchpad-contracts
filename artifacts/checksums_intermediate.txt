@@ -1,0 +1,1 @@
+6a4e1c46a28ae2702e1efe88d56b088fee3d1e3d2aed646142f6a5da6109647b  target/wasm32-unknown-unknown/release/omniflix_minter.wasm
