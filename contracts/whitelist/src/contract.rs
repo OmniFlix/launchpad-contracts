@@ -11,8 +11,11 @@ use cw_utils::{maybe_addr, must_pay};
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg};
-use crate::state::{Config, CONFIG, MEMBERS};
-use types::query::WhitelistQueryMsgs;
+use crate::state::{CONFIG, MEMBERS};
+use types::whitelist::{
+    Config, HasEndedResponse, HasMemberResponse, HasStartedResponse, IsActiveResponse,
+    MembersResponse, PerAddressLimitResponse, WhitelistQueryMsgs,
+};
 
 const CONTRACT_NAME: &str = "crates.io:omniflix-whitelist";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -420,24 +423,37 @@ pub fn query(deps: Deps, env: Env, msg: WhitelistQueryMsgs) -> StdResult<Binary>
         }
         WhitelistQueryMsgs::Config {} => to_json_binary(&query_config(deps, env)?),
         WhitelistQueryMsgs::PerAddressLimit {} => {
-            to_json_binary(&query_config(deps, env)?.per_address_limit)
+            to_json_binary(&query_per_address_limit(deps, env)?)
         }
     }
 }
 
-pub fn query_has_started(deps: Deps, env: Env) -> StdResult<bool> {
+pub fn query_per_address_limit(deps: Deps, _env: Env) -> StdResult<PerAddressLimitResponse> {
     let config = CONFIG.load(deps.storage)?;
-    Ok(env.block.time > config.start_time)
+    Ok(PerAddressLimitResponse {
+        per_address_limit: config.per_address_limit,
+    })
 }
 
-pub fn query_has_ended(deps: Deps, env: Env) -> StdResult<bool> {
+pub fn query_has_started(deps: Deps, env: Env) -> StdResult<HasStartedResponse> {
     let config = CONFIG.load(deps.storage)?;
-    Ok(env.block.time > config.end_time)
+    Ok(HasStartedResponse {
+        has_started: env.block.time > config.start_time,
+    })
 }
 
-pub fn query_is_active(deps: Deps, env: Env) -> StdResult<bool> {
+pub fn query_has_ended(deps: Deps, env: Env) -> StdResult<HasEndedResponse> {
     let config = CONFIG.load(deps.storage)?;
-    Ok(env.block.time > config.start_time && env.block.time < config.end_time)
+    Ok(HasEndedResponse {
+        has_ended: env.block.time > config.end_time,
+    })
+}
+
+pub fn query_is_active(deps: Deps, env: Env) -> StdResult<IsActiveResponse> {
+    let config = CONFIG.load(deps.storage)?;
+    Ok(IsActiveResponse {
+        is_active: env.block.time > config.start_time && env.block.time < config.end_time,
+    })
 }
 
 pub fn query_members(
@@ -445,7 +461,7 @@ pub fn query_members(
     _env: Env,
     start_after: Option<String>,
     limit: Option<u32>,
-) -> StdResult<Vec<String>> {
+) -> StdResult<MembersResponse> {
     let start_addr = maybe_addr(deps.api, start_after)?;
     let start = start_addr.map(Bound::exclusive);
 
@@ -460,16 +476,18 @@ pub fn query_members(
         })
         .collect::<StdResult<Vec<String>>>()?;
 
-    Ok(members)
+    Ok(MembersResponse { members })
 }
 
-pub fn query_has_member(deps: Deps, _env: Env, member: String) -> StdResult<bool> {
+pub fn query_has_member(deps: Deps, _env: Env, member: String) -> StdResult<HasMemberResponse> {
     let address = deps.api.addr_validate(&member)?;
-    Ok(MEMBERS.may_load(deps.storage, address)?.unwrap_or(false))
+    let has_member = MEMBERS.may_load(deps.storage, address)?.unwrap_or(false);
+    Ok(HasMemberResponse { has_member })
 }
 
 pub fn query_config(deps: Deps, _env: Env) -> StdResult<Config> {
-    CONFIG.load(deps.storage)
+    let config = CONFIG.load(deps.storage)?;
+    Ok(config)
 }
 
 #[cfg(test)]
@@ -529,7 +547,9 @@ mod tests {
         let res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
 
         // Check if members are saved
-        let members = query_members(deps.as_ref(), env.clone(), None, Some(150)).unwrap();
+        let members = query_members(deps.as_ref(), env.clone(), None, Some(150))
+            .unwrap()
+            .members;
         assert_eq!(members.len(), 100);
         // Find how many addr0 are there
         let mut addr0_count = 0;
@@ -690,7 +710,9 @@ mod tests {
         .unwrap();
 
         // Check if members are saved
-        let members = query_members(deps.as_ref(), env.clone(), None, Some(150)).unwrap();
+        let members = query_members(deps.as_ref(), env.clone(), None, Some(150))
+            .unwrap()
+            .members;
         assert_eq!(members.len(), 100);
 
         // Try adding diffirent members but with a list of duplicates
@@ -702,7 +724,9 @@ mod tests {
         let res = add_members(deps.as_mut(), env.clone(), info.clone(), members.clone()).unwrap();
 
         // Check if members are saved
-        let members = query_members(deps.as_ref(), env.clone(), None, Some(150)).unwrap();
+        let members = query_members(deps.as_ref(), env.clone(), None, Some(150))
+            .unwrap()
+            .members;
         assert_eq!(members.len(), 101);
 
         // Try adding members more than member limit
@@ -780,7 +804,9 @@ mod tests {
         .unwrap();
 
         // Check if member is removed
-        let members = query_members(deps.as_ref(), env.clone(), None, Some(150)).unwrap();
+        let members = query_members(deps.as_ref(), env.clone(), None, Some(150))
+            .unwrap()
+            .members;
         assert_eq!(members.contains(&"addr0".to_string()), false);
         assert_eq!(members.len(), 99);
     }
