@@ -4,16 +4,24 @@ use std::str::FromStr;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    from_binary, to_json_binary, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo,
-    Order, Response, StdResult, Uint128,
+    from_binary, to_json_binary, Addr, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env,
+    MessageInfo, Order, Response, StdResult, Uint128,
 };
+
+use types::whitelist::{
+    HasMemberResponse, IsActiveResponse, PerAddressLimitResponse, WhitelistQueryMsgs,
+};
+// Use this as whitelist config
+use types::whitelist::Config as WhitelistConfig;
+
 use cw_utils::{maybe_addr, must_pay, nonpayable};
 
 use crate::msg::{CollectionDetails, ExecuteMsg, InstantiateMsg, QueryMsg, WhitelistQueryMsg};
 
 use crate::error::ContractError;
 use crate::state::{
-    Config, Token, COLLECTION, CONFIG, MINTABLE_TOKENS, MINTED_TOKENS, TOTAL_TOKENS_REMAINING,
+    Config, Round, Token, COLLECTION, CONFIG, MINTABLE_TOKENS, MINTED_TOKENS,
+    TOTAL_TOKENS_REMAINING,
 };
 use crate::utils::{
     check_mint_limit_for_addr, check_whitelist, randomize_token_list, return_random_token_id,
@@ -83,19 +91,57 @@ pub fn instantiate(
     if msg.start_time < env.block.time {
         return Err(ContractError::InvalidStartTime {});
     }
-    // Check if whitelist is active
-    let whitelist_address = maybe_addr(deps.api, msg.whitelist_address.clone())?;
-    if whitelist_address.is_some() {
-        let is_active_response = deps.querier.query_wasm_smart(
-            whitelist_address.clone().unwrap(),
-            &WhitelistQueryMsg::IsActive {},
-        )?;
-        let is_active: bool = from_binary(&is_active_response)?;
-        if is_active {
-            return Err(ContractError::WhitelistAlreadyActive {});
+    // collect whitelist addresses
+    if msg.rounds.is_some() {
+        let whitelist_collections: Vec<Round>;
+        let whitelist_addresses: Vec<Addr>;
+        let rounds = msg.rounds.unwrap();
+        rounds.into_iter().map(|x| match x {
+            Round::WhitelistAddress { address } => {
+                whitelist_addresses.push(deps.api.addr_validate(&address.as_str()).unwrap());
+            }
+            Round::WhitelistCollection {
+                collection_id,
+                start_time,
+                end_time,
+                mint_price,
+            } => {
+                whitelist_collections.push(Round::WhitelistCollection {
+                    collection_id,
+                    start_time,
+                    end_time,
+                    mint_price,
+                });
+            }
+        });
+        // Check if these addresses whitelist contracts
+        for address in whitelist_addresses {
+            // Check if address is a whitelist contract by parsing the config response
+            let whitelist_config: WhitelistConfig = deps
+                .querier
+                .query_wasm_smart(address.clone(), &WhitelistQueryMsg::Config {})?;
+            let is_active = env.block.time < whitelist_config.end_time
+                && env.block.time > whitelist_config.start_time;
+            if is_active {
+                return Err(ContractError::WhitelistAlreadyActive {});
+            }
+        }
+        // Check collection parameters are valid
+        for collection in whitelist_collections {
+            if let Round::WhitelistCollection {
+                collection_id,
+                start_time,
+                end_time,
+                mint_price,
+            } = collection
+            {
+                let is_active = env.block.time < end_time && env.block.time > start_time;
+                if is_active {
+                    return Err(ContractError::WhitelistAlreadyActive {});
+                }
+            }
         }
     }
-
     // Check royalty ratio we expect decimal number
     let royalty_ratio = Decimal::from_str(&msg.royalty_ratio)?;
     if royalty_ratio < Decimal::zero() || royalty_ratio > Decimal::one() {

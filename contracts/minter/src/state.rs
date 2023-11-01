@@ -22,6 +22,33 @@ pub struct Config {
 pub struct Token {
     pub token_id: String,
 }
+#[cw_serde]
+pub enum Round {
+    WhitelistAddress {
+        address: Addr,
+    },
+    WhitelistCollection {
+        collection_id: String,
+        start_time: Timestamp,
+        end_time: Timestamp,
+        mint_price: Uint128,
+    },
+}
+
+pub type Rounds = Vec<Round>;
+
+#[cw_serde]
+pub struct MintCountInRound {
+    pub round: u32,
+    pub count: u32,
+}
+
+#[cw_serde]
+pub struct UserDetails {
+    minted_tokens: Vec<Token>,
+    total_minted_count: u32,
+    rounds_mints: Vec<MintCountInRound>,
+}
 
 pub const CONFIG: Item<Config> = Item::new("config");
 pub const COLLECTION: Item<CollectionDetails> = Item::new("collection");
@@ -30,4 +57,6 @@ pub const MINTABLE_TOKENS: Map<u32, Token> = Map::new("mintable_tokens");
 // Total number of tokens
 pub const TOTAL_TOKENS_REMAINING: Item<u32> = Item::new("total_tokens_remaining");
 // Address and number of tokens minted
-pub const MINTED_TOKENS: Map<Addr, Vec<Token>> = Map::new("minted_tokens");
+pub const MINTED_TOKENS: Map<Addr, UserDetails> = Map::new("minted_tokens");
+// Rounds
+pub const ROUNDS: Item<Rounds> = Item::new("rounds");

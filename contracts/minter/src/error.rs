@@ -68,6 +68,9 @@ pub enum ContractError {
 
     #[error("Whitelist is already active")]
     WhitelistAlreadyActive {},
+
+    #[error("Not a whitelist contract")]
+    NotWhitelistContract {},
 }
 
 impl From<ContractError> for StdError {
