@@ -1,6 +1,6 @@
 [package]
 name        = "types"
-authors     = [""]
+authors     = ["Adnan Deniz Corlu <adenizcorlu@gmail.com>"]
 description = "omniflix launchpad types"
 version     = { workspace = true }
 edition     = { workspace = true }

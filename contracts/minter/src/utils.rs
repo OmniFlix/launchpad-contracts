@@ -1,15 +1,20 @@
 use std::convert::TryInto;
 
-use cosmwasm_std::{from_binary, Addr, DepsMut, Env, Order, StdError, Timestamp};
+use cosmwasm_std::{
+    from_binary, from_json, Addr, Binary, DepsMut, Env, Order, StdError, Timestamp,
+};
 use rand_core::{RngCore, SeedableRng};
 use rand_xoshiro::Xoshiro128PlusPlus;
+use serde::de::value;
 use sha2::{Digest, Sha256};
 use shuffle::{fy::FisherYates, shuffler::Shuffler};
 
 use crate::{
     error::ContractError,
-    msg::WhitelistQueryMsg,
     state::{Config, Token, CONFIG, MINTED_TOKENS},
+};
+use types::whitelist::{
+    HasMemberResponse, IsActiveResponse, PerAddressLimitResponse, WhitelistQueryMsgs,
 };
 
 pub fn check_whitelist(
@@ -21,31 +26,29 @@ pub fn check_whitelist(
 
     match whitelist_address {
         Some(whitelist_address) => {
-            let is_active_response = deps
+            let is_active_response: IsActiveResponse = deps
                 .querier
-                .query_wasm_smart(whitelist_address.clone(), &WhitelistQueryMsg::IsActive {})?;
-            let is_active: bool = from_binary(&is_active_response)?;
-            if !is_active {
-                return Err(ContractError::WhitelistNotActive {});
-            }
+                .query_wasm_smart(whitelist_address.clone(), &WhitelistQueryMsgs::IsActive {})?;
+            let is_active: bool = is_active_response.is_active;
 
-            let has_member_response = deps.querier.query_wasm_smart(
+            let has_member_response: HasMemberResponse = deps.querier.query_wasm_smart(
                 whitelist_address.clone(),
-                &WhitelistQueryMsg::HasMember {
+                &WhitelistQueryMsgs::HasMember {
                     member: address.clone().to_string(),
                 },
             )?;
-            let has_member: bool = from_binary(&has_member_response)?;
+            let has_member: bool = has_member_response.has_member;
             if !has_member {
                 return Err(ContractError::AddressNotWhitelisted {});
             }
-
             // Check if this address has reached the limit
-            let whitelist_per_address_limit = deps.querier.query_wasm_smart(
-                whitelist_address.clone(),
-                &WhitelistQueryMsg::PerAddressLimit {},
-            )?;
-            let whitelist_per_address_limit: u32 = from_binary(&whitelist_per_address_limit)?;
+            let whitelist_per_address_limit_response: PerAddressLimitResponse =
+                deps.querier.query_wasm_smart(
+                    whitelist_address.clone(),
+                    &WhitelistQueryMsgs::PerAddressLimit {},
+                )?;
+            let whitelist_per_address_limit =
+                whitelist_per_address_limit_response.per_address_limit;
 
             // Check if the address has reached the limit
             let is_mintable =

@@ -4,7 +4,7 @@ use std::str::FromStr;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    from_binary, to_binary, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo,
+    from_binary, to_json_binary, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo,
     Order, Response, StdResult, Uint128,
 };
 use cw_utils::{maybe_addr, must_pay, nonpayable};
@@ -594,12 +594,14 @@ pub fn execute_randomize_list(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
-        QueryMsg::Collection {} => to_binary(&query_collection(deps, env)?),
-        QueryMsg::Config {} => to_binary(&query_config(deps, env)?),
-        QueryMsg::MintableTokens {} => to_binary(&query_mintable_tokens(deps, env)?),
-        QueryMsg::MintedTokens { address } => to_binary(&query_minted_tokens(deps, env, address)?),
-        QueryMsg::TotalTokens {} => to_binary(&query_total_tokens(deps, env)?),
-        QueryMsg::Whitelist {} => to_binary(&query_whitelist(deps, env)?),
+        QueryMsg::Collection {} => to_json_binary(&query_collection(deps, env)?),
+        QueryMsg::Config {} => to_json_binary(&query_config(deps, env)?),
+        QueryMsg::MintableTokens {} => to_json_binary(&query_mintable_tokens(deps, env)?),
+        QueryMsg::MintedTokens { address } => {
+            to_json_binary(&query_minted_tokens(deps, env, address)?)
+        }
+        QueryMsg::TotalTokens {} => to_json_binary(&query_total_tokens(deps, env)?),
+        QueryMsg::Whitelist {} => to_json_binary(&query_whitelist(deps, env)?),
     }
 }
 

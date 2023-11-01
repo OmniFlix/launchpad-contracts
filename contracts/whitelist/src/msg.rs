@@ -7,8 +7,6 @@ pub struct InstantiateMsg {
     pub start_time: Timestamp,
     pub end_time: Timestamp,
     pub mint_price: Coin,
-    // Per address limit also exist on minter contract
-    // TODO: This might cause some problems
     pub per_address_limit: u32,
     pub members: Vec<String>,
     pub member_limit: u32,

@@ -1,5 +1,5 @@
 [package]
-authors = [""]
+authors     = ["Adnan Deniz Corlu <adenizcorlu@gmail.com>"]
 name = "omniflix-whitelist"
 version = { workspace = true }
 edition = { workspace = true }
