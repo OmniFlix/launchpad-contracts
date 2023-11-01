@@ -10,7 +10,6 @@ use crate::msg::CollectionDetails;
 pub struct Config {
     pub per_address_limit: u32,
     pub payment_collector: Addr,
-    pub whitelist_address: Option<Addr>,
     pub mint_denom: String,
     pub start_time: Timestamp,
     pub mint_price: Uint128,
@@ -26,13 +25,24 @@ pub struct Token {
 pub enum Round {
     WhitelistAddress {
         address: Addr,
+        start_time: Option<Timestamp>,
+        end_time: Option<Timestamp>,
     },
     WhitelistCollection {
         collection_id: String,
         start_time: Timestamp,
         end_time: Timestamp,
         mint_price: Uint128,
+        per_address_limit: u32,
     },
+}
+impl Round {
+    pub fn start_time(&self) -> Timestamp {
+        match self {
+            Round::WhitelistAddress { start_time, .. } => start_time.unwrap(),
+            Round::WhitelistCollection { start_time, .. } => *start_time,
+        }
+    }
 }
 
 pub type Rounds = Vec<Round>;
@@ -59,4 +69,4 @@ pub const TOTAL_TOKENS_REMAINING: Item<u32> = Item::new("total_tokens_remaining"
 // Address and number of tokens minted
 pub const MINTED_TOKENS: Map<Addr, UserDetails> = Map::new("minted_tokens");
 // Rounds
-pub const ROUNDS: Item<Rounds> = Item::new("rounds");
+pub const ROUNDS: Map<u32, Round> = Map::new("rounds");

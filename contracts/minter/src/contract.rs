@@ -20,7 +20,7 @@ use crate::msg::{CollectionDetails, ExecuteMsg, InstantiateMsg, QueryMsg, Whitel
 
 use crate::error::ContractError;
 use crate::state::{
-    Config, Round, Token, COLLECTION, CONFIG, MINTABLE_TOKENS, MINTED_TOKENS,
+    Config, Round, Token, COLLECTION, CONFIG, MINTABLE_TOKENS, MINTED_TOKENS, ROUNDS,
     TOTAL_TOKENS_REMAINING,
 };
 use crate::utils::{
@@ -91,13 +91,17 @@ pub fn instantiate(
     if msg.start_time < env.block.time {
         return Err(ContractError::InvalidStartTime {});
     }
-    // collect whitelist addresses
+    // Check rounds
     if msg.rounds.is_some() {
-        let whitelist_collections: Vec<Round>;
-        let whitelist_addresses: Vec<Addr>;
+        let mut whitelist_collections: Vec<Round>;
+        let mut whitelist_addresses: Vec<Addr>;
         let rounds = msg.rounds.unwrap();
         rounds.into_iter().map(|x| match x {
-            Round::WhitelistAddress { address } => {
+            Round::WhitelistAddress {
+                address,
+                start_time,
+                end_time,
+            } => {
                 whitelist_addresses.push(deps.api.addr_validate(&address.as_str()).unwrap());
             }
             Round::WhitelistCollection {
@@ -105,12 +109,14 @@ pub fn instantiate(
                 start_time,
                 end_time,
                 mint_price,
+                per_address_limit,
             } => {
                 whitelist_collections.push(Round::WhitelistCollection {
                     collection_id,
                     start_time,
                     end_time,
                     mint_price,
+                    per_address_limit,
                 });
             }
         });
@@ -133,15 +139,26 @@ pub fn instantiate(
                 start_time,
                 end_time,
                 mint_price,
+                per_address_limit,
             } = collection
             {
                 let is_active = env.block.time < end_time && env.block.time > start_time;
                 if is_active {
                     return Err(ContractError::WhitelistAlreadyActive {});
                 }
+                if per_address_limit == 0 {
+                    return Err(ContractError::PerAddressLimitZero {});
+                }
             }
         }
+        // Save rounds using index
+        for round in msg.rounds.unwrap() {
+            let mut index = 1;
+            ROUNDS.save(deps.storage, index, &round)?;
+            index += 1;
+        }
     }
+
     // Check royalty ratio we expect decimal number
     let royalty_ratio = Decimal::from_str(&msg.royalty_ratio)?;
     if royalty_ratio < Decimal::zero() || royalty_ratio > Decimal::one() {
@@ -163,7 +180,6 @@ pub fn instantiate(
     let config = Config {
         per_address_limit: msg.per_address_limit,
         payment_collector: payment_collector,
-        whitelist_address: maybe_addr(deps.api, msg.whitelist_address)?,
         mint_denom: msg.mint_denom,
         start_time: msg.start_time,
         mint_price: msg.mint_price,
@@ -271,16 +287,139 @@ pub fn execute_mint(
 ) -> Result<Response, ContractError> {
     // Check if the minting has started
     let config = CONFIG.load(deps.storage)?;
+    // Load rounds if they exist
+    let rounds: StdResult<Vec<(u32, Round)>> = ROUNDS
+        .range(deps.storage, None, None, Order::Ascending)
+        .collect();
+
+    // Check if the rounds were successfully loaded
+    let rounds = match rounds {
+        Ok(rounds) => Some(rounds),
+        Err(_) => None,
+    };
+    let mint_price: Uint128 = config.mint_price;
 
     if env.block.time < config.start_time {
-        let is_whitelisted = check_whitelist(&deps, &config, info.sender.clone())?;
-        if !is_whitelisted {
-            return Err(ContractError::MintingNotStarted {
-                start_time: config.start_time.nanos(),
-                current_time: env.block.time.nanos(),
-            });
+        let active_round: (u32, Round) = match rounds {
+            Some(rounds) => {
+                // First find all active rounds
+                let active_rounds: Vec<(u32, Round)>;
+                for round_with_index in rounds {
+                    match round_with_index.1 {
+                        Round::WhitelistAddress {
+                            address,
+                            start_time,
+                            end_time,
+                        } => {
+                            // Query the Config of the whitelist contract
+                            let whitelist_config: WhitelistConfig = deps.querier.query_wasm_smart(
+                                address.clone(),
+                                &WhitelistQueryMsgs::Config {},
+                            )?;
+                            let is_active = env.block.time < whitelist_config.end_time
+                                && env.block.time > whitelist_config.start_time;
+                            if is_active {
+                                let round = Round::WhitelistAddress {
+                                    address,
+                                    start_time: Some(whitelist_config.start_time),
+                                    end_time: Some(whitelist_config.end_time),
+                                };
+                                active_rounds.push((round_with_index.0, round));
+                            }
+                        }
+                        Round::WhitelistCollection {
+                            collection_id,
+                            start_time,
+                            end_time,
+                            mint_price,
+                            per_address_limit,
+                        } => {
+                            let is_active =
+                                env.block.time < end_time && env.block.time > start_time;
+                            if is_active {
+                                active_rounds.push((round_with_index.0, round_with_index.1));
+                            }
+                        }
+                    }
+                }
+                // Check if any active rounds exist
+                if active_rounds.len() == 0 {
+                    return Err(ContractError::WhitelistNotActive {});
+                }
+                // Check if active rounds is greater than 1
+                let active_round = active_rounds[0];
+                if active_rounds.len() > 1 {
+                    // Find the round which starts first
+                    for round in active_rounds {
+                        match round.1 {
+                            Round::WhitelistAddress {
+                                address,
+                                start_time,
+                                end_time,
+                            } => {
+                                if start_time.unwrap() < active_round.1.start_time() {
+                                    active_round = round;
+                                }
+                            }
+                            Round::WhitelistCollection {
+                                collection_id,
+                                start_time,
+                                end_time,
+                                mint_price,
+                                per_address_limit,
+                            } => {
+                                if start_time < active_round.1.start_time() {
+                                    active_round = round;
+                                }
+                            }
+                        };
+                    }
+                }
+                active_round
+            }
+            None => {
+                return Err(ContractError::WhitelistNotActive {});
+            }
+        };
+        // If we found an active round, check if the address is whitelisted
+        match active_round.1 {
+            Round::WhitelistAddress {
+                address,
+                start_time,
+                end_time,
+            } => {
+                // Check if address is whitelisted
+                let is_whitelisted: HasMemberResponse = deps.querier.query_wasm_smart(
+                    address.clone(),
+                    &WhitelistQueryMsgs::HasMember {
+                        member: info.sender.clone().into_string(),
+                    },
+                )?;
+                if !is_whitelisted.has_member {
+                    return Err(ContractError::AddressNotWhitelisted {});
+                }
+            }
+            Round::WhitelistCollection {
+                collection_id,
+                start_time,
+                end_time,
+                mint_price,
+                per_address_limit,
+            } => {
+                // Check if address has this collection
+                let nft_list_res = OnftQuerier::new(&deps.querier).owner_onf_ts(
+                    collection_id,
+                    info.sender.clone().into_string(),
+                    None,
+                )?;
+                let nft_list = nft_list_res.collections;
+                if nft_list.len() == 0 {
+                    return Err(ContractError::AddressNotWhitelisted {});
+                }
+            }
         }
     }
+
     let collection = COLLECTION.load(deps.storage)?;
 
     // Check the payment
