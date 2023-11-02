@@ -97,6 +97,9 @@ pub enum ContractError {
 
     #[error("Round already exists")]
     RoundAlreadyExists {},
+
+    #[error("Invalid roud type")]
+    InvalidRoundType { expected: String, actual: String },
 }
 
 impl From<ContractError> for StdError {

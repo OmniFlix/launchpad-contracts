@@ -48,8 +48,15 @@ pub enum ExecuteMsg {
     AddRound {
         round: Round,
     },
-    UpdateRound {
+    UpdateCollectiomRound {
         round_index: u32,
+        round: Round,
+    },
+    UpdateWhitelistRound {
+        start_time: Option<Timestamp>,
+        end_time: Option<Timestamp>,
+        mint_price: Option<Uint128>,
+        round_limit: Option<u32>,
     },
     BurnRemainingTokens {},
     UpdateRoyaltyRatio {

@@ -1,10 +1,11 @@
+use std::f32::consts::E;
 use std::str::FromStr;
 
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     to_json_binary, Addr, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo, Order,
-    Response, StdResult, Uint128,
+    Response, StdResult, Timestamp, Uint128,
 };
 
 use types::whitelist::{
@@ -230,9 +231,23 @@ pub fn execute(
             execute_remove_round(deps, env, info, round_index)
         }
         ExecuteMsg::AddRound { round } => execute_add_round(deps, env, info, round),
-        ExecuteMsg::UpdateRound { round_index } => {
-            execute_update_round(deps, env, info, round_index)
+        ExecuteMsg::UpdateCollectiomRound { round_index, round } => {
+            execute_update_collection_round(deps, env, info, round_index, round)
         }
+        ExecuteMsg::UpdateWhitelistRound {
+            start_time,
+            end_time,
+            mint_price,
+            round_limit,
+        } => execute_update_whitelist_round(
+            deps,
+            env,
+            info,
+            start_time,
+            end_time,
+            mint_price,
+            round_limit,
+        ),
     }
 }
 
@@ -292,7 +307,7 @@ pub fn execute_mint(
         // If succesfully updates it that means per_address_limit or round limit is not reached
         user_details.add_minted_token(
             config.per_address_limit,
-            Some(active_round.1.per_address_limit()),
+            Some(active_round.1.round_limit()),
             random_token.1,
             Some(active_round_index),
         )?;
@@ -667,6 +682,120 @@ pub fn execute_add_round(
 
     let res = Response::new()
         .add_attribute("action", "add_round")
+        .add_attribute("round_index", round_index.to_string());
+
+    Ok(res)
+}
+
+pub fn execute_update_collection_round(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    round_index: u32,
+    round: Round,
+) -> Result<Response, ContractError> {
+    // Check if sender is admin
+    let config = CONFIG.load(deps.storage)?;
+    if info.sender != config.creator {
+        return Err(ContractError::Unauthorized {});
+    }
+    let new_round = match round {
+        Round::WhitelistAddress {
+            address,
+            start_time,
+            end_time,
+            mint_price,
+            round_limit,
+        } => Err(ContractError::InvalidRoundType {
+            expected: "WhitelistAddress".to_string(),
+            actual: "WhitelistAddress".to_string(),
+        }),
+        Round::WhitelistCollection {
+            collection_id,
+            start_time,
+            end_time,
+            mint_price,
+            round_limit,
+        } => Ok(Round::WhitelistCollection {
+            collection_id,
+            start_time,
+            end_time,
+            mint_price,
+            round_limit,
+        }),
+    }?;
+    // Check if the round exists
+    let mut rounds = ROUNDS.load(deps.storage, round_index)?;
+    // Load all the rounds
+    let mut all_rounds = ROUNDS
+        .range(deps.storage, None, None, Order::Ascending)
+        .collect::<StdResult<Vec<(u32, Round)>>>()?;
+    // Remove the round from the list
+    all_rounds.retain(|(i, _)| i != &round_index);
+    // Add the new round to the list
+    all_rounds.push((round_index, new_round.clone()));
+    // Check if the round start time is valid
+    if new_round.start_time() < _env.block.time {
+        return Err(ContractError::RoundStartTimeInvalid {});
+    }
+    // Check if rounds overlap
+    check_round_overlaps(_env.block.time, all_rounds, config.start_time)?;
+
+    // If not owerlapping remove older
+    ROUNDS.remove(deps.storage, round_index);
+    ROUNDS.save(deps.storage, round_index, &new_round)?;
+
+    let res = Response::new()
+        .add_attribute("action", "update_collection_round")
+        .add_attribute("round_index", round_index.to_string());
+
+    Ok(res)
+}
+
+pub fn execute_update_whitelist_round(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    start_time: Option<Timestamp>,
+    end_time: Option<Timestamp>,
+    mint_price: Option<Uint128>,
+    round_limit: Option<u32>,
+) -> Result<Response, ContractError> {
+    // Check if sender is admin
+    let config = CONFIG.load(deps.storage)?;
+    let whitelist_address = info.sender.clone();
+    // Load all the rounds
+    let mut rounds = ROUNDS
+        .range(deps.storage, None, None, Order::Ascending)
+        .collect::<StdResult<Vec<(u32, Round)>>>()?;
+    // Find the round with whitelist address
+    let round = rounds
+        .iter_mut()
+        .find(|(i, round)| match round {
+            Round::WhitelistAddress { address, .. } => address == &whitelist_address,
+            _ => false,
+        })
+        .map(|(i, round)| (i, round))
+        .ok_or(ContractError::RoundNotFound {})?;
+    // Update the round
+    let round_index = round.0;
+    let mut round = round.1.clone();
+    // Update the round
+    round.update_params(start_time, end_time, mint_price, round_limit)?;
+    // Remove the round from the list
+    rounds.retain(|(i, _)| i != round_index);
+    // Add the new round to the list
+    rounds.push((round_index, round.clone()));
+
+    // Check if rounds overlap
+    check_round_overlaps(_env.block.time, rounds, config.start_time)?;
+
+    // If not owerlapping remove older from store
+    ROUNDS.remove(deps.storage, round_index);
+    ROUNDS.save(deps.storage, round_index, &round)?;
+
+    let res = Response::new()
+        .add_attribute("action", "update_whitelist_round")
         .add_attribute("round_index", round_index.to_string());
 
     Ok(res)

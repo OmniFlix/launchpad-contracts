@@ -28,14 +28,14 @@ pub enum Round {
         start_time: Option<Timestamp>,
         end_time: Option<Timestamp>,
         mint_price: Uint128,
-        per_address_limit: u32,
+        round_limit: u32,
     },
     WhitelistCollection {
         collection_id: String,
         start_time: Timestamp,
         end_time: Timestamp,
         mint_price: Uint128,
-        per_address_limit: u32,
+        round_limit: u32,
     },
 }
 impl Round {
@@ -57,12 +57,10 @@ impl Round {
             Round::WhitelistCollection { mint_price, .. } => *mint_price,
         }
     }
-    pub fn per_address_limit(&self) -> u32 {
+    pub fn round_limit(&self) -> u32 {
         match self {
-            Round::WhitelistAddress { .. } => 1,
-            Round::WhitelistCollection {
-                per_address_limit, ..
-            } => *per_address_limit,
+            Round::WhitelistAddress { round_limit, .. } => *round_limit,
+            Round::WhitelistCollection { round_limit, .. } => *round_limit,
         }
     }
     pub fn update_params(
@@ -70,14 +68,14 @@ impl Round {
         start_time: Option<Timestamp>,
         end_time: Option<Timestamp>,
         mint_price: Option<Uint128>,
-        per_address_limit: Option<u32>,
+        round_limit: Option<u32>,
     ) -> Result<(), ContractError> {
         match self {
             Round::WhitelistAddress {
                 start_time: ref mut s,
                 end_time: ref mut e,
                 mint_price: ref mut m,
-                per_address_limit: ref mut p,
+                round_limit: ref mut r,
                 ..
             } => {
                 if let Some(start_time) = start_time {
@@ -89,18 +87,15 @@ impl Round {
                 if let Some(mint_price) = mint_price {
                     *m = mint_price;
                 }
-                if let Some(per_address_limit) = per_address_limit {
-                    *p = per_address_limit;
-                }
-                if s > e {
-                    return Err(ContractError::RoundStartTimeInvalid {});
+                if let Some(round_limit) = round_limit {
+                    *r = round_limit;
                 }
             }
             Round::WhitelistCollection {
                 start_time: ref mut s,
                 end_time: ref mut e,
                 mint_price: ref mut m,
-                per_address_limit: ref mut p,
+                round_limit: ref mut r,
                 ..
             } => {
                 if let Some(start_time) = start_time {
@@ -112,11 +107,8 @@ impl Round {
                 if let Some(mint_price) = mint_price {
                     *m = mint_price;
                 }
-                if let Some(per_address_limit) = per_address_limit {
-                    *p = per_address_limit;
-                }
-                if s > e {
-                    return Err(ContractError::RoundStartTimeInvalid {});
+                if let Some(round_limit) = round_limit {
+                    *r = round_limit;
                 }
             }
         }

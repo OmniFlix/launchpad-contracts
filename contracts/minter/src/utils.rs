@@ -141,7 +141,7 @@ pub fn return_updated_round(deps: DepsMut, round: Round) -> Result<Round, Contra
             start_time,
             end_time,
             mint_price,
-            per_address_limit,
+            round_limit,
         } => {
             let whitelist_config: WhitelistConfig = deps
                 .querier
@@ -151,7 +151,7 @@ pub fn return_updated_round(deps: DepsMut, round: Round) -> Result<Round, Contra
                 start_time: Some(whitelist_config.start_time),
                 end_time: Some(whitelist_config.end_time),
                 mint_price: whitelist_config.mint_price.amount,
-                per_address_limit: whitelist_config.per_address_limit,
+                round_limit: whitelist_config.per_address_limit,
             };
         }
         Round::WhitelistCollection {
@@ -159,14 +159,14 @@ pub fn return_updated_round(deps: DepsMut, round: Round) -> Result<Round, Contra
             start_time,
             end_time,
             mint_price,
-            per_address_limit,
+            round_limit,
         } => {
             let round = Round::WhitelistCollection {
                 collection_id,
                 start_time,
                 end_time,
                 mint_price,
-                per_address_limit,
+                round_limit,
             };
         }
     }
@@ -184,7 +184,7 @@ pub fn check_if_whitelisted(
             start_time,
             end_time,
             mint_price,
-            per_address_limit,
+            round_limit,
         } => {
             let has_member_response: HasMemberResponse = deps.querier.query_wasm_smart(
                 address,
@@ -201,7 +201,7 @@ pub fn check_if_whitelisted(
             start_time,
             end_time,
             mint_price,
-            per_address_limit,
+            round_limit,
         } => {
             let onft_querier = OnftQuerier::new(&deps.querier);
             // TODO: Check if there is better way
