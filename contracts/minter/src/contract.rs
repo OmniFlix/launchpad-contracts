@@ -415,17 +415,15 @@ pub fn execute_mint_admin(
     })?;
 
     // Increment the minted tokens for the addres
-    let minter = MINTED_TOKENS.may_load(deps.storage, recipient.clone())?;
-    match minter {
-        Some(mut minted_tokens) => {
-            minted_tokens.push(token.clone().1);
-            MINTED_TOKENS.save(deps.storage, recipient.clone(), &minted_tokens)?;
-        }
-        None => {
-            let minted_tokens = vec![token.clone().1];
-            MINTED_TOKENS.save(deps.storage, recipient.clone(), &minted_tokens)?;
-        }
-    }
+    let mut user_details = MINTED_TOKENS
+        .may_load(deps.storage, recipient.clone())?
+        .unwrap_or(UserDetails::new());
+    // We are updating parameter ourself and not using add_minted_token function because we want to override per address limit checks
+    user_details.minted_tokens.push(token.1);
+    user_details.total_minted_count += 1;
+    // Save details
+    MINTED_TOKENS.save(deps.storage, recipient, &user_details);
+
     let denom_id = token.1.token_id;
 
     // Generate the metadata
