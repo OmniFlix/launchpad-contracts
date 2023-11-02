@@ -1,7 +1,7 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Timestamp, Uint128};
 
-use crate::state::Rounds;
+use crate::state::Round;
 
 #[cw_serde]
 pub struct InstantiateMsg {
@@ -14,7 +14,7 @@ pub struct InstantiateMsg {
     // Minting start time
     pub start_time: Timestamp,
     pub per_address_limit: u32,
-    pub rounds: Option<Rounds>,
+    pub rounds: Vec<Round>,
     // We expect user to send a string between 0 and 1
     // FE "0.1"
     pub royalty_ratio: String,

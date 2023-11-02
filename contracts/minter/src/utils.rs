@@ -11,56 +11,11 @@ use shuffle::{fy::FisherYates, shuffler::Shuffler};
 
 use crate::{
     error::ContractError,
-    state::{Config, Token, CONFIG, MINTED_TOKENS},
+    state::{Config, Round, Token, CONFIG, MINTED_TOKENS},
 };
 use types::whitelist::{
     HasMemberResponse, IsActiveResponse, PerAddressLimitResponse, WhitelistQueryMsgs,
 };
-
-pub fn check_whitelist(
-    deps: &DepsMut,
-    config: &Config,
-    address: Addr,
-) -> Result<bool, ContractError> {
-    let whitelist_address = config.whitelist_address.clone();
-
-    match whitelist_address {
-        Some(whitelist_address) => {
-            let is_active_response: IsActiveResponse = deps
-                .querier
-                .query_wasm_smart(whitelist_address.clone(), &WhitelistQueryMsgs::IsActive {})?;
-            let is_active: bool = is_active_response.is_active;
-
-            let has_member_response: HasMemberResponse = deps.querier.query_wasm_smart(
-                whitelist_address.clone(),
-                &WhitelistQueryMsgs::HasMember {
-                    member: address.clone().to_string(),
-                },
-            )?;
-            let has_member: bool = has_member_response.has_member;
-            if !has_member {
-                return Err(ContractError::AddressNotWhitelisted {});
-            }
-            // Check if this address has reached the limit
-            let whitelist_per_address_limit_response: PerAddressLimitResponse =
-                deps.querier.query_wasm_smart(
-                    whitelist_address.clone(),
-                    &WhitelistQueryMsgs::PerAddressLimit {},
-                )?;
-            let whitelist_per_address_limit =
-                whitelist_per_address_limit_response.per_address_limit;
-
-            // Check if the address has reached the limit
-            let is_mintable =
-                check_mint_limit_for_addr(&deps, address, Some(whitelist_per_address_limit))?;
-            if is_mintable {
-                return Err(ContractError::AddressReachedMintLimit {});
-            }
-            Ok(is_active && has_member && is_mintable)
-        }
-        None => Ok(false),
-    }
-}
 
 pub fn randomize_token_list(
     mut tokens: Vec<(u32, Token)>,
@@ -136,26 +91,14 @@ pub fn return_random_token_id(
     }
 }
 
-pub fn check_mint_limit_for_addr(
-    deps: &DepsMut,
-    minter: Addr,
-    limit: Option<u32>,
-) -> Result<bool, ContractError> {
-    let mut minted_tokens = MINTED_TOKENS.may_load(deps.storage, minter.clone())?;
-
-    let config = CONFIG.load(deps.storage)?;
-    let limit = limit.unwrap_or(config.per_address_limit);
-
-    match minted_tokens {
-        Some(tokens) => {
-            if tokens.len() >= limit as usize {
-                return Ok(false);
-            }
-            Ok(true)
-        }
-        None => Ok(true),
-    }
+pub fn check_round_overlaps(
+    rounds: Vec<Round>,
+    public_start_time: Timestamp,
+    public_end_time: Timestamp,
+) -> Result<(), ContractError> {
+    // TODO:Check if rounds overlap with each other and public start and end time
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;

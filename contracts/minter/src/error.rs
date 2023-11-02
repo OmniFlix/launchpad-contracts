@@ -71,6 +71,12 @@ pub enum ContractError {
 
     #[error("Not a whitelist contract")]
     NotWhitelistContract {},
+
+    #[error("Round limit is reached")]
+    RoundReachedMintLimit {},
+
+    #[error("Rounds overlaped")]
+    RoundsOverlaped {},
 }
 
 impl From<ContractError> for StdError {

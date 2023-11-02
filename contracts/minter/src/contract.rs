@@ -298,9 +298,10 @@ pub fn execute_mint(
         Err(_) => None,
     };
     let mint_price: Uint128 = config.mint_price;
-
+    let active_round: (u32, Round);
+    let mint_price = config.mint_price;
     if env.block.time < config.start_time {
-        let active_round: (u32, Round) = match rounds {
+        active_round = match rounds {
             Some(rounds) => {
                 // First find all active rounds
                 let active_rounds: Vec<(u32, Round)>;
@@ -418,15 +419,32 @@ pub fn execute_mint(
                 }
             }
         }
+        // Check if the address has reached the limit
+        let round_index = active_round.0;
+        let user_details = MINTED_TOKENS.may_load(deps.storage, info.sender.clone())?;
+        let mut user_rounds = match user_details {
+            Some(user_details) => user_details.rounds_mints,
+            None => Vec::new(),
+        };
+        // Find the round in the user rounds
+        let mut found_round = user_rounds.iter().find(|x| x.round_index == round_index);
+        // If the round is found, check if the user has reached the limit
+        if found_round.is_some() {
+            let found_round = found_round.unwrap();
+            if found_round.count + 1 >= active_round.1.per_address_limit() {
+                return Err(ContractError::AddressReachedMintLimit {});
+            }
+        }
+        mint_price = active_round.1.mint_price();
     }
 
     let collection = COLLECTION.load(deps.storage)?;
 
     // Check the payment
     let amount = must_pay(&info, &config.mint_denom)?;
-    if amount != config.mint_price {
+    if amount != mint_price {
         return Err(ContractError::IncorrectPaymentAmount {
-            expected: config.mint_price,
+            expected: mint_price,
             sent: amount,
         });
     }
@@ -473,8 +491,9 @@ pub fn execute_mint(
     let minter = MINTED_TOKENS.may_load(deps.storage, info.sender.clone())?;
     match minter {
         Some(mut minted_tokens) => {
-            minted_tokens.push(random_token.clone().1);
-            MINTED_TOKENS.save(deps.storage, info.sender.clone(), &minted_tokens)?;
+            minted_tokens.minted_tokens.push(random_token.clone().1);
+            minted_tokens.total_minted_count += 1;
+            minted_tokens.rounds_mints
         }
         None => {
             let minted_tokens = vec![random_token.clone().1];

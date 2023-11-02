@@ -4,7 +4,7 @@ use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Decimal, Timestamp, Uint128};
 use cw_storage_plus::{Item, Map};
 
-use crate::msg::CollectionDetails;
+use crate::{error::ContractError, msg::CollectionDetails};
 
 #[cw_serde]
 pub struct Config {
@@ -27,6 +27,8 @@ pub enum Round {
         address: Addr,
         start_time: Option<Timestamp>,
         end_time: Option<Timestamp>,
+        mint_price: Uint128,
+        per_address_limit: u32,
     },
     WhitelistCollection {
         collection_id: String,
@@ -43,21 +45,97 @@ impl Round {
             Round::WhitelistCollection { start_time, .. } => *start_time,
         }
     }
-}
-
-pub type Rounds = Vec<Round>;
-
-#[cw_serde]
-pub struct MintCountInRound {
-    pub round: u32,
-    pub count: u32,
+    pub fn end_time(&self) -> Timestamp {
+        match self {
+            Round::WhitelistAddress { end_time, .. } => end_time.unwrap(),
+            Round::WhitelistCollection { end_time, .. } => *end_time,
+        }
+    }
+    pub fn mint_price(&self) -> Uint128 {
+        match self {
+            Round::WhitelistAddress { .. } => Uint128::zero(),
+            Round::WhitelistCollection { mint_price, .. } => *mint_price,
+        }
+    }
+    pub fn per_address_limit(&self) -> u32 {
+        match self {
+            Round::WhitelistAddress { .. } => 1,
+            Round::WhitelistCollection {
+                per_address_limit, ..
+            } => *per_address_limit,
+        }
+    }
 }
 
 #[cw_serde]
 pub struct UserDetails {
-    minted_tokens: Vec<Token>,
-    total_minted_count: u32,
-    rounds_mints: Vec<MintCountInRound>,
+    pub minted_tokens: Vec<Token>,
+    pub total_minted_count: u32,
+    pub rounds_mints: Vec<MintCountInRound>,
+}
+
+#[cw_serde]
+pub struct MintCountInRound {
+    pub round_index: u32,
+    pub count: u32,
+}
+
+impl UserDetails {
+    pub fn new() -> Self {
+        UserDetails {
+            minted_tokens: Vec::new(),
+            total_minted_count: 0,
+            rounds_mints: Vec::new(),
+        }
+    }
+    pub fn add_minted_token(
+        &mut self,
+        per_address_limit: u32,
+        round_limit: Option<u32>,
+        token: Token,
+        round_index: Option<u32>,
+    ) -> Result<(), ContractError> {
+        if let Some(round_index) = round_index {
+            // Find the round in rounds_mints and modify it if it exists
+            if let Some(round) = self
+                .rounds_mints
+                .iter_mut()
+                .find(|r| r.round_index == round_index)
+            {
+                round.count += 1;
+                self.total_minted_count += 1;
+
+                if self.total_minted_count > per_address_limit {
+                    return Err(ContractError::AddressReachedMintLimit {});
+                }
+
+                // Check if a round_limit is provided and validate the count
+                if let Some(limit) = round_limit {
+                    if round.count > limit {
+                        return Err(ContractError::RoundReachedMintLimit {});
+                    }
+                }
+            } else {
+                // If the round doesn't exist, create it and add it to rounds_mints.
+                self.total_minted_count += 1;
+                if self.total_minted_count > per_address_limit {
+                    return Err(ContractError::AddressReachedMintLimit {});
+                }
+                self.rounds_mints.push(MintCountInRound {
+                    round_index,
+                    count: 1,
+                });
+            }
+        } else {
+            self.total_minted_count += 1;
+            if self.total_minted_count > per_address_limit {
+                return Err(ContractError::AddressReachedMintLimit {});
+            }
+            self.minted_tokens.push(token);
+        }
+        self.minted_tokens.push(token);
+        Ok(())
+    }
 }
 
 pub const CONFIG: Item<Config> = Item::new("config");
