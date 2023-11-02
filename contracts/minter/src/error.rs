@@ -4,6 +4,8 @@ use cosmwasm_std::{CheckedFromRatioError, ConversionOverflowError, StdError, Uin
 use cw_utils::PaymentError;
 use thiserror::Error;
 
+use crate::state::Round;
+
 #[derive(Error, Debug, PartialEq)]
 pub enum ContractError {
     #[error("{0}")]
@@ -76,7 +78,13 @@ pub enum ContractError {
     RoundReachedMintLimit {},
 
     #[error("Rounds overlaped")]
-    RoundsOverlaped {},
+    RoundsOverlaped { round: Round },
+
+    #[error("Round is not active")]
+    RoundEnded {},
+
+    #[error("Round has already started")]
+    RoundAlreadyStarted {},
 }
 
 impl From<ContractError> for StdError {

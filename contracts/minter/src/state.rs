@@ -93,6 +93,7 @@ impl UserDetails {
         per_address_limit: u32,
         round_limit: Option<u32>,
         token: Token,
+        // If no round index is provided, its a public mint.
         round_index: Option<u32>,
     ) -> Result<(), ContractError> {
         if let Some(round_index) = round_index {
@@ -131,7 +132,7 @@ impl UserDetails {
             if self.total_minted_count > per_address_limit {
                 return Err(ContractError::AddressReachedMintLimit {});
             }
-            self.minted_tokens.push(token);
+            self.minted_tokens.push(token.clone());
         }
         self.minted_tokens.push(token);
         Ok(())
