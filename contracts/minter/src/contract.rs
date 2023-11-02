@@ -102,6 +102,7 @@ pub fn instantiate(
     if royalty_ratio > Decimal::one() {
         return Err(ContractError::InvalidRoyaltyRatio {});
     }
+
     if msg.rounds.is_some() {
         // First update the rounds. We are only updating whitelist rounds
         let mut rounds = msg.rounds.unwrap();
@@ -443,7 +444,7 @@ pub fn execute_mint_admin(
     user_details.minted_tokens.push(token.1.clone());
     user_details.total_minted_count += 1;
     // Save details
-    MINTED_TOKENS.save(deps.storage, recipient.clone(), &user_details);
+    MINTED_TOKENS.save(deps.storage, recipient.clone(), &user_details)?;
 
     let denom_id = token.1.token_id;
 
@@ -668,7 +669,7 @@ pub fn execute_update_collection_round(
             mint_price,
             round_limit,
         } => Err(ContractError::InvalidRoundType {
-            expected: "WhitelistAddress".to_string(),
+            expected: "CollectionRound".to_string(),
             actual: "WhitelistAddress".to_string(),
         }),
         Round::WhitelistCollection {
@@ -685,8 +686,6 @@ pub fn execute_update_collection_round(
             round_limit,
         }),
     }?;
-    // Check if the round exists
-    let mut rounds = ROUNDS.load(deps.storage, round_index)?;
     // Load all the rounds
     let mut all_rounds = ROUNDS
         .range(deps.storage, None, None, Order::Ascending)
