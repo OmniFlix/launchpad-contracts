@@ -14,7 +14,7 @@ pub struct InstantiateMsg {
     // Minting start time
     pub start_time: Timestamp,
     pub per_address_limit: u32,
-    pub rounds: Vec<Round>,
+    pub rounds: Option<Vec<Round>>,
     // We expect user to send a string between 0 and 1
     // FE "0.1"
     pub royalty_ratio: String,

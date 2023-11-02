@@ -1,7 +1,7 @@
 use std::convert::TryInto;
 
 use cosmwasm_std::{
-    from_binary, from_json, Addr, Binary, DepsMut, Env, Order, StdError, Timestamp,
+    from_binary, from_json, Addr, Binary, Deps, DepsMut, Env, Order, StdError, Timestamp,
 };
 use rand_core::{RngCore, SeedableRng};
 use rand_xoshiro::Xoshiro128PlusPlus;
@@ -13,6 +13,7 @@ use crate::{
     error::ContractError,
     state::{Config, Round, Token, CONFIG, MINTED_TOKENS},
 };
+use types::whitelist::Config as WhitelistConfig;
 use types::whitelist::{
     HasMemberResponse, IsActiveResponse, PerAddressLimitResponse, WhitelistQueryMsgs,
 };
@@ -95,14 +96,15 @@ pub fn check_round_overlaps(
     now: Timestamp,
     rounds: Vec<Round>,
     public_start_time: Timestamp,
-    public_end_time: Timestamp,
 ) -> Result<(), ContractError> {
     let mut rounds = rounds;
+
     // add public as a round
     rounds.push(Round::WhitelistAddress {
         address: Addr::unchecked("public"),
         start_time: Some(public_start_time),
-        end_time: Some(public_end_time),
+        // There is no public mint end time we generate 100 day after start time to be safe
+        end_time: Some(public_start_time.plus_days(100)),
         mint_price: Default::default(),
         per_address_limit: 1,
     });
@@ -127,6 +129,44 @@ pub fn check_round_overlaps(
         }
     }
     Ok(())
+}
+pub fn return_updated_round(deps: DepsMut, round: Round) -> Result<Round, ContractError> {
+    match round {
+        Round::WhitelistAddress {
+            address,
+            start_time,
+            end_time,
+            mint_price,
+            per_address_limit,
+        } => {
+            let whitelist_config: WhitelistConfig = deps
+                .querier
+                .query_wasm_smart(address, &WhitelistQueryMsgs::Config {})?;
+            let round = Round::WhitelistAddress {
+                address,
+                start_time: Some(whitelist_config.start_time),
+                end_time: Some(whitelist_config.end_time),
+                mint_price: whitelist_config.mint_price.amount,
+                per_address_limit: whitelist_config.per_address_limit,
+            };
+        }
+        Round::WhitelistCollection {
+            collection_id,
+            start_time,
+            end_time,
+            mint_price,
+            per_address_limit,
+        } => {
+            let round = Round::WhitelistCollection {
+                collection_id,
+                start_time,
+                end_time,
+                mint_price,
+                per_address_limit,
+            };
+        }
+    }
+    Ok(round)
 }
 
 #[cfg(test)]
@@ -253,7 +293,7 @@ mod tests {
         let rounds = vec![round1, round2, round3];
 
         // Check for no overlaps
-        let result = check_round_overlaps(now, rounds, public_start_time, public_end_time);
+        let result = check_round_overlaps(now, rounds, public_start_time);
         assert!(result.is_ok());
     }
 
@@ -289,7 +329,7 @@ mod tests {
         let rounds = vec![round1, round2, round3];
 
         // Check for overlap between rounds 1 and 2
-        let result = check_round_overlaps(now, rounds, public_start_time, public_end_time);
+        let result = check_round_overlaps(now, rounds, public_start_time);
         assert!(result.is_err());
     }
 
@@ -325,7 +365,7 @@ mod tests {
         let rounds = vec![round1, round2, round3];
 
         // Check for overlap between round 1 and public time
-        let result = check_round_overlaps(now, rounds, public_start_time, public_end_time);
+        let result = check_round_overlaps(now, rounds, public_start_time);
         assert!(result.is_err());
     }
 }
