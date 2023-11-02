@@ -88,6 +88,9 @@ pub enum ContractError {
 
     #[error("Round start time is invalid")]
     RoundStartTimeInvalid {},
+
+    #[error("Collection not found")]
+    CollectionNotFound {},
 }
 
 impl From<ContractError> for StdError {

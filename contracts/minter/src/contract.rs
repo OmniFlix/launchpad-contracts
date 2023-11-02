@@ -19,11 +19,12 @@ use crate::msg::{CollectionDetails, ExecuteMsg, InstantiateMsg, QueryMsg, Whitel
 
 use crate::error::ContractError;
 use crate::state::{
-    Config, Round, Token, COLLECTION, CONFIG, MINTABLE_TOKENS, MINTED_TOKENS, ROUNDS,
+    Config, Round, Token, UserDetails, COLLECTION, CONFIG, MINTABLE_TOKENS, MINTED_TOKENS, ROUNDS,
     TOTAL_TOKENS_REMAINING,
 };
 use crate::utils::{
-    check_round_overlaps, randomize_token_list, return_random_token_id, return_updated_round,
+    check_if_whitelisted, check_round_overlaps, find_active_round, randomize_token_list,
+    return_random_token_id, return_updated_round,
 };
 
 use cw2::set_contract_version;
@@ -103,19 +104,18 @@ pub fn instantiate(
     if msg.rounds.is_some() {
         // First update the rounds. We are only updating whitelist rounds
         let mut rounds = msg.rounds.unwrap();
-        let mut updated_rounds: Vec<Round> = Vec::new();
+        let mut updated_rounds: Vec<(u32, Round)>;
         for mut round in rounds {
+            let mut i = 1;
             let updated = return_updated_round(deps, round)?;
-            updated_rounds.push(updated);
+            updated_rounds.push((i, round));
         }
 
         // Check if the rounds overlap if none we can save it
         check_round_overlaps(env.block.time, updated_rounds, msg.start_time)?;
         // Save the rounds
         for round in updated_rounds {
-            let mut i = 1;
-            ROUNDS.save(deps.storage, 1, &round)?;
-            i += 1;
+            ROUNDS.save(deps.storage, round.0, &round.1)?;
         }
     }
     // Check mint price
@@ -236,177 +236,14 @@ pub fn execute_mint(
     info: MessageInfo,
     _msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
-    // Check if the minting has started
-    let config = CONFIG.load(deps.storage)?;
-    // Load rounds if they exist
-    let rounds: StdResult<Vec<(u32, Round)>> = ROUNDS
-        .range(deps.storage, None, None, Order::Ascending)
-        .collect();
-
-    // Check if the rounds were successfully loaded
-    let rounds = match rounds {
-        Ok(rounds) => Some(rounds),
-        Err(_) => None,
-    };
-    let mint_price: Uint128 = config.mint_price;
-    let active_round: (u32, Round);
-    let mint_price = config.mint_price;
-    if env.block.time < config.start_time {
-        active_round = match rounds {
-            Some(rounds) => {
-                // First find all active rounds
-                let active_rounds: Vec<(u32, Round)>;
-                for round_with_index in rounds {
-                    match round_with_index.1 {
-                        Round::WhitelistAddress {
-                            address,
-                            start_time,
-                            end_time,
-                        } => {
-                            // Query the Config of the whitelist contract
-                            let whitelist_config: WhitelistConfig = deps.querier.query_wasm_smart(
-                                address.clone(),
-                                &WhitelistQueryMsgs::Config {},
-                            )?;
-                            let is_active = env.block.time < whitelist_config.end_time
-                                && env.block.time > whitelist_config.start_time;
-                            if is_active {
-                                let round = Round::WhitelistAddress {
-                                    address,
-                                    start_time: Some(whitelist_config.start_time),
-                                    end_time: Some(whitelist_config.end_time),
-                                };
-                                active_rounds.push((round_with_index.0, round));
-                            }
-                        }
-                        Round::WhitelistCollection {
-                            collection_id,
-                            start_time,
-                            end_time,
-                            mint_price,
-                            per_address_limit,
-                        } => {
-                            let is_active =
-                                env.block.time < end_time && env.block.time > start_time;
-                            if is_active {
-                                active_rounds.push((round_with_index.0, round_with_index.1));
-                            }
-                        }
-                    }
-                }
-                // Check if any active rounds exist
-                if active_rounds.len() == 0 {
-                    return Err(ContractError::WhitelistNotActive {});
-                }
-                // Check if active rounds is greater than 1
-                let active_round = active_rounds[0];
-                if active_rounds.len() > 1 {
-                    // Find the round which starts first
-                    for round in active_rounds {
-                        match round.1 {
-                            Round::WhitelistAddress {
-                                address,
-                                start_time,
-                                end_time,
-                            } => {
-                                if start_time.unwrap() < active_round.1.start_time() {
-                                    active_round = round;
-                                }
-                            }
-                            Round::WhitelistCollection {
-                                collection_id,
-                                start_time,
-                                end_time,
-                                mint_price,
-                                per_address_limit,
-                            } => {
-                                if start_time < active_round.1.start_time() {
-                                    active_round = round;
-                                }
-                            }
-                        };
-                    }
-                }
-                active_round
-            }
-            None => {
-                return Err(ContractError::WhitelistNotActive {});
-            }
-        };
-        // If we found an active round, check if the address is whitelisted
-        match active_round.1 {
-            Round::WhitelistAddress {
-                address,
-                start_time,
-                end_time,
-            } => {
-                // Check if address is whitelisted
-                let is_whitelisted: HasMemberResponse = deps.querier.query_wasm_smart(
-                    address.clone(),
-                    &WhitelistQueryMsgs::HasMember {
-                        member: info.sender.clone().into_string(),
-                    },
-                )?;
-                if !is_whitelisted.has_member {
-                    return Err(ContractError::AddressNotWhitelisted {});
-                }
-            }
-            Round::WhitelistCollection {
-                collection_id,
-                start_time,
-                end_time,
-                mint_price,
-                per_address_limit,
-            } => {
-                // Check if address has this collection
-                let nft_list_res = OnftQuerier::new(&deps.querier).owner_onf_ts(
-                    collection_id,
-                    info.sender.clone().into_string(),
-                    None,
-                )?;
-                let nft_list = nft_list_res.collections;
-                if nft_list.len() == 0 {
-                    return Err(ContractError::AddressNotWhitelisted {});
-                }
-            }
-        }
-        // Check if the address has reached the limit
-        let round_index = active_round.0;
-        let user_details = MINTED_TOKENS.may_load(deps.storage, info.sender.clone())?;
-        let mut user_rounds = match user_details {
-            Some(user_details) => user_details.rounds_mints,
-            None => Vec::new(),
-        };
-        // Find the round in the user rounds
-        let mut found_round = user_rounds.iter().find(|x| x.round_index == round_index);
-        // If the round is found, check if the user has reached the limit
-        if found_round.is_some() {
-            let found_round = found_round.unwrap();
-            if found_round.count + 1 >= active_round.1.per_address_limit() {
-                return Err(ContractError::AddressReachedMintLimit {});
-            }
-        }
-        mint_price = active_round.1.mint_price();
-    }
-
-    let collection = COLLECTION.load(deps.storage)?;
-
-    // Check the payment
-    let amount = must_pay(&info, &config.mint_denom)?;
-    if amount != mint_price {
-        return Err(ContractError::IncorrectPaymentAmount {
-            expected: mint_price,
-            sent: amount,
-        });
-    }
-
     // Check if any tokens are left
     let total_tokens_remaining = TOTAL_TOKENS_REMAINING.load(deps.storage)?;
 
     if total_tokens_remaining == 0 {
         return Err(ContractError::NoTokensLeftToMint {});
     }
-
+    let config = CONFIG.load(deps.storage)?;
+    let mut mint_price = config.mint_price;
     // Collect mintable tokens
     let mut mintable_tokens: Vec<(u32, Token)> = Vec::new();
     for item in MINTABLE_TOKENS.range(deps.storage, None, None, Order::Ascending) {
@@ -418,39 +255,73 @@ pub fn execute_mint(
 
     // Get a random token id
     let random_token = return_random_token_id(&mintable_tokens, env.clone())?;
-
-    // Check if the address has reached the limit
-    let is_mintable = check_mint_limit_for_addr(&deps, info.sender.clone(), None)?;
-    if !is_mintable {
-        return Err(ContractError::AddressReachedMintLimit {});
+    // Check if minting is started
+    if env.block.time < config.start_time {
+        // If not public mint try to find the rounds
+        let rounds: StdResult<Vec<(u32, Round)>> = ROUNDS
+            .range(deps.storage, None, None, Order::Ascending)
+            .collect();
+        let rounds = rounds.unwrap_or(Vec::new());
+        if rounds.is_empty() {
+            return Err(ContractError::MintingNotStarted {
+                start_time: config.start_time.seconds(),
+                current_time: env.block.time.seconds(),
+            });
+        }
+        // First check if rounds overlap
+        check_round_overlaps(env.block.time, rounds, config.start_time)?;
+        // Check if any active round exists
+        let active_round = find_active_round(env.block.time, rounds)?;
+        let active_round_index = active_round.0;
+        // Check if the address is whitelisted
+        let is_member = check_if_whitelisted(
+            info.sender.clone().into_string(),
+            active_round.1,
+            deps.as_ref(),
+        )?;
+        let mut user_details = MINTED_TOKENS
+            .may_load(deps.storage, info.sender)?
+            .unwrap_or(UserDetails::new());
+        // This function tries to add mintable token to user details
+        // If succesfully updates it that means per_address_limit or round limit is not reached
+        user_details.add_minted_token(
+            config.per_address_limit,
+            Some(active_round.1.per_address_limit()),
+            random_token.1,
+            Some(active_round_index),
+        )?;
+        MINTED_TOKENS.save(deps.storage, info.sender, &user_details)?;
+        // Determine mint price
+        mint_price = active_round.1.mint_price()
+    } else {
+        // Check if the address has reached the limit
+        let mut user_details = MINTED_TOKENS
+            .may_load(deps.storage, info.sender)?
+            .unwrap_or(UserDetails::new());
+        user_details.add_minted_token(config.per_address_limit, None, random_token.1, None)?;
+        // Save new data
+        MINTED_TOKENS.save(deps.storage, info.sender, &user_details)?;
     }
 
+    // Check the payment
+    let amount = must_pay(&info, &config.mint_denom)?;
+    if amount != mint_price {
+        return Err(ContractError::IncorrectPaymentAmount {
+            expected: mint_price,
+            sent: amount,
+        });
+    }
     // Get the payment collector address
     let payment_collector = config.payment_collector;
-
+    let collection = COLLECTION.load(deps.storage)?;
     // Update storage
     // Remove the token from the mintable tokens
     MINTABLE_TOKENS.remove(deps.storage, random_token.0);
-
     // Decrement the total tokens remaining
     TOTAL_TOKENS_REMAINING.update(deps.storage, |mut total_tokens| -> StdResult<_> {
         total_tokens -= 1;
         Ok(total_tokens)
     })?;
-
-    // Increment the minted tokens for the address
-    let minter = MINTED_TOKENS.may_load(deps.storage, info.sender.clone())?;
-    match minter {
-        Some(mut minted_tokens) => {
-            minted_tokens.minted_tokens.push(random_token.clone().1);
-            minted_tokens.total_minted_count += 1;
-            minted_tokens.rounds_mints
-        }
-        None => {
-            let minted_tokens = vec![random_token.clone().1];
-            MINTED_TOKENS.save(deps.storage, info.sender.clone(), &minted_tokens)?;
-        }
-    }
     let token_id = random_token.1.token_id;
     // Generate the metadata
     let metadata = Metadata {

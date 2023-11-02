@@ -3,6 +3,7 @@ use std::convert::TryInto;
 use cosmwasm_std::{
     from_binary, from_json, Addr, Binary, Deps, DepsMut, Env, Order, StdError, Timestamp,
 };
+use omniflix_std::types::omniflix::onft::v1beta1::OnftQuerier;
 use rand_core::{RngCore, SeedableRng};
 use rand_xoshiro::Xoshiro128PlusPlus;
 use serde::de::value;
@@ -94,37 +95,40 @@ pub fn return_random_token_id(
 
 pub fn check_round_overlaps(
     now: Timestamp,
-    rounds: Vec<Round>,
+    rounds: Vec<(u32, Round)>,
     public_start_time: Timestamp,
 ) -> Result<(), ContractError> {
     let mut rounds = rounds;
 
     // add public as a round
-    rounds.push(Round::WhitelistAddress {
-        address: Addr::unchecked("public"),
-        start_time: Some(public_start_time),
-        // There is no public mint end time we generate 100 day after start time to be safe
-        end_time: Some(public_start_time.plus_days(100)),
-        mint_price: Default::default(),
-        per_address_limit: 1,
-    });
+    rounds.push((
+        u32::MAX,
+        Round::WhitelistAddress {
+            address: Addr::unchecked("public"),
+            start_time: Some(public_start_time),
+            // There is no public mint end time we generate 100 day after start time to be safe
+            end_time: Some(public_start_time.plus_days(100)),
+            mint_price: Default::default(),
+            per_address_limit: 1,
+        },
+    ));
     // Sort rounds by start time
-    rounds.sort_by(|a, b| a.start_time().cmp(&b.start_time()));
+    rounds.sort_by(|a, b| a.1.start_time().cmp(&b.1.start_time()));
     // Check for overlaps
     for (i, round) in rounds.iter().enumerate() {
         if i == rounds.len() - 1 {
             break;
         }
         let next_round = &rounds[i + 1];
-        if round.end_time() > next_round.start_time() {
+        if round.1.end_time() > next_round.1.start_time() {
             return Err(ContractError::RoundsOverlaped {
-                round: round.clone(),
+                round: round.1.clone(),
             });
         }
     }
     // Check for overlaps with now none of them should be started
     for round in rounds {
-        if round.start_time() < now {
+        if round.1.start_time() < now {
             return Err(ContractError::RoundAlreadyStarted {});
         }
     }
@@ -169,6 +173,71 @@ pub fn return_updated_round(deps: DepsMut, round: Round) -> Result<Round, Contra
     Ok(round)
 }
 
+pub fn check_if_whitelisted(
+    member: String,
+    round: Round,
+    deps: Deps,
+) -> Result<bool, ContractError> {
+    match round {
+        Round::WhitelistAddress {
+            address,
+            start_time,
+            end_time,
+            mint_price,
+            per_address_limit,
+        } => {
+            let has_member_response: HasMemberResponse = deps.querier.query_wasm_smart(
+                address,
+                &WhitelistQueryMsgs::HasMember {
+                    member: member.clone(),
+                },
+            )?;
+            if has_member_response.has_member {
+                return Ok(true);
+            }
+        }
+        Round::WhitelistCollection {
+            collection_id,
+            start_time,
+            end_time,
+            mint_price,
+            per_address_limit,
+        } => {
+            let onft_querier = OnftQuerier::new(&deps.querier);
+            // TODO: Check if there is better way
+            let collection = onft_querier
+                .collection(collection_id.clone(), None)?
+                .collection;
+            if collection.is_none() {
+                return Err(ContractError::CollectionNotFound {});
+            }
+            let onfts = collection.unwrap().onfts;
+            for onft in onfts {
+                if onft.owner == member {
+                    return Ok(true);
+                }
+            }
+        }
+    }
+
+    Ok(false)
+}
+
+pub fn find_active_round(
+    now: Timestamp,
+    rounds: Vec<(u32, Round)>,
+) -> Result<(u32, Round), ContractError> {
+    let mut rounds = rounds;
+    // Sort rounds by start time
+    rounds.sort_by(|a, b| a.1.start_time().cmp(&b.1.start_time()));
+    // Find active round
+    for round in rounds {
+        if round.1.start_time() <= now && round.1.end_time() >= now {
+            return Ok(round);
+        }
+    }
+    Err(ContractError::RoundEnded {})
+}
 #[cfg(test)]
 mod tests {
     use super::*;
