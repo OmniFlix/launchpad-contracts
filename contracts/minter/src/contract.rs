@@ -22,7 +22,9 @@ use crate::state::{
     Config, Round, Token, COLLECTION, CONFIG, MINTABLE_TOKENS, MINTED_TOKENS, ROUNDS,
     TOTAL_TOKENS_REMAINING,
 };
-use crate::utils::{check_round_overlaps, randomize_token_list, return_random_token_id};
+use crate::utils::{
+    check_round_overlaps, randomize_token_list, return_random_token_id, return_updated_round,
+};
 
 use cw2::set_contract_version;
 use omniflix_std::types::omniflix::onft::v1beta1::{
@@ -99,15 +101,28 @@ pub fn instantiate(
         return Err(ContractError::InvalidRoyaltyRatio {});
     }
     if msg.rounds.is_some() {
-        let rounds = msg.rounds.unwrap();
-        // Check if the rounds overlap
-        check_round_overlaps(env.block.time, rounds, msg.start_time)?;
-    }
+        // First update the rounds. We are only updating whitelist rounds
+        let mut rounds = msg.rounds.unwrap();
+        let mut updated_rounds: Vec<Round> = Vec::new();
+        for mut round in rounds {
+            let updated = return_updated_round(deps, round)?;
+            updated_rounds.push(updated);
+        }
 
+        // Check if the rounds overlap if none we can save it
+        check_round_overlaps(env.block.time, updated_rounds, msg.start_time)?;
+        // Save the rounds
+        for round in updated_rounds {
+            let mut i = 1;
+            ROUNDS.save(deps.storage, 1, &round)?;
+            i += 1;
+        }
+    }
     // Check mint price
     if msg.mint_price == Uint128::new(0) {
         return Err(ContractError::InvalidMintPrice {});
     }
+
     let creator = maybe_addr(deps.api, msg.creator.clone())?.unwrap_or(info.sender.clone());
     let payment_collector =
         maybe_addr(deps.api, msg.payment_collector.clone())?.unwrap_or(info.sender.clone());
@@ -154,6 +169,7 @@ pub fn instantiate(
     randomized_list.into_iter().for_each(|(key, value)| {
         MINTABLE_TOKENS
             .save(deps.storage, key, &value)
+            // TODO Fix here
             .unwrap_or_else(|_| {
                 panic!(
                     "Unable to save mintable tokens with key {} and value {}",
