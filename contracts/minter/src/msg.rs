@@ -42,8 +42,14 @@ pub enum ExecuteMsg {
         recipient: String,
         denom_id: Option<String>,
     },
-    SetWhitelist {
-        address: String,
+    RemoveRound {
+        round_index: u32,
+    },
+    AddRound {
+        round: Round,
+    },
+    UpdateRound {
+        round_index: u32,
     },
     BurnRemainingTokens {},
     UpdateRoyaltyRatio {

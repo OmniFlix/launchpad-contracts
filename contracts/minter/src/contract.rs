@@ -218,7 +218,6 @@ pub fn execute(
             recipient,
             denom_id,
         } => execute_mint_admin(deps, env, info, recipient, denom_id),
-        ExecuteMsg::SetWhitelist { address } => execute_set_whitelist(deps, env, info, address),
         ExecuteMsg::BurnRemainingTokens {} => execute_burn_remaining_tokens(deps, env, info),
         ExecuteMsg::UpdateRoyaltyRatio { ratio } => {
             execute_update_royalty_ratio(deps, env, info, ratio)
@@ -227,6 +226,13 @@ pub fn execute(
             execute_update_mint_price(deps, env, info, mint_price)
         }
         ExecuteMsg::RandomizeList {} => execute_randomize_list(deps, env, info),
+        ExecuteMsg::RemoveRound { round_index } => {
+            execute_remove_round(deps, env, info, round_index)
+        }
+        ExecuteMsg::AddRound { round } => execute_add_round(deps, env, info, round),
+        ExecuteMsg::UpdateRound { round_index } => {
+            execute_update_round(deps, env, info, round_index)
+        }
     }
 }
 
@@ -464,23 +470,12 @@ pub fn execute_set_whitelist(
     address: String,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
-    let config = CONFIG.load(deps.storage)?;
+    let mut config = CONFIG.load(deps.storage)?;
     if info.sender != config.creator {
         return Err(ContractError::Unauthorized {});
     }
 
     let address = deps.api.addr_validate(&address)?;
-
-    let new_config = Config {
-        per_address_limit: config.per_address_limit,
-        payment_collector: config.payment_collector,
-        whitelist_address: Some(address.clone()),
-        mint_denom: config.mint_denom,
-        start_time: config.start_time,
-        mint_price: config.mint_price,
-        royalty_ratio: config.royalty_ratio,
-        creator: config.creator,
-    };
 
     CONFIG.save(deps.storage, &new_config)?;
 
@@ -614,6 +609,30 @@ pub fn execute_randomize_list(
     Ok(res)
 }
 
+pub fn execute_remove_round(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    round_index: u32,
+) -> Result<Response, ContractError> {
+    // Check if sender is admin
+    let config = CONFIG.load(deps.storage)?;
+    if info.sender != config.creator {
+        return Err(ContractError::Unauthorized {});
+    }
+    // Check if the round exists
+    let round = ROUNDS.may_load(deps.storage, round_index)?;
+    if round.is_none() {
+        return Err(ContractError::RoundNotFound {});
+    }
+    // Remove the round
+    ROUNDS.remove(deps.storage, round_index);
+
+    let res = Response::new()
+        .add_attribute("action", "remove_round")
+        .add_attribute("round_index", round_index.to_string());
+    Ok(res)
+}
 // Implement Queries
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {

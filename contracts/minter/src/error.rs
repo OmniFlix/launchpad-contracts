@@ -91,6 +91,9 @@ pub enum ContractError {
 
     #[error("Collection not found")]
     CollectionNotFound {},
+
+    #[error("Round does not exist")]
+    RoundNotFound {},
 }
 
 impl From<ContractError> for StdError {
