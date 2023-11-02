@@ -164,7 +164,6 @@ pub fn instantiate(
             )
         })
         .collect();
-
     let randomized_list = randomize_token_list(tokens, num_tokens, env.clone())?;
     // Save mintable tokens
     randomized_list.into_iter().for_each(|(key, value)| {
@@ -263,7 +262,12 @@ pub fn execute_mint(
     if total_tokens_remaining == 0 {
         return Err(ContractError::NoTokensLeftToMint {});
     }
+    let mut user_details = MINTED_TOKENS
+        .may_load(deps.storage, info.sender.clone())?
+        .unwrap_or(UserDetails::new());
+
     let config = CONFIG.load(deps.storage)?;
+
     let mut mint_price = config.mint_price;
     // Collect mintable tokens
     let mut mintable_tokens: Vec<(u32, Token)> = Vec::new();
@@ -272,9 +276,9 @@ pub fn execute_mint(
         // Add the (key, value) tuple to the vector
         mintable_tokens.push((key, value));
     }
-
     // Get a random token id
     let random_token = return_random_token_id(&mintable_tokens, env.clone())?;
+
     // Check if minting is started
     if env.block.time < config.start_time {
         // If not public mint try to find the rounds
@@ -284,8 +288,8 @@ pub fn execute_mint(
         let rounds = rounds.unwrap_or(Vec::new());
         if rounds.is_empty() {
             return Err(ContractError::MintingNotStarted {
-                start_time: config.start_time.seconds(),
-                current_time: env.block.time.seconds(),
+                start_time: config.start_time.nanos(),
+                current_time: env.block.time.nanos(),
             });
         }
         // First check if rounds overlap
@@ -299,9 +303,6 @@ pub fn execute_mint(
             active_round.1.clone(),
             deps.as_ref(),
         )?;
-        let mut user_details = MINTED_TOKENS
-            .may_load(deps.storage, info.sender.clone())?
-            .unwrap_or(UserDetails::new());
         // This function tries to add mintable token to user details
         // If succesfully updates it that means per_address_limit or round limit is not reached
         user_details.add_minted_token(
@@ -310,22 +311,15 @@ pub fn execute_mint(
             random_token.clone().1,
             Some(active_round_index),
         )?;
-        MINTED_TOKENS.save(deps.storage, info.sender.clone(), &user_details)?;
         // Determine mint price
         mint_price = active_round.1.mint_price()
     } else {
-        // Check if the address has reached the limit
-        let mut user_details = MINTED_TOKENS
-            .may_load(deps.storage, info.sender.clone())?
-            .unwrap_or(UserDetails::new());
         user_details.add_minted_token(
             config.per_address_limit,
             None,
             random_token.1.clone(),
             None,
         )?;
-        // Save new data
-        MINTED_TOKENS.save(deps.storage, info.sender.clone(), &user_details)?;
     }
 
     // Check the payment
@@ -347,6 +341,8 @@ pub fn execute_mint(
         total_tokens -= 1;
         Ok(total_tokens)
     })?;
+    // Save the user details
+    MINTED_TOKENS.save(deps.storage, info.sender.clone(), &user_details)?;
     let token_id = random_token.1.token_id;
     // Generate the metadata
     let metadata = Metadata {

@@ -271,9 +271,9 @@ mod tests {
             },
         )
         .unwrap();
-        let minted_tokens: Vec<Token> = from_binary(&minted_tokens_data).unwrap();
+        let user_details: UserDetails = from_binary(&minted_tokens_data).unwrap();
         assert_eq!(
-            minted_tokens[0],
+            user_details.minted_tokens[0],
             Token {
                 token_id: "425".to_string()
             }
@@ -318,7 +318,7 @@ mod tests {
         let mut minted_list: Vec<Token> = Vec::new();
 
         for i in 1..=999 {
-            let minted_tokens_data = query(
+            let user_details_data = query(
                 deps.as_ref(),
                 env.clone(),
                 QueryMsg::MintedTokens {
@@ -326,134 +326,134 @@ mod tests {
                 },
             )
             .unwrap();
-            let minted_tokens: Vec<Token> = from_binary(&minted_tokens_data).unwrap();
-            assert_eq!(minted_tokens.len(), 1);
-            if minted_list.iter().any(|t| t == &minted_tokens[0]) {
-                panic!("Token is not unique");
-            }
-            minted_list.push(minted_tokens[0].clone());
+            let user_details: UserDetails = from_binary(&user_details_data).unwrap();
+            minted_list.push(user_details.minted_tokens[0].clone());
+        }
+        minted_list.sort_by(|a, b| a.token_id.cmp(&b.token_id));
+        for i in 0..=997 {
+            assert_ne!(minted_list[i], minted_list[i + 1]);
         }
     }
 
-    // #[test]
-    // pub fn test_mint_admin() {
-    //     let mut env = mock_env();
-    //     env.block.height = 100_000_000;
-    //     env.block.time = Timestamp::from_nanos(100_000_000);
-    //     env.transaction = Some(TransactionInfo { index: 100_000_000 });
-    //     let mut deps = mock_dependencies();
+    #[test]
+    pub fn test_mint_admin() {
+        let mut env = mock_env();
+        env.block.height = 100_000_000;
+        env.block.time = Timestamp::from_nanos(100_000_000);
+        env.transaction = Some(TransactionInfo { index: 100_000_000 });
+        let mut deps = mock_dependencies();
 
-    //     let instantiate_msg = return_instantiate_msg();
+        let instantiate_msg = return_instantiate_msg();
 
-    //     // instantiate
-    //     let info = mock_info("creator", &[coin(100000000, "uflix")]);
-    //     let _res = instantiate(deps.as_mut(), env.clone(), info, instantiate_msg.clone()).unwrap();
+        // instantiate
+        let info = mock_info("creator", &[coin(100000000, "uflix")]);
+        let _res = instantiate(deps.as_mut(), env.clone(), info, instantiate_msg.clone()).unwrap();
 
-    //     // Try minting with money but non payable for admin
-    //     let info = mock_info("creator", &[coin(1000000, "uflix")]);
-    //     let res = execute(
-    //         deps.as_mut(),
-    //         env.clone(),
-    //         info,
-    //         ExecuteMsg::MintAdmin {
-    //             recipient: "gift_recipient".to_string(),
-    //             denom_id: Some("334".to_string()),
-    //         },
-    //     )
-    //     .unwrap_err();
-    //     assert_eq!(
-    //         res,
-    //         ContractError::PaymentError(PaymentError::NonPayable {})
-    //     );
-    //     // Try minting
-    //     let info = mock_info("creator", &[]);
-    //     let _res = execute(
-    //         deps.as_mut(),
-    //         env.clone(),
-    //         info,
-    //         ExecuteMsg::MintAdmin {
-    //             recipient: "gift_recipient".to_string(),
-    //             denom_id: Some("334".to_string()),
-    //         },
-    //     )
-    //     .unwrap();
+        // Try minting with money but non payable for admin
+        let info = mock_info("creator", &[coin(1000000, "uflix")]);
+        let res = execute(
+            deps.as_mut(),
+            env.clone(),
+            info,
+            ExecuteMsg::MintAdmin {
+                recipient: "gift_recipient".to_string(),
+                denom_id: Some("334".to_string()),
+            },
+        )
+        .unwrap_err();
+        assert_eq!(
+            res,
+            ContractError::PaymentError(PaymentError::NonPayable {})
+        );
+        // Try minting
+        let info = mock_info("creator", &[]);
+        let _res = execute(
+            deps.as_mut(),
+            env.clone(),
+            info,
+            ExecuteMsg::MintAdmin {
+                recipient: "gift_recipient".to_string(),
+                denom_id: Some("334".to_string()),
+            },
+        )
+        .unwrap();
 
-    //     // Try minting with same denom
-    //     let info = mock_info("creator", &[]);
-    //     let res = execute(
-    //         deps.as_mut(),
-    //         env.clone(),
-    //         info,
-    //         ExecuteMsg::MintAdmin {
-    //             recipient: "gift_recipient".to_string(),
-    //             denom_id: Some("334".to_string()),
-    //         },
-    //     )
-    //     .unwrap_err();
-    //     assert_eq!(res, ContractError::TokenIdNotMintable {});
+        // Try minting with same denom
+        let info = mock_info("creator", &[]);
+        let res = execute(
+            deps.as_mut(),
+            env.clone(),
+            info,
+            ExecuteMsg::MintAdmin {
+                recipient: "gift_recipient".to_string(),
+                denom_id: Some("334".to_string()),
+            },
+        )
+        .unwrap_err();
+        assert_eq!(res, ContractError::TokenIdNotMintable {});
 
-    //     // Try minting with without denom id
-    //     let info = mock_info("creator", &[]);
-    //     let _res = execute(
-    //         deps.as_mut(),
-    //         env.clone(),
-    //         info,
-    //         ExecuteMsg::MintAdmin {
-    //             recipient: "gift_recipient".to_string(),
-    //             denom_id: None,
-    //         },
-    //     )
-    //     .unwrap();
-    //     // Check minted tokens for address
-    //     // Check second token minted with random denom id is not same as first one
-    //     let minted_tokens_data = query(
-    //         deps.as_ref(),
-    //         env.clone(),
-    //         QueryMsg::MintedTokens {
-    //             address: "gift_recipient".to_string(),
-    //         },
-    //     )
-    //     .unwrap();
-    //     let minted_tokens: Vec<Token> = from_binary(&minted_tokens_data).unwrap();
+        // Try minting with without denom id
+        let info = mock_info("creator", &[]);
+        let _res = execute(
+            deps.as_mut(),
+            env.clone(),
+            info,
+            ExecuteMsg::MintAdmin {
+                recipient: "gift_recipient".to_string(),
+                denom_id: None,
+            },
+        )
+        .unwrap();
+        // Check minted tokens for address
+        // Check second token minted with random denom id is not same as first one
+        let user_details_data = query(
+            deps.as_ref(),
+            env.clone(),
+            QueryMsg::MintedTokens {
+                address: "gift_recipient".to_string(),
+            },
+        )
+        .unwrap();
 
-    //     assert_eq!(
-    //         minted_tokens[0],
-    //         Token {
-    //             token_id: "334".to_string()
-    //         }
-    //     );
-    //     assert_ne!(
-    //         minted_tokens[1],
-    //         Token {
-    //             token_id: "334".to_string()
-    //         }
-    //     );
+        let user_details: UserDetails = from_binary(&user_details_data).unwrap();
+        let minted_tokens = user_details.minted_tokens;
+        assert_ne!(
+            minted_tokens[1],
+            Token {
+                token_id: "334".to_string()
+            }
+        );
 
-    //     // Test random mint again
-    //     let info = mock_info("creator", &[]);
-    //     let _res = execute(
-    //         deps.as_mut(),
-    //         env.clone(),
-    //         info,
-    //         ExecuteMsg::MintAdmin {
-    //             recipient: "gift_recipient".to_string(),
-    //             denom_id: None,
-    //         },
-    //     )
-    //     .unwrap();
-    //     // Here we are not changing any entropy but that token is minted so this one must be something else
-    //     let minted_tokens_data = query(
-    //         deps.as_ref(),
-    //         env.clone(),
-    //         QueryMsg::MintedTokens {
-    //             address: "gift_recipient".to_string(),
-    //         },
-    //     )
-    //     .unwrap();
+        // Test random mint again
+        let info = mock_info("creator", &[]);
+        let _res = execute(
+            deps.as_mut(),
+            env.clone(),
+            info,
+            ExecuteMsg::MintAdmin {
+                recipient: "gift_recipient".to_string(),
+                denom_id: None,
+            },
+        )
+        .unwrap();
+        // Here we are not changing any entropy but that token is minted so this one must be something else
+        let user_details_data = query(
+            deps.as_ref(),
+            env.clone(),
+            QueryMsg::MintedTokens {
+                address: "gift_recipient".to_string(),
+            },
+        )
+        .unwrap();
 
-    //     let minted_tokens: Vec<Token> = from_binary(&minted_tokens_data).unwrap();
-    //     assert_ne!(minted_tokens[2], minted_tokens[1]);
-    // }
+        let user_details: UserDetails = from_binary(&user_details_data).unwrap();
+        assert_ne!(
+            user_details.minted_tokens[2],
+            Token {
+                token_id: "334".to_string()
+            }
+        );
+    }
 
     #[test]
     pub fn test_burn_remaining_tokens() {
