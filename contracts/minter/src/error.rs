@@ -94,6 +94,9 @@ pub enum ContractError {
 
     #[error("Round does not exist")]
     RoundNotFound {},
+
+    #[error("Round already exists")]
+    RoundAlreadyExists {},
 }
 
 impl From<ContractError> for StdError {

@@ -633,6 +633,45 @@ pub fn execute_remove_round(
         .add_attribute("round_index", round_index.to_string());
     Ok(res)
 }
+
+pub fn execute_add_round(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    round: Round,
+) -> Result<Response, ContractError> {
+    // Check if sender is admin
+    let config = CONFIG.load(deps.storage)?;
+    if info.sender != config.creator {
+        return Err(ContractError::Unauthorized {});
+    }
+    // Check if the round exists
+    let mut rounds = ROUNDS
+        .range(deps.storage, None, None, Order::Ascending)
+        .collect::<StdResult<Vec<(u32, Round)>>>()?;
+    let round_exists = rounds.iter().any(|(_, r)| r == &round);
+    if round_exists {
+        return Err(ContractError::RoundAlreadyExists {});
+    }
+    let round_index = rounds.len() as u32 + 1;
+    rounds.push((round_index, round.clone()));
+    // Check if the round start time is valid
+    if round.start_time() < env.block.time {
+        return Err(ContractError::RoundStartTimeInvalid {});
+    }
+    // Check if rounds overlap
+    check_round_overlaps(env.block.time, rounds, config.start_time)?;
+
+    // Save the round
+    ROUNDS.save(deps.storage, round_index, &round)?;
+
+    let res = Response::new()
+        .add_attribute("action", "add_round")
+        .add_attribute("round_index", round_index.to_string());
+
+    Ok(res)
+}
+
 // Implement Queries
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
