@@ -65,6 +65,63 @@ impl Round {
             } => *per_address_limit,
         }
     }
+    pub fn update_params(
+        &mut self,
+        start_time: Option<Timestamp>,
+        end_time: Option<Timestamp>,
+        mint_price: Option<Uint128>,
+        per_address_limit: Option<u32>,
+    ) -> Result<(), ContractError> {
+        match self {
+            Round::WhitelistAddress {
+                start_time: ref mut s,
+                end_time: ref mut e,
+                mint_price: ref mut m,
+                per_address_limit: ref mut p,
+                ..
+            } => {
+                if let Some(start_time) = start_time {
+                    *s = Some(start_time);
+                }
+                if let Some(end_time) = end_time {
+                    *e = Some(end_time);
+                }
+                if let Some(mint_price) = mint_price {
+                    *m = mint_price;
+                }
+                if let Some(per_address_limit) = per_address_limit {
+                    *p = per_address_limit;
+                }
+                if s > e {
+                    return Err(ContractError::RoundStartTimeInvalid {});
+                }
+            }
+            Round::WhitelistCollection {
+                start_time: ref mut s,
+                end_time: ref mut e,
+                mint_price: ref mut m,
+                per_address_limit: ref mut p,
+                ..
+            } => {
+                if let Some(start_time) = start_time {
+                    *s = start_time;
+                }
+                if let Some(end_time) = end_time {
+                    *e = end_time;
+                }
+                if let Some(mint_price) = mint_price {
+                    *m = mint_price;
+                }
+                if let Some(per_address_limit) = per_address_limit {
+                    *p = per_address_limit;
+                }
+                if s > e {
+                    return Err(ContractError::RoundStartTimeInvalid {});
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 #[cw_serde]

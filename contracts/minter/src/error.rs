@@ -85,6 +85,9 @@ pub enum ContractError {
 
     #[error("Round has already started")]
     RoundAlreadyStarted {},
+
+    #[error("Round start time is invalid")]
+    RoundStartTimeInvalid {},
 }
 
 impl From<ContractError> for StdError {
