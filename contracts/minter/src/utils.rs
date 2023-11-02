@@ -331,111 +331,147 @@ mod tests {
         // Spoiler allert - it takes 896 times to pick the token
         // Add 1 to tx index and it takes 123 times
     }
-    // #[test]
-    // fn test_no_overlap() {
-    //     // Three non-overlapping rounds
-    //     let round1 = Round::WhitelistAddress {
-    //         address: Addr::unchecked("A"),
-    //         start_time: Some(Timestamp::from_seconds(2)),
-    //         end_time: Some(Timestamp::from_seconds(5)),
-    //         mint_price: Uint128::new(100),
-    //         per_address_limit: 1,
-    //     };
-    //     let round2 = Round::WhitelistAddress {
-    //         address: Addr::unchecked("C"),
-    //         start_time: Some(Timestamp::from_seconds(5)),
-    //         end_time: Some(Timestamp::from_seconds(7)),
-    //         mint_price: Uint128::new(100),
-    //         per_address_limit: 1,
-    //     };
-    //     let round3 = Round::WhitelistAddress {
-    //         address: Addr::unchecked("E"),
-    //         start_time: Some(Timestamp::from_seconds(7)),
-    //         end_time: Some(Timestamp::from_seconds(9)),
-    //         mint_price: Uint128::new(100),
-    //         per_address_limit: 1,
-    //     };
+    #[test]
+    fn test_no_overlap() {
+        // Three non-overlapping rounds
+        let round1 = Round::WhitelistAddress {
+            address: Addr::unchecked("A"),
+            start_time: Some(Timestamp::from_seconds(2)),
+            end_time: Some(Timestamp::from_seconds(5)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+        let round2 = Round::WhitelistAddress {
+            address: Addr::unchecked("C"),
+            start_time: Some(Timestamp::from_seconds(5)),
+            end_time: Some(Timestamp::from_seconds(7)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+        let round3 = Round::WhitelistAddress {
+            address: Addr::unchecked("E"),
+            start_time: Some(Timestamp::from_seconds(7)),
+            end_time: Some(Timestamp::from_seconds(9)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
 
-    //     let now = Timestamp::from_seconds(0);
-    //     let public_start_time = Timestamp::from_seconds(10);
-    //     let public_end_time = Timestamp::from_seconds(12);
+        let now = Timestamp::from_seconds(0);
+        let public_start_time = Timestamp::from_seconds(10);
+        let public_end_time = Timestamp::from_seconds(12);
 
-    //     let rounds = vec![round1, round2, round3];
+        let rounds: Vec<(u32, Round)> = vec![(1, round1), (2, round2), (3, round3)];
 
-    //     // Check for no overlaps
-    //     let result = check_round_overlaps(now, rounds, public_start_time);
-    //     assert!(result.is_ok());
-    // }
+        // Check for no overlaps
+        let result = check_round_overlaps(now, rounds, public_start_time);
+        assert!(result.is_ok());
+    }
 
-    // #[test]
-    // fn test_overlap_between_rounds() {
-    //     // Three rounds with overlaps between round 1 and round 2
-    //     let round1 = Round::WhitelistAddress {
-    //         address: Addr::unchecked("A"),
-    //         start_time: Some(Timestamp::from_seconds(0)),
-    //         end_time: Some(Timestamp::from_seconds(3)),
-    //         mint_price: Uint128::new(100),
-    //         per_address_limit: 1,
-    //     };
-    //     let round2 = Round::WhitelistAddress {
-    //         address: Addr::unchecked("C"),
-    //         start_time: Some(Timestamp::from_seconds(2)),
-    //         end_time: Some(Timestamp::from_seconds(4)),
-    //         mint_price: Uint128::new(100),
-    //         per_address_limit: 1,
-    //     };
-    //     let round3 = Round::WhitelistAddress {
-    //         address: Addr::unchecked("E"),
-    //         start_time: Some(Timestamp::from_seconds(5)),
-    //         end_time: Some(Timestamp::from_seconds(7)),
-    //         mint_price: Uint128::new(100),
-    //         per_address_limit: 1,
-    //     };
+    #[test]
+    fn test_overlap_between_rounds() {
+        // Three rounds with overlaps between round 1 and round 2
+        let round1 = Round::WhitelistAddress {
+            address: Addr::unchecked("A"),
+            start_time: Some(Timestamp::from_seconds(0)),
+            end_time: Some(Timestamp::from_seconds(3)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+        let round2 = Round::WhitelistAddress {
+            address: Addr::unchecked("C"),
+            start_time: Some(Timestamp::from_seconds(2)),
+            end_time: Some(Timestamp::from_seconds(4)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+        let round3 = Round::WhitelistAddress {
+            address: Addr::unchecked("E"),
+            start_time: Some(Timestamp::from_seconds(5)),
+            end_time: Some(Timestamp::from_seconds(7)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
 
-    //     let now = Timestamp::from_seconds(0);
-    //     let public_start_time = Timestamp::from_seconds(0);
-    //     let public_end_time = Timestamp::from_seconds(8);
+        let now = Timestamp::from_seconds(0);
+        let public_start_time = Timestamp::from_seconds(0);
+        let public_end_time = Timestamp::from_seconds(8);
 
-    //     let rounds = vec![round1, round2, round3];
+        let rounds: Vec<(u32, Round)> = vec![(1, round1), (2, round2), (3, round3)];
 
-    //     // Check for overlap between rounds 1 and 2
-    //     let result = check_round_overlaps(now, rounds, public_start_time);
-    //     assert!(result.is_err());
-    // }
+        // Check for overlap between rounds 1 and 2
+        let result = check_round_overlaps(now, rounds, public_start_time);
+        assert!(result.is_err());
+    }
 
-    // #[test]
-    // fn test_overlap_with_public_time() {
-    //     // Three rounds with overlaps between round 1 and public time
-    //     let round1 = Round::WhitelistAddress {
-    //         address: Addr::unchecked("A"),
-    //         start_time: Some(Timestamp::from_seconds(0)),
-    //         end_time: Some(Timestamp::from_seconds(3)),
-    //         mint_price: Uint128::new(100),
-    //         per_address_limit: 1,
-    //     };
-    //     let round2 = Round::WhitelistAddress {
-    //         address: Addr::unchecked("C"),
-    //         start_time: Some(Timestamp::from_seconds(4)),
-    //         end_time: Some(Timestamp::from_seconds(5)),
-    //         mint_price: Uint128::new(100),
-    //         per_address_limit: 1,
-    //     };
-    //     let round3 = Round::WhitelistAddress {
-    //         address: Addr::unchecked("E"),
-    //         start_time: Some(Timestamp::from_seconds(5)),
-    //         end_time: Some(Timestamp::from_seconds(7)),
-    //         mint_price: Uint128::new(100),
-    //         per_address_limit: 1,
-    //     };
+    #[test]
+    fn test_overlap_with_public_time() {
+        // Three rounds with overlaps between round 1 and public time
+        let round1 = Round::WhitelistAddress {
+            address: Addr::unchecked("A"),
+            start_time: Some(Timestamp::from_seconds(0)),
+            end_time: Some(Timestamp::from_seconds(3)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+        let round2 = Round::WhitelistAddress {
+            address: Addr::unchecked("C"),
+            start_time: Some(Timestamp::from_seconds(4)),
+            end_time: Some(Timestamp::from_seconds(5)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+        let round3 = Round::WhitelistAddress {
+            address: Addr::unchecked("E"),
+            start_time: Some(Timestamp::from_seconds(5)),
+            end_time: Some(Timestamp::from_seconds(7)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
 
-    //     let now = Timestamp::from_seconds(0);
-    //     let public_start_time = Timestamp::from_seconds(0);
-    //     let public_end_time = Timestamp::from_seconds(9);
+        let now = Timestamp::from_seconds(0);
+        let public_start_time = Timestamp::from_seconds(0);
+        let public_end_time = Timestamp::from_seconds(9);
 
-    //     let rounds = vec![round1, round2, round3];
+        let rounds: Vec<(u32, Round)> = vec![(1, round1), (2, round2), (3, round3)];
 
-    //     // Check for overlap between round 1 and public time
-    //     let result = check_round_overlaps(now, rounds, public_start_time);
-    //     assert!(result.is_err());
-    // }
+        // Check for overlap between round 1 and public time
+        let result = check_round_overlaps(now, rounds, public_start_time);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_find_active_round() {
+        // Generete 3 rounds
+        let round1 = Round::WhitelistAddress {
+            address: Addr::unchecked("A"),
+            start_time: Some(Timestamp::from_seconds(0)),
+            end_time: Some(Timestamp::from_seconds(3)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+        let round2 = Round::WhitelistAddress {
+            address: Addr::unchecked("C"),
+            start_time: Some(Timestamp::from_seconds(4)),
+            end_time: Some(Timestamp::from_seconds(5)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+        let round3 = Round::WhitelistAddress {
+            address: Addr::unchecked("E"),
+            start_time: Some(Timestamp::from_seconds(5)),
+            end_time: Some(Timestamp::from_seconds(7)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+
+        let now = Timestamp::from_seconds(0);
+
+        let rounds: Vec<(u32, Round)> = vec![(1, round1), (2, round2), (3, round3)];
+        let result = find_active_round(now, rounds.clone()).unwrap();
+        assert_eq!(result.0, 1);
+
+        let now = Timestamp::from_seconds(9);
+        let result = find_active_round(now, rounds).unwrap_err();
+        assert_eq!(result, ContractError::RoundEnded {});
+    }
 }
