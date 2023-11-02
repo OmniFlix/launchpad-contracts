@@ -176,6 +176,7 @@ impl UserDetails {
                     count: 1,
                 });
             }
+            self.minted_tokens.push(token);
         } else {
             self.total_minted_count += 1;
             if self.total_minted_count > per_address_limit {
@@ -183,7 +184,6 @@ impl UserDetails {
             }
             self.minted_tokens.push(token.clone());
         }
-        self.minted_tokens.push(token);
         Ok(())
     }
 }

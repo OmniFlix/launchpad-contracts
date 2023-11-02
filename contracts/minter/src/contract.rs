@@ -105,15 +105,15 @@ pub fn instantiate(
     if msg.rounds.is_some() {
         // First update the rounds. We are only updating whitelist rounds
         let mut rounds = msg.rounds.unwrap();
-        let mut updated_rounds: Vec<(u32, Round)>;
+        let mut updated_rounds: Vec<(u32, Round)> = Vec::new();
         for mut round in rounds {
             let mut i = 1;
-            let updated = return_updated_round(deps, round)?;
-            updated_rounds.push((i, round));
+            let updated = return_updated_round(&deps, round)?;
+            updated_rounds.push((i, updated));
         }
 
         // Check if the rounds overlap if none we can save it
-        check_round_overlaps(env.block.time, updated_rounds, msg.start_time)?;
+        check_round_overlaps(env.block.time, updated_rounds.clone(), msg.start_time)?;
         // Save the rounds
         for round in updated_rounds {
             ROUNDS.save(deps.storage, round.0, &round.1)?;
@@ -269,7 +269,6 @@ pub fn execute_mint(
     let mut mintable_tokens: Vec<(u32, Token)> = Vec::new();
     for item in MINTABLE_TOKENS.range(deps.storage, None, None, Order::Ascending) {
         let (key, value) = item?;
-
         // Add the (key, value) tuple to the vector
         mintable_tokens.push((key, value));
     }
@@ -290,38 +289,43 @@ pub fn execute_mint(
             });
         }
         // First check if rounds overlap
-        check_round_overlaps(env.block.time, rounds, config.start_time)?;
+        check_round_overlaps(env.block.time, rounds.clone(), config.start_time)?;
         // Check if any active round exists
         let active_round = find_active_round(env.block.time, rounds)?;
         let active_round_index = active_round.0;
         // Check if the address is whitelisted
         let is_member = check_if_whitelisted(
             info.sender.clone().into_string(),
-            active_round.1,
+            active_round.1.clone(),
             deps.as_ref(),
         )?;
         let mut user_details = MINTED_TOKENS
-            .may_load(deps.storage, info.sender)?
+            .may_load(deps.storage, info.sender.clone())?
             .unwrap_or(UserDetails::new());
         // This function tries to add mintable token to user details
         // If succesfully updates it that means per_address_limit or round limit is not reached
         user_details.add_minted_token(
             config.per_address_limit,
             Some(active_round.1.round_limit()),
-            random_token.1,
+            random_token.clone().1,
             Some(active_round_index),
         )?;
-        MINTED_TOKENS.save(deps.storage, info.sender, &user_details)?;
+        MINTED_TOKENS.save(deps.storage, info.sender.clone(), &user_details)?;
         // Determine mint price
         mint_price = active_round.1.mint_price()
     } else {
         // Check if the address has reached the limit
         let mut user_details = MINTED_TOKENS
-            .may_load(deps.storage, info.sender)?
+            .may_load(deps.storage, info.sender.clone())?
             .unwrap_or(UserDetails::new());
-        user_details.add_minted_token(config.per_address_limit, None, random_token.1, None)?;
+        user_details.add_minted_token(
+            config.per_address_limit,
+            None,
+            random_token.1.clone(),
+            None,
+        )?;
         // Save new data
-        MINTED_TOKENS.save(deps.storage, info.sender, &user_details)?;
+        MINTED_TOKENS.save(deps.storage, info.sender.clone(), &user_details)?;
     }
 
     // Check the payment
@@ -440,10 +444,10 @@ pub fn execute_mint_admin(
         .may_load(deps.storage, recipient.clone())?
         .unwrap_or(UserDetails::new());
     // We are updating parameter ourself and not using add_minted_token function because we want to override per address limit checks
-    user_details.minted_tokens.push(token.1);
+    user_details.minted_tokens.push(token.1.clone());
     user_details.total_minted_count += 1;
     // Save details
-    MINTED_TOKENS.save(deps.storage, recipient, &user_details);
+    MINTED_TOKENS.save(deps.storage, recipient.clone(), &user_details);
 
     let denom_id = token.1.token_id;
 
@@ -477,29 +481,6 @@ pub fn execute_mint_admin(
         .add_attribute("denom_id", denom_id.to_string());
     Ok(res)
 }
-
-pub fn execute_set_whitelist(
-    deps: DepsMut,
-    _env: Env,
-    info: MessageInfo,
-    address: String,
-) -> Result<Response, ContractError> {
-    // Check if sender is admin
-    let mut config = CONFIG.load(deps.storage)?;
-    if info.sender != config.creator {
-        return Err(ContractError::Unauthorized {});
-    }
-
-    let address = deps.api.addr_validate(&address)?;
-
-    CONFIG.save(deps.storage, &new_config)?;
-
-    let res = Response::new()
-        .add_attribute("action", "set_whitelist")
-        .add_attribute("address", address.to_string());
-    Ok(res)
-}
-
 pub fn execute_burn_remaining_tokens(
     deps: DepsMut,
     _env: Env,
@@ -530,7 +511,7 @@ pub fn execute_update_royalty_ratio(
     ratio: String,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
-    let config = CONFIG.load(deps.storage)?;
+    let mut config = CONFIG.load(deps.storage)?;
     if info.sender != config.creator {
         return Err(ContractError::Unauthorized {});
     }
@@ -538,19 +519,9 @@ pub fn execute_update_royalty_ratio(
     if ratio < Decimal::zero() || ratio > Decimal::one() {
         return Err(ContractError::InvalidRoyaltyRatio {});
     }
+    config.royalty_ratio = ratio;
 
-    let new_config = Config {
-        per_address_limit: config.per_address_limit,
-        payment_collector: config.payment_collector,
-        whitelist_address: config.whitelist_address,
-        mint_denom: config.mint_denom,
-        start_time: config.start_time,
-        mint_price: config.mint_price,
-        royalty_ratio: ratio,
-        creator: config.creator,
-    };
-
-    CONFIG.save(deps.storage, &new_config)?;
+    CONFIG.save(deps.storage, &config)?;
 
     let res = Response::new()
         .add_attribute("action", "update_royalty_ratio")
@@ -565,7 +536,7 @@ pub fn execute_update_mint_price(
     mint_price: Uint128,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
-    let config = CONFIG.load(deps.storage)?;
+    let mut config = CONFIG.load(deps.storage)?;
     if info.sender != config.creator {
         return Err(ContractError::Unauthorized {});
     }
@@ -573,19 +544,13 @@ pub fn execute_update_mint_price(
     if env.block.time > config.start_time {
         return Err(ContractError::MintingAlreadyStarted {});
     }
+    // Check if mint price is valid
+    if mint_price == Uint128::new(0) {
+        return Err(ContractError::InvalidMintPrice {});
+    }
+    config.mint_price = mint_price;
 
-    let new_config = Config {
-        per_address_limit: config.per_address_limit,
-        payment_collector: config.payment_collector,
-        whitelist_address: config.whitelist_address,
-        mint_denom: config.mint_denom,
-        start_time: config.start_time,
-        mint_price,
-        royalty_ratio: config.royalty_ratio,
-        creator: config.creator,
-    };
-
-    CONFIG.save(deps.storage, &new_config)?;
+    CONFIG.save(deps.storage, &config)?;
 
     let res = Response::new()
         .add_attribute("action", "update_mint_price")
@@ -765,30 +730,31 @@ pub fn execute_update_whitelist_round(
     let config = CONFIG.load(deps.storage)?;
     let whitelist_address = info.sender.clone();
     // Load all the rounds
-    let mut rounds = ROUNDS
+    let rounds = ROUNDS
         .range(deps.storage, None, None, Order::Ascending)
         .collect::<StdResult<Vec<(u32, Round)>>>()?;
     // Find the round with whitelist address
     let round = rounds
-        .iter_mut()
-        .find(|(i, round)| match round {
+        .iter()
+        .find(|(_, round)| match round {
             Round::WhitelistAddress { address, .. } => address == &whitelist_address,
             _ => false,
         })
-        .map(|(i, round)| (i, round))
         .ok_or(ContractError::RoundNotFound {})?;
+
     // Update the round
     let round_index = round.0;
     let mut round = round.1.clone();
     // Update the round
     round.update_params(start_time, end_time, mint_price, round_limit)?;
+    let mut updated_rounds = rounds.clone();
     // Remove the round from the list
-    rounds.retain(|(i, _)| i != round_index);
+    updated_rounds.retain(|(i, _)| i != &round_index);
     // Add the new round to the list
-    rounds.push((round_index, round.clone()));
+    updated_rounds.push((round_index, round.clone()));
 
     // Check if rounds overlap
-    check_round_overlaps(_env.block.time, rounds, config.start_time)?;
+    check_round_overlaps(_env.block.time, updated_rounds, config.start_time)?;
 
     // If not owerlapping remove older from store
     ROUNDS.remove(deps.storage, round_index);
@@ -812,7 +778,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
             to_json_binary(&query_minted_tokens(deps, env, address)?)
         }
         QueryMsg::TotalTokens {} => to_json_binary(&query_total_tokens(deps, env)?),
-        QueryMsg::Whitelist {} => to_json_binary(&query_whitelist(deps, env)?),
+        QueryMsg::Rounds {} => to_json_binary(&query_rounds(deps, env)?),
     }
 }
 
@@ -841,7 +807,7 @@ fn query_minted_tokens(
     deps: Deps,
     _env: Env,
     address: String,
-) -> Result<Vec<Token>, ContractError> {
+) -> Result<UserDetails, ContractError> {
     let address = deps.api.addr_validate(&address)?;
     let minted_tokens = MINTED_TOKENS.load(deps.storage, address)?;
     Ok(minted_tokens)
@@ -852,12 +818,10 @@ fn query_total_tokens(deps: Deps, _env: Env) -> Result<u32, ContractError> {
     Ok(total_tokens)
 }
 
-fn query_whitelist(deps: Deps, _env: Env) -> Result<Option<String>, ContractError> {
-    let config = CONFIG.load(deps.storage)?;
-    let whitelist_address = match config.whitelist_address {
-        Some(address) => Some(address.to_string()),
-        None => None,
-    };
-    // Implement whitelist contract query
-    Ok(whitelist_address)
+fn query_rounds(deps: Deps, _env: Env) -> Result<Vec<(u32, Round)>, ContractError> {
+    let rounds: StdResult<Vec<(u32, Round)>> = ROUNDS
+        .range(deps.storage, None, None, Order::Ascending)
+        .collect();
+    let rounds = rounds.unwrap_or(Vec::new());
+    Ok(rounds)
 }

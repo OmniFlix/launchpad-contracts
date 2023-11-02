@@ -75,7 +75,7 @@ pub enum QueryMsg {
     MintedTokens { address: String },
     MintableTokens {},
     TotalTokens {},
-    Whitelist {},
+    Rounds {},
 }
 
 #[cw_serde]

@@ -109,7 +109,7 @@ pub fn check_round_overlaps(
             // There is no public mint end time we generate 100 day after start time to be safe
             end_time: Some(public_start_time.plus_days(100)),
             mint_price: Default::default(),
-            per_address_limit: 1,
+            round_limit: Default::default(),
         },
     ));
     // Sort rounds by start time
@@ -134,7 +134,7 @@ pub fn check_round_overlaps(
     }
     Ok(())
 }
-pub fn return_updated_round(deps: DepsMut, round: Round) -> Result<Round, ContractError> {
+pub fn return_updated_round(deps: &DepsMut, round: Round) -> Result<Round, ContractError> {
     match round {
         Round::WhitelistAddress {
             address,
@@ -145,7 +145,7 @@ pub fn return_updated_round(deps: DepsMut, round: Round) -> Result<Round, Contra
         } => {
             let whitelist_config: WhitelistConfig = deps
                 .querier
-                .query_wasm_smart(address, &WhitelistQueryMsgs::Config {})?;
+                .query_wasm_smart(address.clone(), &WhitelistQueryMsgs::Config {})?;
             let round = Round::WhitelistAddress {
                 address,
                 start_time: Some(whitelist_config.start_time),
@@ -153,6 +153,7 @@ pub fn return_updated_round(deps: DepsMut, round: Round) -> Result<Round, Contra
                 mint_price: whitelist_config.mint_price.amount,
                 round_limit: whitelist_config.per_address_limit,
             };
+            Ok(round)
         }
         Round::WhitelistCollection {
             collection_id,
@@ -168,9 +169,9 @@ pub fn return_updated_round(deps: DepsMut, round: Round) -> Result<Round, Contra
                 mint_price,
                 round_limit,
             };
+            Ok(round)
         }
     }
-    Ok(round)
 }
 
 pub fn check_if_whitelisted(
