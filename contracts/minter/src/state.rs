@@ -114,6 +114,12 @@ impl Round {
         }
         Ok(())
     }
+    pub fn return_round_type(&self) -> String {
+        match self {
+            Round::WhitelistAddress { .. } => "address".to_string(),
+            Round::WhitelistCollection { .. } => "collection".to_string(),
+        }
+    }
 }
 
 #[cw_serde]

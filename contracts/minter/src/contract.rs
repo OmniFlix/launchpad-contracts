@@ -294,8 +294,6 @@ pub fn execute_mint(
                 current_time: env.block.time.nanos(),
             });
         }
-        // First check if rounds overlap
-        check_round_overlaps(env.block.time, rounds.clone(), config.start_time)?;
         // Check if any active round exists
         let active_round = find_active_round(env.block.time, rounds)?;
         let active_round_index = active_round.0;
@@ -305,6 +303,9 @@ pub fn execute_mint(
             active_round.1.clone(),
             deps.as_ref(),
         )?;
+        if !is_member {
+            return Err(ContractError::AddressNotWhitelisted {});
+        }
         // This function tries to add mintable token to user details
         // If succesfully updates it that means per_address_limit or round limit is not reached
         user_details.add_minted_token(
@@ -662,49 +663,32 @@ pub fn execute_update_collection_round(
     if info.sender != config.creator {
         return Err(ContractError::Unauthorized {});
     }
-    let new_round = match round {
-        Round::WhitelistAddress {
-            address,
-            start_time,
-            end_time,
-            mint_price,
-            round_limit,
-        } => Err(ContractError::InvalidRoundType {
-            expected: "CollectionRound".to_string(),
-            actual: "WhitelistAddress".to_string(),
-        }),
-        Round::WhitelistCollection {
-            collection_id,
-            start_time,
-            end_time,
-            mint_price,
-            round_limit,
-        } => Ok(Round::WhitelistCollection {
-            collection_id,
-            start_time,
-            end_time,
-            mint_price,
-            round_limit,
-        }),
-    }?;
+    let new_round = round.clone();
+    // Find round with round_index
+    let older_round = ROUNDS.load(deps.storage, round_index)?;
+    let round_type = older_round.return_round_type();
+    if round_type != "collection" {
+        return Err(ContractError::InvalidRoundType {
+            expected: "collection".to_string(),
+            actual: round_type,
+        });
+    }
     // Load all the rounds
-    let mut all_rounds = ROUNDS
+    let all_rounds = ROUNDS
         .range(deps.storage, None, None, Order::Ascending)
         .collect::<StdResult<Vec<(u32, Round)>>>()?;
-    // Remove the round from the list
-    all_rounds.retain(|(i, _)| i != &round_index);
+    // Remove older round from the list
+    let mut new_rounds = all_rounds.clone();
+    new_rounds.retain(|(i, _)| i != &round_index);
     // Add the new round to the list
-    all_rounds.push((round_index, new_round.clone()));
-    // Check if the round start time is valid
-    if new_round.start_time() < _env.block.time {
-        return Err(ContractError::RoundStartTimeInvalid {});
-    }
-    // Check if rounds overlap
-    check_round_overlaps(_env.block.time, all_rounds, config.start_time)?;
+    new_rounds.push((round_index, new_round));
 
-    // If not owerlapping remove older
+    // Check if rounds overlap
+    check_round_overlaps(_env.block.time, new_rounds, config.start_time)?;
+
+    // If not overlapping remove older
     ROUNDS.remove(deps.storage, round_index);
-    ROUNDS.save(deps.storage, round_index, &new_round)?;
+    ROUNDS.save(deps.storage, round_index, &round)?;
 
     let res = Response::new()
         .add_attribute("action", "update_collection_round")
