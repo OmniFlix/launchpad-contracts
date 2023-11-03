@@ -111,6 +111,7 @@ pub fn instantiate(
             let mut i = 1;
             let updated = return_updated_round(&deps, round)?;
             updated_rounds.push((i, updated));
+            i += 1;
         }
 
         // Check if the rounds overlap if none we can save it
