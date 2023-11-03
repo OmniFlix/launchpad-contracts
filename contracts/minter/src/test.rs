@@ -10,7 +10,7 @@ mod tests {
     use crate::state::{Config, Round, Token, UserDetails};
 
     use cosmwasm_std::testing::{mock_dependencies, mock_info};
-    use cosmwasm_std::{coin, from_binary, to_binary, CosmosMsg, Decimal};
+    use cosmwasm_std::{coin, from_binary, to_binary, CosmosMsg, Decimal, StdError};
     use cosmwasm_std::{testing::mock_env, Addr, Timestamp, TransactionInfo, Uint128};
     use cw_utils::PaymentError;
     use omniflix_std::types::omniflix::onft::v1beta1::{Metadata, MsgCreateDenom, MsgMintOnft};
@@ -824,5 +824,116 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(res, ContractError::RoundAlreadyStarted {});
+
+        // Try adding overlapping round
+        let res = execute(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            ExecuteMsg::AddRound {
+                round: Round::WhitelistCollection {
+                    collection_id: "collection_id".to_string(),
+                    start_time: Timestamp::from_nanos(100_000),
+                    end_time: Timestamp::from_nanos(250_000),
+                    mint_price: Uint128::from(100_000u128),
+                    round_limit: 10,
+                },
+            },
+        )
+        .unwrap_err();
+        assert_eq!(
+            res,
+            ContractError::RoundsOverlaped {
+                round: Round::WhitelistCollection {
+                    collection_id: "collection_id".to_string(),
+                    start_time: Timestamp::from_nanos(100_000),
+                    end_time: Timestamp::from_nanos(250_000),
+                    mint_price: Uint128::from(100_000u128),
+                    round_limit: 10,
+                }
+            }
+        );
+
+        // Try updating collection round with wrong index
+        let res = execute(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            ExecuteMsg::UpdateCollectionRound {
+                round_index: 0,
+                round: Round::WhitelistCollection {
+                    collection_id: "collection_id".to_string(),
+                    start_time: Timestamp::from_nanos(100_000),
+                    end_time: Timestamp::from_nanos(250_000),
+                    mint_price: Uint128::from(100_000u128),
+                    round_limit: 10,
+                },
+            },
+        )
+        .unwrap_err();
+        assert_eq!(
+            res,
+            ContractError::Std(StdError::NotFound {
+                kind: "omniflix_minter::state::Round".to_string()
+            })
+        );
+
+        // Try updating wrong round type
+        let res = execute(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            ExecuteMsg::UpdateCollectionRound {
+                round_index: 1,
+                round: Round::WhitelistAddress {
+                    address: Addr::unchecked("public"),
+                    start_time: Some(Timestamp::from_nanos(100_000)),
+                    end_time: Some(Timestamp::from_nanos(250_000)),
+                    mint_price: Uint128::from(100_000u128),
+                    round_limit: 10,
+                },
+            },
+        )
+        .unwrap_err();
+        assert_eq!(
+            res,
+            ContractError::InvalidRoundType {
+                expected: "collection".to_string(),
+                actual: "address".to_string()
+            }
+        );
+
+        // Update round
+        let _res = execute(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            ExecuteMsg::UpdateCollectionRound {
+                round_index: 1,
+                round: Round::WhitelistCollection {
+                    collection_id: "collection_id".to_string(),
+                    start_time: Timestamp::from_nanos(100_000),
+                    end_time: Timestamp::from_nanos(250_000),
+                    mint_price: Uint128::from(100_000u128),
+                    round_limit: 10,
+                },
+            },
+        )
+        .unwrap();
+
+        // Check rounds
+        let rounds_data = query(deps.as_ref(), env.clone(), QueryMsg::Rounds {}).unwrap();
+        let rounds: Vec<(u32, Round)> = from_binary(&rounds_data).unwrap();
+        assert_eq!(rounds.len(), 1);
+        assert_eq!(
+            rounds[0].1,
+            Round::WhitelistCollection {
+                collection_id: "collection_id".to_string(),
+                start_time: Timestamp::from_nanos(100_000),
+                end_time: Timestamp::from_nanos(250_000),
+                mint_price: Uint128::from(100_000u128),
+                round_limit: 10,
+            }
+        );
     }
 }

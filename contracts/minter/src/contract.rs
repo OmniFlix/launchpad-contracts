@@ -707,6 +707,13 @@ pub fn execute_update_collection_round(
         return Err(ContractError::Unauthorized {});
     }
     let new_round = round.clone();
+    let new_round_type = new_round.return_round_type();
+    if new_round_type != "collection" {
+        return Err(ContractError::InvalidRoundType {
+            expected: "collection".to_string(),
+            actual: new_round_type,
+        });
+    }
     // Find round with round_index
     let older_round = ROUNDS.load(deps.storage, round_index)?;
     let round_type = older_round.return_round_type();
