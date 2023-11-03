@@ -19,11 +19,6 @@ use types::whitelist::{
 const CONTRACT_NAME: &str = "crates.io:omniflix-whitelist";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
-// Currently we are not collecting any fees
-// If we want it we can hard code it here
-// const FEE_DENOM: &str = "uflix";
-// const FEE_AMOUNT: u128 = 1;
-
 const PAGINATION_LIMIT: u32 = 100;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -34,11 +29,6 @@ pub fn instantiate(
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
-    // If fee is set we activate here
-    // let amount = must_pay(&info, FEE_DENOM)?;
-    // if amount != Uint128::from(FEE_AMOUNT) {
-    //     return Err(ContractError::InvalidMintPrice {});
-    // }
 
     let admin = match msg.admin {
         Some(admin) => deps.api.addr_validate(&admin)?,
@@ -656,504 +646,513 @@ mod tests {
         assert_eq!(config.is_frozen, false);
     }
 
-    // #[test]
-    // fn test_update_start_time() {
-    //     let mut deps = mock_dependencies();
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(100_000);
-    //     let info = mock_info("creator", &[]);
-    //     let mut msg = return_inst_message();
+    #[test]
+    fn test_update_start_time() {
+        let mut deps = mock_dependencies();
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(100_000);
+        let info = mock_info("creator", &[]);
+        let mut msg = return_inst_message();
 
-    //     // instantiate
-    //     let res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
+        // instantiate
+        let res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
 
-    //     // Try updating already started whitelist
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(1_000_001);
-    //     let info = mock_info("creator", &[]);
-    //     let res = update_start_time(
-    //         deps.as_mut(),
-    //         env.clone(),
-    //         info.clone(),
-    //         Timestamp::from_seconds(1_000_002),
-    //     )
-    //     .unwrap_err();
-    //     assert_eq!(res, ContractError::WhiteListAlreadyStarted {});
+        // Try updating already started whitelist
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(1_000_001);
+        let info = mock_info("creator", &[]);
+        let res = update_start_time(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            Timestamp::from_seconds(1_000_002),
+            None,
+        )
+        .unwrap_err();
+        assert_eq!(res, ContractError::WhiteListAlreadyStarted {});
 
-    //     // Try updating with invalid start time
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(100_000);
-    //     let info = mock_info("creator", &[]);
-    //     let res = update_start_time(
-    //         deps.as_mut(),
-    //         env.clone(),
-    //         info.clone(),
-    //         Timestamp::from_seconds(100_000 - 1),
-    //     )
-    //     .unwrap_err();
-    //     assert_eq!(res, ContractError::InvalidStartTime {});
+        // Try updating with invalid start time
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(100_000);
+        let info = mock_info("creator", &[]);
+        let res = update_start_time(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            Timestamp::from_seconds(100_000 - 1),
+            None,
+        )
+        .unwrap_err();
+        assert_eq!(res, ContractError::InvalidStartTime {});
 
-    //     // Try updating with valid start time
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(100_000);
-    //     let info = mock_info("creator", &[]);
-    //     let res = update_start_time(
-    //         deps.as_mut(),
-    //         env.clone(),
-    //         info.clone(),
-    //         Timestamp::from_seconds(100_000 + 1),
-    //     )
-    //     .unwrap();
-    // }
+        // Try updating with valid start time
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(100_000);
+        let info = mock_info("creator", &[]);
+        let res = update_start_time(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            Timestamp::from_seconds(100_000 + 1),
+            None,
+        )
+        .unwrap();
+    }
 
-    // #[test]
-    // fn test_update_end_time() {
-    //     let mut deps = mock_dependencies();
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(100_000);
-    //     let info = mock_info("creator", &[]);
-    //     let mut msg = return_inst_message();
+    #[test]
+    fn test_update_end_time() {
+        let mut deps = mock_dependencies();
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(100_000);
+        let info = mock_info("creator", &[]);
+        let mut msg = return_inst_message();
 
-    //     // instantiate
-    //     let res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
+        // instantiate
+        let res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
 
-    //     // Try updating with invalid end time
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(100_000);
-    //     let info = mock_info("creator", &[]);
-    //     let res = update_end_time(
-    //         deps.as_mut(),
-    //         env.clone(),
-    //         info.clone(),
-    //         Timestamp::from_seconds(100_000 - 1),
-    //     )
-    //     .unwrap_err();
-    //     assert_eq!(res, ContractError::InvalidEndTime {});
+        // Try updating with invalid end time
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(100_000);
+        let info = mock_info("creator", &[]);
+        let res = update_end_time(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            Timestamp::from_seconds(100_000 - 1),
+            None,
+        )
+        .unwrap_err();
+        assert_eq!(res, ContractError::InvalidEndTime {});
 
-    //     // Try updating end time after whitelist started
-    //     // This should fail if end time is less than current end time
-    //     // You can only extend end time if whitelist is already started
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(1_000_001);
-    //     let info = mock_info("creator", &[]);
-    //     let res = update_end_time(
-    //         deps.as_mut(),
-    //         env.clone(),
-    //         info.clone(),
-    //         Timestamp::from_seconds(5_000_000 - 1),
-    //     )
-    //     .unwrap_err();
-    //     assert_eq!(res, ContractError::WhiteListAlreadyStarted {});
+        // Try updating end time after whitelist started
+        // This should fail if end time is less than current end time
+        // You can only extend end time if whitelist is already started
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(1_000_001);
+        let info = mock_info("creator", &[]);
+        let res = update_end_time(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            Timestamp::from_seconds(5_000_000 - 1),
+            None,
+        )
+        .unwrap_err();
+        assert_eq!(res, ContractError::WhiteListAlreadyStarted {});
 
-    //     // Try updating end time after whitelist started
-    //     // Extend end time
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(1_000_001);
-    //     let info = mock_info("creator", &[]);
-    //     let res = update_end_time(
-    //         deps.as_mut(),
-    //         env.clone(),
-    //         info.clone(),
-    //         Timestamp::from_seconds(5_000_000 + 1),
-    //     )
-    //     .unwrap();
-    // }
+        // Try updating end time after whitelist started
+        // Extend end time
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(1_000_001);
+        let info = mock_info("creator", &[]);
+        let res = update_end_time(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            Timestamp::from_seconds(5_000_000 + 1),
+            None,
+        )
+        .unwrap();
+    }
 
-    // #[test]
-    // fn test_add_members() {
-    //     let mut deps = mock_dependencies();
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(100_000);
-    //     let info = mock_info("creator", &[]);
-    //     let mut msg = return_inst_message();
+    #[test]
+    fn test_add_members() {
+        let mut deps = mock_dependencies();
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(100_000);
+        let info = mock_info("creator", &[]);
+        let mut msg = return_inst_message();
 
-    //     // instantiate
-    //     let res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
+        // instantiate
+        let res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
 
-    //     // Try adding members after whitelist ended
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(5_000_001);
-    //     let info = mock_info("creator", &[]);
-    //     let res = add_members(
-    //         deps.as_mut(),
-    //         env.clone(),
-    //         info.clone(),
-    //         vec!["addr101".to_string()],
-    //     )
-    //     .unwrap_err();
-    //     assert_eq!(res, ContractError::WhitelistEnded {});
+        // Try adding members after whitelist ended
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(5_000_001);
+        let info = mock_info("creator", &[]);
+        let res = add_members(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            vec!["addr101".to_string()],
+        )
+        .unwrap_err();
+        assert_eq!(res, ContractError::WhitelistEnded {});
 
-    //     // Try adding duplicate members
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(100_000);
-    //     let info = mock_info("creator", &[]);
-    //     let res = add_members(
-    //         deps.as_mut(),
-    //         env.clone(),
-    //         info.clone(),
-    //         vec!["addr0".to_string(), "addr0".to_string()],
-    //     )
-    //     .unwrap();
+        // Try adding duplicate members
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(100_000);
+        let info = mock_info("creator", &[]);
+        let res = add_members(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            vec!["addr0".to_string(), "addr0".to_string()],
+        )
+        .unwrap();
 
-    //     // Check if members are saved
-    //     let members = query_members(deps.as_ref(), env.clone(), None, Some(150))
-    //         .unwrap()
-    //         .members;
-    //     assert_eq!(members.len(), 100);
+        // Check if members are saved
+        let members = query_members(deps.as_ref(), env.clone(), None, Some(150))
+            .unwrap()
+            .members;
+        assert_eq!(members.len(), 100);
 
-    //     // Try adding diffirent members but with a list of duplicates
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(100_000);
-    //     let info = mock_info("creator", &[]);
+        // Try adding diffirent members but with a list of duplicates
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(100_000);
+        let info = mock_info("creator", &[]);
 
-    //     let mut members = vec!["addr101".to_string(), "addr101".to_string()];
-    //     let res = add_members(deps.as_mut(), env.clone(), info.clone(), members.clone()).unwrap();
+        let mut members = vec!["addr101".to_string(), "addr101".to_string()];
+        let res = add_members(deps.as_mut(), env.clone(), info.clone(), members.clone()).unwrap();
 
-    //     // Check if members are saved
-    //     let members = query_members(deps.as_ref(), env.clone(), None, Some(150))
-    //         .unwrap()
-    //         .members;
-    //     assert_eq!(members.len(), 101);
+        // Check if members are saved
+        let members = query_members(deps.as_ref(), env.clone(), None, Some(150))
+            .unwrap()
+            .members;
+        assert_eq!(members.len(), 101);
 
-    //     // Try adding members more than member limit
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(100_000);
-    //     let info = mock_info("creator", &[]);
-    //     let mut members = vec![];
-    //     for i in 100..201 {
-    //         members.push(format!("addr{}", i));
-    //     }
-    //     let res =
-    //         add_members(deps.as_mut(), env.clone(), info.clone(), members.clone()).unwrap_err();
-    //     assert_eq!(
-    //         res,
-    //         ContractError::MemberLimitReached {
-    //             member_limit: 200,
-    //             current_member_count: 201
-    //         }
-    //     );
-    // }
+        // Try adding members more than member limit
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(100_000);
+        let info = mock_info("creator", &[]);
+        let mut members = vec![];
+        for i in 100..201 {
+            members.push(format!("addr{}", i));
+        }
+        let res =
+            add_members(deps.as_mut(), env.clone(), info.clone(), members.clone()).unwrap_err();
+        assert_eq!(
+            res,
+            ContractError::MemberLimitReached {
+                member_limit: 200,
+                current_member_count: 201
+            }
+        );
+    }
 
-    // #[test]
-    // fn test_remove_members() {
-    //     let mut deps = mock_dependencies();
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(100_000);
-    //     let info = mock_info("creator", &[]);
-    //     let mut msg = return_inst_message();
+    #[test]
+    fn test_remove_members() {
+        let mut deps = mock_dependencies();
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(100_000);
+        let info = mock_info("creator", &[]);
+        let mut msg = return_inst_message();
 
-    //     // instantiate
-    //     let res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
+        // instantiate
+        let res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
 
-    //     // Try removing members after whitelist started
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(1_000_001);
-    //     let info = mock_info("creator", &[]);
-    //     let res = remove_members(
-    //         deps.as_mut(),
-    //         env.clone(),
-    //         info.clone(),
-    //         vec!["addr0".to_string()],
-    //     )
-    //     .unwrap_err();
-    //     assert_eq!(res, ContractError::WhiteListAlreadyStarted {});
+        // Try removing members after whitelist started
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(1_000_001);
+        let info = mock_info("creator", &[]);
+        let res = remove_members(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            vec!["addr0".to_string()],
+        )
+        .unwrap_err();
+        assert_eq!(res, ContractError::WhiteListAlreadyStarted {});
 
-    //     // Try removing members who are not in whitelist
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(100_000);
-    //     let info = mock_info("creator", &[]);
-    //     // Try removing members who are not in whitelist
-    //     let res = remove_members(
-    //         deps.as_mut(),
-    //         env.clone(),
-    //         info.clone(),
-    //         vec!["addr101".to_string()],
-    //     )
-    //     .unwrap_err();
-    //     assert_eq!(
-    //         res,
-    //         ContractError::MemberDoesNotExist {
-    //             member: "addr101".to_string()
-    //         }
-    //     );
+        // Try removing members who are not in whitelist
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(100_000);
+        let info = mock_info("creator", &[]);
+        // Try removing members who are not in whitelist
+        let res = remove_members(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            vec!["addr101".to_string()],
+        )
+        .unwrap_err();
+        assert_eq!(
+            res,
+            ContractError::MemberDoesNotExist {
+                member: "addr101".to_string()
+            }
+        );
 
-    //     // Try removing members with a list of duplicates
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(100_000);
-    //     let info = mock_info("creator", &[]);
-    //     let res = remove_members(
-    //         deps.as_mut(),
-    //         env.clone(),
-    //         info.clone(),
-    //         vec!["addr0".to_string(), "addr0".to_string()],
-    //     )
-    //     .unwrap();
+        // Try removing members with a list of duplicates
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(100_000);
+        let info = mock_info("creator", &[]);
+        let res = remove_members(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            vec!["addr0".to_string(), "addr0".to_string()],
+        )
+        .unwrap();
 
-    //     // Check if member is removed
-    //     let members = query_members(deps.as_ref(), env.clone(), None, Some(150))
-    //         .unwrap()
-    //         .members;
-    //     assert_eq!(members.contains(&"addr0".to_string()), false);
-    //     assert_eq!(members.len(), 99);
-    // }
+        // Check if member is removed
+        let members = query_members(deps.as_ref(), env.clone(), None, Some(150))
+            .unwrap()
+            .members;
+        assert_eq!(members.contains(&"addr0".to_string()), false);
+        assert_eq!(members.len(), 99);
+    }
 
-    // #[test]
-    // fn test_update_per_address_limit() {
-    //     let mut deps = mock_dependencies();
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(100_000);
-    //     let info = mock_info("creator", &[]);
-    //     let mut msg = return_inst_message();
+    #[test]
+    fn test_update_per_address_limit() {
+        let mut deps = mock_dependencies();
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(100_000);
+        let info = mock_info("creator", &[]);
+        let mut msg = return_inst_message();
 
-    //     // instantiate
-    //     let res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
+        // instantiate
+        let res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
 
-    //     // Try updating per address limit after whitelist started
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(1_000_001);
-    //     let info = mock_info("creator", &[]);
-    //     let res =
-    //         update_per_address_limit(deps.as_mut(), env.clone(), info.clone(), 2).unwrap_err();
-    //     assert_eq!(res, ContractError::WhiteListAlreadyStarted {});
+        // Try updating per address limit after whitelist started
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(1_000_001);
+        let info = mock_info("creator", &[]);
+        let res = update_per_address_limit(deps.as_mut(), env.clone(), info.clone(), 2, None)
+            .unwrap_err();
+        assert_eq!(res, ContractError::WhiteListAlreadyStarted {});
 
-    //     // Try updating per address limit after whitelist ended
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(5_000_001);
-    //     let info = mock_info("creator", &[]);
-    //     let res =
-    //         update_per_address_limit(deps.as_mut(), env.clone(), info.clone(), 2).unwrap_err();
-    //     assert_eq!(res, ContractError::WhitelistEnded {});
+        // Try updating per address limit after whitelist ended
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(5_000_001);
+        let info = mock_info("creator", &[]);
+        let res = update_per_address_limit(deps.as_mut(), env.clone(), info.clone(), 2, None)
+            .unwrap_err();
+        assert_eq!(res, ContractError::WhitelistEnded {});
 
-    //     // Try updating per address limit with invalid amount
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(100_000);
-    //     let info = mock_info("creator", &[]);
-    //     let res =
-    //         update_per_address_limit(deps.as_mut(), env.clone(), info.clone(), 0).unwrap_err();
-    //     assert_eq!(res, ContractError::InvalidPerAddressLimit {});
+        // Try updating per address limit with invalid amount
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(100_000);
+        let info = mock_info("creator", &[]);
+        let res = update_per_address_limit(deps.as_mut(), env.clone(), info.clone(), 0, None)
+            .unwrap_err();
+        assert_eq!(res, ContractError::InvalidPerAddressLimit {});
 
-    //     // Try updating per address limit with valid amount
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(100_000);
-    //     let info = mock_info("creator", &[]);
-    //     let res = update_per_address_limit(deps.as_mut(), env.clone(), info.clone(), 2).unwrap();
-    // }
+        // Try updating per address limit with valid amount
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(100_000);
+        let info = mock_info("creator", &[]);
+        let res =
+            update_per_address_limit(deps.as_mut(), env.clone(), info.clone(), 2, None).unwrap();
+    }
 
-    // #[test]
-    // fn test_increase_member_limit() {
-    //     let mut deps = mock_dependencies();
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(100_000);
+    #[test]
+    fn test_increase_member_limit() {
+        let mut deps = mock_dependencies();
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(100_000);
 
-    //     let info = mock_info("creator", &[]);
-    //     let mut msg = return_inst_message();
+        let info = mock_info("creator", &[]);
+        let mut msg = return_inst_message();
 
-    //     // instantiate
-    //     let res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
+        // instantiate
+        let res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
 
-    //     // Try increasing member limit after whitelist ended
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(5_000_001);
-    //     let info = mock_info("creator", &[]);
-    //     let res = increase_member_limit(deps.as_mut(), env.clone(), info.clone(), 2).unwrap_err();
-    //     assert_eq!(res, ContractError::WhitelistEnded {});
+        // Try increasing member limit after whitelist ended
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(5_000_001);
+        let info = mock_info("creator", &[]);
+        let res = increase_member_limit(deps.as_mut(), env.clone(), info.clone(), 2).unwrap_err();
+        assert_eq!(res, ContractError::WhitelistEnded {});
 
-    //     // Try increasing member limit with invalid amount
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(100_000);
-    //     let info = mock_info("creator", &[]);
-    //     // Try increasing member limit with invalid amount
-    //     let res = increase_member_limit(deps.as_mut(), env.clone(), info.clone(), 0).unwrap_err();
-    //     assert_eq!(res, ContractError::InvalidMemberLimit {});
+        // Try increasing member limit with invalid amount
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(100_000);
+        let info = mock_info("creator", &[]);
+        // Try increasing member limit with invalid amount
+        let res = increase_member_limit(deps.as_mut(), env.clone(), info.clone(), 0).unwrap_err();
+        assert_eq!(res, ContractError::InvalidMemberLimit {});
 
-    //     // Try increasing member limit with valid amount
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(100_000);
-    //     let info = mock_info("creator", &[]);
+        // Try increasing member limit with valid amount
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(100_000);
+        let info = mock_info("creator", &[]);
 
-    //     let res = increase_member_limit(deps.as_mut(), env.clone(), info.clone(), 2).unwrap();
-    // }
+        let res = increase_member_limit(deps.as_mut(), env.clone(), info.clone(), 2).unwrap();
+    }
 
-    // #[test]
-    // fn test_update_admin() {
-    //     let mut deps = mock_dependencies();
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(100_000);
+    #[test]
+    fn test_update_admin() {
+        let mut deps = mock_dependencies();
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(100_000);
 
-    //     let info = mock_info("creator", &[]);
-    //     let mut msg = return_inst_message();
+        let info = mock_info("creator", &[]);
+        let mut msg = return_inst_message();
 
-    //     // instantiate
-    //     let res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
+        // instantiate
+        let res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
 
-    //     // Try updating admin after whitelist ended
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(5_000_001);
-    //     let info = mock_info("creator", &[]);
-    //     let res = update_admin(
-    //         deps.as_mut(),
-    //         env.clone(),
-    //         info.clone(),
-    //         "addr101".to_string(),
-    //     )
-    //     .unwrap_err();
-    //     assert_eq!(res, ContractError::WhitelistEnded {});
+        // Try updating admin after whitelist ended
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(5_000_001);
+        let info = mock_info("creator", &[]);
+        let res = update_admin(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            "addr101".to_string(),
+        )
+        .unwrap_err();
+        assert_eq!(res, ContractError::WhitelistEnded {});
 
-    //     // Try updating admin without admin permission
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(100_000);
-    //     let info = mock_info("non_admin", &[]);
-    //     let res = update_admin(
-    //         deps.as_mut(),
-    //         env.clone(),
-    //         info.clone(),
-    //         "addr101".to_string(),
-    //     )
-    //     .unwrap_err();
-    //     assert_eq!(res, ContractError::Unauthorized {});
+        // Try updating admin without admin permission
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(100_000);
+        let info = mock_info("non_admin", &[]);
+        let res = update_admin(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            "addr101".to_string(),
+        )
+        .unwrap_err();
+        assert_eq!(res, ContractError::Unauthorized {});
 
-    //     // Try updating admin with valid address
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(100_000);
-    //     let info = mock_info("creator", &[]);
+        // Try updating admin with valid address
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(100_000);
+        let info = mock_info("creator", &[]);
 
-    //     let res = update_admin(
-    //         deps.as_mut(),
-    //         env.clone(),
-    //         info.clone(),
-    //         "addr101".to_string(),
-    //     )
-    //     .unwrap();
-    // }
+        let res = update_admin(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            "addr101".to_string(),
+        )
+        .unwrap();
+    }
 
-    // #[test]
-    // fn test_freeze() {
-    //     let mut deps = mock_dependencies();
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(100_000);
+    #[test]
+    fn test_freeze() {
+        let mut deps = mock_dependencies();
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(100_000);
 
-    //     let info = mock_info("creator", &[]);
-    //     let mut msg = return_inst_message();
+        let info = mock_info("creator", &[]);
+        let mut msg = return_inst_message();
 
-    //     // instantiate
-    //     let res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
+        // instantiate
+        let res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
 
-    //     // Try freezing after whitelist ended
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(5_000_001);
-    //     let info = mock_info("creator", &[]);
-    //     let res = freeze(deps.as_mut(), env.clone(), info.clone()).unwrap_err();
-    //     assert_eq!(res, ContractError::WhitelistEnded {});
+        // Try freezing after whitelist ended
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(5_000_001);
+        let info = mock_info("creator", &[]);
+        let res = freeze(deps.as_mut(), env.clone(), info.clone()).unwrap_err();
+        assert_eq!(res, ContractError::WhitelistEnded {});
 
-    //     // Try freezing without admin permission
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(100_000);
-    //     let info = mock_info("non_admin", &[]);
-    //     let res = freeze(deps.as_mut(), env.clone(), info.clone()).unwrap_err();
-    //     assert_eq!(res, ContractError::Unauthorized {});
+        // Try freezing without admin permission
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(100_000);
+        let info = mock_info("non_admin", &[]);
+        let res = freeze(deps.as_mut(), env.clone(), info.clone()).unwrap_err();
+        assert_eq!(res, ContractError::Unauthorized {});
 
-    //     // Try freezing with valid address
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(100_000);
-    //     let info = mock_info("creator", &[]);
+        // Try freezing with valid address
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(100_000);
+        let info = mock_info("creator", &[]);
 
-    //     let res = freeze(deps.as_mut(), env.clone(), info.clone()).unwrap();
+        let res = freeze(deps.as_mut(), env.clone(), info.clone()).unwrap();
 
-    //     // Try every other function after freeze
-    //     // Every function should fail after freeze
+        // Try every other function after freeze
+        // Every function should fail after freeze
 
-    //     // Try updating start time after freeze
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(100_000);
-    //     let info = mock_info("creator", &[]);
-    //     let res = update_start_time(
-    //         deps.as_mut(),
-    //         env.clone(),
-    //         info.clone(),
-    //         Timestamp::from_seconds(100_000 + 1),
-    //     )
-    //     .unwrap_err();
-    //     assert_eq!(res, ContractError::WhitelistFrozen {});
+        // Try updating start time after freeze
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(100_000);
+        let info = mock_info("creator", &[]);
+        let res = update_start_time(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            Timestamp::from_seconds(100_000 + 1),
+            None,
+        )
+        .unwrap_err();
+        assert_eq!(res, ContractError::WhitelistFrozen {});
 
-    //     // Try updating end time after freeze
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(100_000);
-    //     let info = mock_info("creator", &[]);
-    //     let res = update_end_time(
-    //         deps.as_mut(),
-    //         env.clone(),
-    //         info.clone(),
-    //         Timestamp::from_seconds(5_000_000 + 1),
-    //     )
-    //     .unwrap_err();
-    //     assert_eq!(res, ContractError::WhitelistFrozen {});
+        // Try updating end time after freeze
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(100_000);
+        let info = mock_info("creator", &[]);
+        let res = update_end_time(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            Timestamp::from_seconds(5_000_000 + 1),
+            None,
+        )
+        .unwrap_err();
+        assert_eq!(res, ContractError::WhitelistFrozen {});
 
-    //     // Try adding members after freeze
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(100_000);
-    //     let info = mock_info("creator", &[]);
-    //     // Try adding members after whitelist ended
-    //     let res = add_members(
-    //         deps.as_mut(),
-    //         env.clone(),
-    //         info.clone(),
-    //         vec!["addr101".to_string()],
-    //     )
-    //     .unwrap_err();
+        // Try adding members after freeze
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(100_000);
+        let info = mock_info("creator", &[]);
+        // Try adding members after whitelist ended
+        let res = add_members(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            vec!["addr101".to_string()],
+        )
+        .unwrap_err();
 
-    //     assert_eq!(res, ContractError::WhitelistFrozen {});
+        assert_eq!(res, ContractError::WhitelistFrozen {});
 
-    //     // Try removing members after freeze
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(100_000);
-    //     let info = mock_info("creator", &[]);
-    //     // Try removing members after whitelist ended
-    //     let res = remove_members(
-    //         deps.as_mut(),
-    //         env.clone(),
-    //         info.clone(),
-    //         vec!["addr0".to_string()],
-    //     )
-    //     .unwrap_err();
+        // Try removing members after freeze
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(100_000);
+        let info = mock_info("creator", &[]);
+        // Try removing members after whitelist ended
+        let res = remove_members(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            vec!["addr0".to_string()],
+        )
+        .unwrap_err();
 
-    //     assert_eq!(res, ContractError::WhitelistFrozen {});
+        assert_eq!(res, ContractError::WhitelistFrozen {});
 
-    //     // Try updating per address limit after freeze
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(100_000);
-    //     let info = mock_info("creator", &[]);
-    //     // Try updating per address limit after whitelist ended
-    //     let res =
-    //         update_per_address_limit(deps.as_mut(), env.clone(), info.clone(), 2).unwrap_err();
-    //     assert_eq!(res, ContractError::WhitelistFrozen {});
+        // Try updating per address limit after freeze
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(100_000);
+        let info = mock_info("creator", &[]);
+        // Try updating per address limit after whitelist ended
+        let res = update_per_address_limit(deps.as_mut(), env.clone(), info.clone(), 2, None)
+            .unwrap_err();
+        assert_eq!(res, ContractError::WhitelistFrozen {});
 
-    //     // Try increasing member limit after freeze
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(100_000);
-    //     let info = mock_info("creator", &[]);
-    //     // Try increasing member limit after whitelist ended
-    //     let res = increase_member_limit(deps.as_mut(), env.clone(), info.clone(), 2).unwrap_err();
-    //     assert_eq!(res, ContractError::WhitelistFrozen {});
+        // Try increasing member limit after freeze
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(100_000);
+        let info = mock_info("creator", &[]);
+        // Try increasing member limit after whitelist ended
+        let res = increase_member_limit(deps.as_mut(), env.clone(), info.clone(), 2).unwrap_err();
+        assert_eq!(res, ContractError::WhitelistFrozen {});
 
-    //     // Try updating admin after freeze
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(100_000);
-    //     let info = mock_info("creator", &[]);
-    //     // Try updating admin after whitelist ended
-    //     let res = update_admin(
-    //         deps.as_mut(),
-    //         env.clone(),
-    //         info.clone(),
-    //         "addr101".to_string(),
-    //     )
-    //     .unwrap_err();
-    //     assert_eq!(res, ContractError::WhitelistFrozen {});
+        // Try updating admin after freeze
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(100_000);
+        let info = mock_info("creator", &[]);
+        // Try updating admin after whitelist ended
+        let res = update_admin(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            "addr101".to_string(),
+        )
+        .unwrap_err();
+        assert_eq!(res, ContractError::WhitelistFrozen {});
 
-    //     // Try freezing after freeze
-    //     let mut env = mock_env();
-    //     env.block.time = Timestamp::from_seconds(100_000);
-    //     let info = mock_info("creator", &[]);
-    //     let res = freeze(deps.as_mut(), env.clone(), info.clone()).unwrap_err();
-    //     assert_eq!(res, ContractError::WhitelistFrozen {});
-    // }
+        // Try freezing after freeze
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_seconds(100_000);
+        let info = mock_info("creator", &[]);
+        let res = freeze(deps.as_mut(), env.clone(), info.clone()).unwrap_err();
+        assert_eq!(res, ContractError::WhitelistFrozen {});
+    }
 }
