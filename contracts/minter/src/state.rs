@@ -63,6 +63,12 @@ impl Round {
             Round::WhitelistCollection { round_limit, .. } => *round_limit,
         }
     }
+    pub fn return_whitelist_address(&self) -> Option<Addr> {
+        match self {
+            Round::WhitelistAddress { address, .. } => Some(address.clone()),
+            Round::WhitelistCollection { .. } => None,
+        }
+    }
     pub fn update_params(
         &mut self,
         start_time: Option<Timestamp>,

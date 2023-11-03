@@ -8,11 +8,10 @@ use cosmwasm_std::{
     Response, StdResult, Timestamp, Uint128,
 };
 
+use types::whitelist::Config as WhitelistConfig;
 use types::whitelist::{
     HasMemberResponse, IsActiveResponse, PerAddressLimitResponse, WhitelistQueryMsgs,
 };
-// Use this as whitelist config
-use types::whitelist::Config as WhitelistConfig;
 
 use cw_utils::{maybe_addr, must_pay, nonpayable};
 
@@ -107,8 +106,8 @@ pub fn instantiate(
         // First update the rounds. We are only updating whitelist rounds
         let mut rounds = msg.rounds.unwrap();
         let mut updated_rounds: Vec<(u32, Round)> = Vec::new();
-        for mut round in rounds {
-            let mut i = 1;
+        let mut i = 1;
+        for round in rounds {
             let updated = return_updated_round(&deps, round)?;
             updated_rounds.push((i, updated));
             i += 1;
@@ -624,24 +623,68 @@ pub fn execute_add_round(
     if info.sender != config.creator {
         return Err(ContractError::Unauthorized {});
     }
-    // Check if the round exists
-    let mut rounds = ROUNDS
-        .range(deps.storage, None, None, Order::Ascending)
-        .collect::<StdResult<Vec<(u32, Round)>>>()?;
-    let round_exists = rounds.iter().any(|(_, r)| r == &round);
-    if round_exists {
-        return Err(ContractError::RoundAlreadyExists {});
-    }
-    let round_index = rounds.len() as u32 + 1;
-    rounds.push((round_index, round.clone()));
-    // Check if the round start time is valid
-    if round.start_time() < env.block.time {
-        return Err(ContractError::RoundStartTimeInvalid {});
-    }
-    // Check if rounds overlap
-    check_round_overlaps(env.block.time, rounds, config.start_time)?;
+    // Check round type
+    let round_type = round.return_round_type();
+    match round_type.as_str() {
+        "collection" => {
+            // Check if the round start time is valid
+            if round.start_time() < env.block.time {
+                return Err(ContractError::RoundAlreadyStarted {});
+            }
+            // Check if round already exists
+            let rounds = ROUNDS
+                .range(deps.storage, None, None, Order::Ascending)
+                .collect::<StdResult<Vec<(u32, Round)>>>()?;
+            let round_exists = rounds.iter().any(|(_, r)| r == &round);
+            if round_exists {
+                return Err(ContractError::RoundAlreadyExists {});
+            }
+            // Check if rounds overlap
+            let mut updated_rounds = rounds.clone();
+            updated_rounds.push((updated_rounds.len() as u32 + 1, round.clone()));
 
+            check_round_overlaps(env.block.time, updated_rounds, config.start_time)?;
+        }
+        "address" => {
+            // Check if the round start time is valid
+            if round.start_time() < env.block.time {
+                return Err(ContractError::RoundAlreadyStarted {});
+            }
+            // Check if round is already exists
+            let rounds = ROUNDS
+                .range(deps.storage, None, None, Order::Ascending)
+                .collect::<StdResult<Vec<(u32, Round)>>>()?;
+            // Find round with whitelist address if exist return error
+            let round_exists = rounds.iter().any(|(_, r)| match r {
+                Round::WhitelistAddress { address, .. } => {
+                    address == &round.return_whitelist_address().unwrap()
+                }
+                _ => false,
+                // Update round parameters if they are incorrect return error
+            });
+
+            if round_exists {
+                return Err(ContractError::RoundAlreadyExists {});
+            }
+            let updated = return_updated_round(&deps, round.clone())?;
+            // Check if rounds overlap
+            let mut updated_rounds = rounds.clone();
+            updated_rounds.push((updated_rounds.len() as u32 + 1, updated.clone()));
+            check_round_overlaps(env.block.time, updated_rounds, config.start_time)?;
+        }
+        _ => {
+            return Err(ContractError::InvalidRoundType {
+                expected: "collection or whitelist".to_string(),
+                actual: round_type,
+            });
+        }
+    }
     // Save the round
+    let round_index = ROUNDS
+        .range(deps.storage, None, None, Order::Ascending)
+        .collect::<StdResult<Vec<(u32, Round)>>>()?
+        .len() as u32
+        + 1;
     ROUNDS.save(deps.storage, round_index, &round)?;
 
     let res = Response::new()
