@@ -232,7 +232,7 @@ pub fn execute(
             execute_remove_round(deps, env, info, round_index)
         }
         ExecuteMsg::AddRound { round } => execute_add_round(deps, env, info, round),
-        ExecuteMsg::UpdateCollectiomRound { round_index, round } => {
+        ExecuteMsg::UpdateCollectionRound { round_index, round } => {
             execute_update_collection_round(deps, env, info, round_index, round)
         }
         ExecuteMsg::UpdateWhitelistRound {

@@ -48,7 +48,7 @@ pub enum ExecuteMsg {
     AddRound {
         round: Round,
     },
-    UpdateCollectiomRound {
+    UpdateCollectionRound {
         round_index: u32,
         round: Round,
     },
