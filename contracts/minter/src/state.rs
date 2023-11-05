@@ -53,7 +53,7 @@ impl Round {
     }
     pub fn mint_price(&self) -> Uint128 {
         match self {
-            Round::WhitelistAddress { .. } => Uint128::zero(),
+            Round::WhitelistAddress { mint_price, .. } => *mint_price,
             Round::WhitelistCollection { mint_price, .. } => *mint_price,
         }
     }

@@ -1,7 +1,7 @@
-use cosmwasm_schema::cw_serde;
+use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Timestamp, Uint128};
 
-use crate::state::Round;
+use crate::state::{Config, Round, Token, UserDetails};
 
 #[cw_serde]
 pub struct InstantiateMsg {
@@ -69,16 +69,6 @@ pub enum ExecuteMsg {
 }
 
 #[cw_serde]
-pub enum QueryMsg {
-    Config {},
-    Collection {},
-    MintedTokens { address: String },
-    MintableTokens {},
-    TotalTokens {},
-    Rounds {},
-}
-
-#[cw_serde]
 pub enum WhitelistQueryMsg {
     HasStarted {},
     HasEnded {},
@@ -92,4 +82,21 @@ pub enum WhitelistQueryMsg {
     },
     Config {},
     PerAddressLimit {},
+}
+
+#[cw_serde]
+#[derive(QueryResponses)]
+pub enum QueryMsg {
+    #[returns(CollectionDetails)]
+    Collection {},
+    #[returns(Config)]
+    Config {},
+    #[returns(Vec<Token>)]
+    MintableTokens {},
+    #[returns(UserDetails)]
+    MintedTokens { address: String },
+    #[returns(u32)]
+    TotalTokens {},
+    #[returns(Vec<(u32, Round)>)]
+    Rounds {},
 }

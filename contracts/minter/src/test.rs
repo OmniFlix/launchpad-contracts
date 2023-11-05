@@ -935,5 +935,10 @@ mod tests {
                 round_limit: 10,
             }
         );
+
+        // Check rounds
+        let rounds_data = query(deps.as_ref(), env.clone(), QueryMsg::Rounds {}).unwrap();
+        let rounds: Vec<(u32, Round)> = from_binary(&rounds_data).unwrap();
+        println!("{:?}", rounds);
     }
 }

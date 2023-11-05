@@ -1,2 +1,2 @@
-defb11566e7dffd20793dac45375ab435b8f8ffce3f1efc9e3a96896bb33e311  target/wasm32-unknown-unknown/release/omniflix_minter.wasm
+62c518227e2bd3ba14f4ea3b6b64d5438779623e869d179eecd7f3a7c2febcca  target/wasm32-unknown-unknown/release/omniflix_minter.wasm
 47d5d25434842e94b4b38061ba90aaed71349697d24ec896b325a2216d9f65c2  target/wasm32-unknown-unknown/release/omniflix_whitelist.wasm
