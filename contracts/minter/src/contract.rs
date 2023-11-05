@@ -373,7 +373,7 @@ pub fn execute_mint(
         to_address: payment_collector.into_string(),
         amount: vec![Coin {
             denom: config.mint_denom,
-            amount: config.mint_price,
+            amount: mint_price,
         }],
     })
     .into();
