@@ -3,7 +3,7 @@ use std::convert::TryInto;
 use cosmwasm_std::{
     from_binary, from_json, Addr, Binary, Deps, DepsMut, Env, Order, StdError, Timestamp,
 };
-use omniflix_std::types::omniflix::onft::v1beta1::OnftQuerier;
+use omniflix_std::types::omniflix::onft::v1beta1::{OnftQuerier, QueryCollectionResponse};
 use rand_core::{RngCore, SeedableRng};
 use rand_xoshiro::Xoshiro128PlusPlus;
 use serde::de::value;
@@ -163,7 +163,7 @@ pub fn return_updated_round(deps: &DepsMut, round: Round) -> Result<Round, Contr
             round_limit,
         } => {
             let round = Round::WhitelistCollection {
-                collection_id,
+                collection_id: collection_id.clone(),
                 start_time,
                 end_time,
                 mint_price,
@@ -206,17 +206,9 @@ pub fn check_if_whitelisted(
         } => {
             let onft_querier = OnftQuerier::new(&deps.querier);
             // TODO: Check if there is better way
-            let collection = onft_querier
-                .collection(collection_id.clone(), None)?
-                .collection;
-            if collection.is_none() {
-                return Err(ContractError::CollectionNotFound {});
-            }
-            let onfts = collection.unwrap().onfts;
-            for onft in onfts {
-                if onft.owner == member {
-                    return Ok(true);
-                }
+            let owner_amount = onft_querier.supply(collection_id, member)?;
+            if owner_amount.amount > 0 {
+                return Ok(true);
             }
         }
     }
