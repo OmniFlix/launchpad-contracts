@@ -1,4 +1,3 @@
-use std::f32::consts::E;
 use std::str::FromStr;
 
 #[cfg(not(feature = "library"))]
@@ -8,14 +7,9 @@ use cosmwasm_std::{
     Response, StdResult, Timestamp, Uint128,
 };
 
-use types::whitelist::Config as WhitelistConfig;
-use types::whitelist::{
-    HasMemberResponse, IsActiveResponse, PerAddressLimitResponse, WhitelistQueryMsgs,
-};
-
 use cw_utils::{maybe_addr, must_pay, nonpayable};
 
-use crate::msg::{CollectionDetails, ExecuteMsg, InstantiateMsg, QueryMsg, WhitelistQueryMsg};
+use crate::msg::{CollectionDetails, ExecuteMsg, InstantiateMsg, QueryMsg};
 
 use crate::error::ContractError;
 use crate::state::{
@@ -78,7 +72,7 @@ pub fn instantiate(
             sent: amount,
         });
     }
-    // Check per address limit is not 0
+    // Check if per address limit is 0
     if msg.per_address_limit == 0 {
         return Err(ContractError::PerAddressLimitZero {});
     }
@@ -98,16 +92,13 @@ pub fn instantiate(
         return Err(ContractError::InvalidRoyaltyRatio {});
     }
 
-    if royalty_ratio > Decimal::one() {
-        return Err(ContractError::InvalidRoyaltyRatio {});
-    }
-
     if msg.rounds.is_some() {
         // First update the rounds. We are only updating whitelist rounds
-        let mut rounds = msg.rounds.unwrap();
+        let rounds = msg.rounds.unwrap();
         let mut updated_rounds: Vec<(u32, Round)> = Vec::new();
         let mut i = 1;
         for round in rounds {
+            // Round indexes start from 1
             let updated = return_updated_round(&deps, round)?;
             updated_rounds.push((i, updated));
             i += 1;
@@ -316,6 +307,8 @@ pub fn execute_mint(
         // Determine mint price
         mint_price = active_round.1.mint_price()
     } else {
+        // If we are here it means public minting has started
+        // There is no round limit nor index
         user_details.add_minted_token(
             config.per_address_limit,
             None,
@@ -564,6 +557,7 @@ pub fn execute_randomize_list(
     // Check if sender is admin
     let collection = COLLECTION.load(deps.storage)?;
     let config = CONFIG.load(deps.storage)?;
+    // This should be available for everyone but then this could be abused
     if info.sender != config.creator {
         return Err(ContractError::Unauthorized {});
     }
@@ -589,7 +583,7 @@ pub fn execute_randomize_list(
 
 pub fn execute_remove_round(
     deps: DepsMut,
-    _env: Env,
+    env: Env,
     info: MessageInfo,
     round_index: u32,
 ) -> Result<Response, ContractError> {
@@ -602,6 +596,11 @@ pub fn execute_remove_round(
     let round = ROUNDS.may_load(deps.storage, round_index)?;
     if round.is_none() {
         return Err(ContractError::RoundNotFound {});
+    }
+    // Check if the round has started
+    let round = round.unwrap();
+    if round.start_time() < env.block.time {
+        return Err(ContractError::RoundAlreadyStarted {});
     }
     // Remove the round
     ROUNDS.remove(deps.storage, round_index);
@@ -756,7 +755,8 @@ pub fn execute_update_whitelist_round(
     mint_price: Option<Uint128>,
     round_limit: Option<u32>,
 ) -> Result<Response, ContractError> {
-    // Check if sender is admin
+    // Check if sender is whitelist address
+    // We are expectiong this update to be called from the whitelist contract
     let config = CONFIG.load(deps.storage)?;
     let whitelist_address = info.sender.clone();
     // Load all the rounds
@@ -786,7 +786,7 @@ pub fn execute_update_whitelist_round(
     // Check if rounds overlap
     check_round_overlaps(_env.block.time, updated_rounds, config.start_time)?;
 
-    // If not owerlapping remove older from store
+    // If not overlapping remove older from store
     ROUNDS.remove(deps.storage, round_index);
     ROUNDS.save(deps.storage, round_index, &round)?;
 

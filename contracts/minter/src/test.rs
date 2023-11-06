@@ -1,7 +1,5 @@
 #[cfg(test)]
 mod tests {
-    use std::env;
-    use std::fmt::format;
 
     use crate::error::ContractError;
     use crate::msg::{CollectionDetails, ExecuteMsg, InstantiateMsg, QueryMsg};
@@ -10,7 +8,7 @@ mod tests {
     use crate::state::{Config, Round, Token, UserDetails};
 
     use cosmwasm_std::testing::{mock_dependencies, mock_info};
-    use cosmwasm_std::{coin, from_binary, to_binary, CosmosMsg, Decimal, StdError};
+    use cosmwasm_std::{coin, from_binary, to_binary, Decimal, StdError};
     use cosmwasm_std::{testing::mock_env, Addr, Timestamp, TransactionInfo, Uint128};
     use cw_utils::PaymentError;
     use omniflix_std::types::omniflix::onft::v1beta1::{Metadata, MsgCreateDenom, MsgMintOnft};
@@ -181,6 +179,12 @@ mod tests {
         assert_eq!(mintable_tokens.len(), 1000);
         // This is not a proper check but I am making sure list is randomized and is not starting from 1
         assert_ne!(mintable_tokens[0].token_id, 1.to_string());
+
+        // Check total tokens remaining
+        let total_tokens_remaining_data =
+            query(deps.as_ref(), env.clone(), QueryMsg::TotalTokens {}).unwrap();
+        let total_tokens_remaining: u32 = from_binary(&total_tokens_remaining_data).unwrap();
+        assert_eq!(total_tokens_remaining, 1000);
     }
 
     #[test]
@@ -935,10 +939,5 @@ mod tests {
                 round_limit: 10,
             }
         );
-
-        // Check rounds
-        let rounds_data = query(deps.as_ref(), env.clone(), QueryMsg::Rounds {}).unwrap();
-        let rounds: Vec<(u32, Round)> = from_binary(&rounds_data).unwrap();
-        println!("{:?}", rounds);
     }
 }

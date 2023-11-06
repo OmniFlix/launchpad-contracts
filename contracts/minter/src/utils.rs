@@ -1,26 +1,21 @@
 use std::convert::TryInto;
 
-use cosmwasm_std::{
-    from_binary, from_json, Addr, Binary, Deps, DepsMut, Env, Order, StdError, Timestamp,
-};
-use omniflix_std::types::omniflix::onft::v1beta1::{OnftQuerier, QueryCollectionResponse};
+use cosmwasm_std::{Addr, Deps, DepsMut, Env, StdError, Timestamp};
+use omniflix_std::types::omniflix::onft::v1beta1::OnftQuerier;
 use rand_core::{RngCore, SeedableRng};
 use rand_xoshiro::Xoshiro128PlusPlus;
-use serde::de::value;
 use sha2::{Digest, Sha256};
 use shuffle::{fy::FisherYates, shuffler::Shuffler};
 
 use crate::{
     error::ContractError,
-    state::{Config, Round, Token, CONFIG, MINTED_TOKENS},
+    state::{Round, Token},
 };
 use types::whitelist::Config as WhitelistConfig;
-use types::whitelist::{
-    HasMemberResponse, IsActiveResponse, PerAddressLimitResponse, WhitelistQueryMsgs,
-};
+use types::whitelist::{HasMemberResponse, WhitelistQueryMsgs};
 
 pub fn randomize_token_list(
-    mut tokens: Vec<(u32, Token)>,
+    tokens: Vec<(u32, Token)>,
     total_tokens: u32,
     env: Env,
 ) -> Result<Vec<(u32, Token)>, StdError> {
