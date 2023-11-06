@@ -100,6 +100,9 @@ pub enum ContractError {
 
     #[error("Invalid roud type")]
     InvalidRoundType { expected: String, actual: String },
+
+    #[error("Round start time can not be later than end time")]
+    InvalidRoundTime { round: Round },
 }
 
 impl From<ContractError> for StdError {

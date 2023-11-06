@@ -101,8 +101,9 @@ pub fn check_round_overlaps(
         Round::WhitelistAddress {
             address: Addr::unchecked("public"),
             start_time: Some(public_start_time),
-            // There is no public mint end time we generate 100 day after start time to be safe
-            end_time: Some(public_start_time.plus_days(100)),
+            // There is no public mint end time we generate 10_000 day after start time to be safe
+            // Only to check for overlaps
+            end_time: Some(public_start_time.plus_days(10_000)),
             mint_price: Default::default(),
             round_limit: Default::default(),
         },
@@ -113,6 +114,12 @@ pub fn check_round_overlaps(
     for (i, round) in rounds.iter().enumerate() {
         if i == rounds.len() - 1 {
             break;
+        }
+        // But a check for start time can not be bigger than end time
+        if round.1.start_time() > round.1.end_time() {
+            return Err(ContractError::InvalidRoundTime {
+                round: round.1.clone(),
+            });
         }
         let next_round = &rounds[i + 1];
         if round.1.end_time() > next_round.1.start_time() {

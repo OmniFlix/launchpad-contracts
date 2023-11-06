@@ -645,10 +645,6 @@ pub fn execute_add_round(
             check_round_overlaps(env.block.time, updated_rounds, config.start_time)?;
         }
         "address" => {
-            // Check if the round start time is valid
-            if round.start_time() < env.block.time {
-                return Err(ContractError::RoundAlreadyStarted {});
-            }
             // Check if round is already exists
             let rounds = ROUNDS
                 .range(deps.storage, None, None, Order::Ascending)
@@ -666,6 +662,10 @@ pub fn execute_add_round(
                 return Err(ContractError::RoundAlreadyExists {});
             }
             let updated = return_updated_round(&deps, round.clone())?;
+            // Check if the round start time is valid
+            if updated.start_time() < env.block.time {
+                return Err(ContractError::RoundAlreadyStarted {});
+            }
             // Check if rounds overlap
             let mut updated_rounds = rounds.clone();
             updated_rounds.push((updated_rounds.len() as u32 + 1, updated.clone()));
