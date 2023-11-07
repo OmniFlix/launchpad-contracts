@@ -17,8 +17,8 @@ use crate::state::{
     TOTAL_TOKENS_REMAINING,
 };
 use crate::utils::{
-    check_if_whitelisted, check_round_overlaps, find_active_round, randomize_token_list,
-    return_random_token_id, return_updated_round,
+    check_if_round_exists, check_if_whitelisted, check_round_overlaps, find_active_round,
+    randomize_token_list, return_random_token_id, return_updated_round,
 };
 
 use cw2::set_contract_version;
@@ -623,72 +623,29 @@ pub fn execute_add_round(
         return Err(ContractError::Unauthorized {});
     }
     // Check round type
-    let round_type = round.return_round_type();
-    match round_type.as_str() {
-        "collection" => {
-            // Check if the round start time is valid
-            if round.start_time() < env.block.time {
-                return Err(ContractError::RoundAlreadyStarted {});
-            }
-            // Check if round already exists
-            let rounds = ROUNDS
-                .range(deps.storage, None, None, Order::Ascending)
-                .collect::<StdResult<Vec<(u32, Round)>>>()?;
-            let round_exists = rounds.iter().any(|(_, r)| r == &round);
-            if round_exists {
-                return Err(ContractError::RoundAlreadyExists {});
-            }
-            // Check if rounds overlap
-            let mut updated_rounds = rounds.clone();
-            updated_rounds.push((updated_rounds.len() as u32 + 1, round.clone()));
-
-            check_round_overlaps(env.block.time, updated_rounds, config.start_time)?;
-        }
-        "address" => {
-            // Check if round is already exists
-            let rounds = ROUNDS
-                .range(deps.storage, None, None, Order::Ascending)
-                .collect::<StdResult<Vec<(u32, Round)>>>()?;
-            // Find round with whitelist address if exist return error
-            let round_exists = rounds.iter().any(|(_, r)| match r {
-                Round::WhitelistAddress { address, .. } => {
-                    address == &round.return_whitelist_address().unwrap()
-                }
-                _ => false,
-                // Update round parameters if they are incorrect return error
-            });
-
-            if round_exists {
-                return Err(ContractError::RoundAlreadyExists {});
-            }
-            let updated = return_updated_round(&deps, round.clone())?;
-            // Check if the round start time is valid
-            if updated.start_time() < env.block.time {
-                return Err(ContractError::RoundAlreadyStarted {});
-            }
-            // Check if rounds overlap
-            let mut updated_rounds = rounds.clone();
-            updated_rounds.push((updated_rounds.len() as u32 + 1, updated.clone()));
-            check_round_overlaps(env.block.time, updated_rounds, config.start_time)?;
-        }
-        _ => {
-            return Err(ContractError::InvalidRoundType {
-                expected: "collection or whitelist".to_string(),
-                actual: round_type,
-            });
-        }
-    }
-    // Save the round
-    let round_index = ROUNDS
+    let rounds = ROUNDS
         .range(deps.storage, None, None, Order::Ascending)
-        .collect::<StdResult<Vec<(u32, Round)>>>()?
-        .len() as u32
-        + 1;
-    ROUNDS.save(deps.storage, round_index, &round)?;
+        .collect::<StdResult<Vec<(u32, Round)>>>()?;
+    let round_exists = check_if_round_exists(&round, rounds.clone());
+    let latest_index = rounds.iter().map(|(i, _)| i).max().unwrap_or(&0);
+
+    if round_exists {
+        return Err(ContractError::RoundAlreadyExists {});
+    }
+    let updated_round = return_updated_round(&deps, round.clone())?;
+    // Check if the round start time is valid
+    if updated_round.start_time() < env.block.time {
+        return Err(ContractError::RoundAlreadyStarted {});
+    }
+    let mut updated_rounds = rounds.clone();
+    updated_rounds.push((*latest_index as u32 + 1, updated_round.clone()));
+    // Check if rounds overlap
+    check_round_overlaps(env.block.time, updated_rounds, config.start_time)?;
+    ROUNDS.save(deps.storage, *latest_index as u32 + 1, &updated_round)?;
 
     let res = Response::new()
         .add_attribute("action", "add_round")
-        .add_attribute("round_index", round_index.to_string());
+        .add_attribute("round_index", (*latest_index as u32 + 1).to_string());
 
     Ok(res)
 }
@@ -714,7 +671,11 @@ pub fn execute_update_collection_round(
         });
     }
     // Find round with round_index
-    let older_round = ROUNDS.load(deps.storage, round_index)?;
+    let older_round = ROUNDS.may_load(deps.storage, round_index)?;
+    if older_round.is_none() {
+        return Err(ContractError::RoundNotFound {});
+    }
+    let older_round = older_round.unwrap();
     let round_type = older_round.return_round_type();
     if round_type != "collection" {
         return Err(ContractError::InvalidRoundType {

@@ -711,7 +711,7 @@ mod tests {
                     // Dont save it that way but returning error
                     address: Addr::unchecked("public"),
                     start_time: Some(Timestamp::from_nanos(100_000)),
-                    end_time: Some(Timestamp::from_nanos(8640000000100000)),
+                    end_time: Some(Timestamp::from_nanos(864000000000100000)),
                     mint_price: Uint128::zero(),
                     round_limit: 0,
                 }
@@ -875,12 +875,7 @@ mod tests {
             },
         )
         .unwrap_err();
-        assert_eq!(
-            res,
-            ContractError::Std(StdError::NotFound {
-                kind: "omniflix_minter::state::Round".to_string()
-            })
-        );
+        assert_eq!(res, ContractError::RoundNotFound {});
 
         // Try updating wrong round type
         let res = execute(

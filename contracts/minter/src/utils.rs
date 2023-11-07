@@ -115,7 +115,7 @@ pub fn check_round_overlaps(
         if i == rounds.len() - 1 {
             break;
         }
-        // But a check for start time can not be bigger than end time
+        // Check for start time can not be bigger than end time
         if round.1.start_time() > round.1.end_time() {
             return Err(ContractError::InvalidRoundTime {
                 round: round.1.clone(),
@@ -233,6 +233,20 @@ pub fn find_active_round(
     }
     Err(ContractError::RoundEnded {})
 }
+
+pub fn check_if_round_exists(round: &Round, rounds: Vec<(u32, Round)>) -> bool {
+    match round {
+        Round::WhitelistAddress { address, .. } => rounds.iter().any(|(_, r)| match r {
+            Round::WhitelistAddress {
+                address: round_address,
+                ..
+            } => address == round_address,
+            _ => false,
+        }),
+        Round::WhitelistCollection { collection_id, .. } => rounds.iter().any(|(_, r)| r == round),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -395,6 +409,38 @@ mod tests {
         // Check for overlap between rounds 1 and 2
         let result = check_round_overlaps(now, rounds, public_start_time);
         assert!(result.is_err());
+
+        // Test case of start time bigger than end time for one of the rounds
+        let round1 = Round::WhitelistAddress {
+            address: Addr::unchecked("A"),
+            start_time: Some(Timestamp::from_seconds(0)),
+            end_time: Some(Timestamp::from_seconds(3)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+        let round2 = Round::WhitelistAddress {
+            address: Addr::unchecked("C"),
+            start_time: Some(Timestamp::from_seconds(4)),
+            end_time: Some(Timestamp::from_seconds(2)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+        let round3 = Round::WhitelistAddress {
+            address: Addr::unchecked("E"),
+            start_time: Some(Timestamp::from_seconds(5)),
+            end_time: Some(Timestamp::from_seconds(7)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+
+        let now = Timestamp::from_seconds(0);
+        let public_start_time = Timestamp::from_seconds(10);
+
+        let rounds: Vec<(u32, Round)> = vec![(1, round1), (2, round2.clone()), (3, round3)];
+
+        // Check for the error
+        let result = check_round_overlaps(now, rounds, public_start_time).unwrap_err();
+        assert_eq!(result, ContractError::InvalidRoundTime { round: round2 });
     }
 
     #[test]
@@ -467,5 +513,50 @@ mod tests {
         let now = Timestamp::from_seconds(9);
         let result = find_active_round(now, rounds).unwrap_err();
         assert_eq!(result, ContractError::RoundEnded {});
+    }
+
+    #[test]
+    pub fn test_check_if_round_exist() {
+        let round1 = Round::WhitelistAddress {
+            address: Addr::unchecked("A"),
+            start_time: Some(Timestamp::from_seconds(0)),
+            end_time: Some(Timestamp::from_seconds(3)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+        let round2 = Round::WhitelistAddress {
+            address: Addr::unchecked("C"),
+            start_time: Some(Timestamp::from_seconds(4)),
+            end_time: Some(Timestamp::from_seconds(5)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+        let round3 = Round::WhitelistAddress {
+            address: Addr::unchecked("E"),
+            start_time: Some(Timestamp::from_seconds(5)),
+            end_time: Some(Timestamp::from_seconds(7)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+        let round4 = Round::WhitelistCollection {
+            collection_id: "1".to_string(),
+            start_time: Timestamp::from_seconds(5),
+            end_time: Timestamp::from_seconds(7),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+
+        let rounds: Vec<(u32, Round)> = vec![
+            (1, round1.clone()),
+            (2, round2),
+            (3, round3),
+            (4, round4.clone()),
+        ];
+
+        let result = check_if_round_exists(&round1, rounds.clone());
+        assert_eq!(result, true);
+
+        let result = check_if_round_exists(&round4, rounds.clone());
+        assert_eq!(result, true);
     }
 }
