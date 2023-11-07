@@ -2,7 +2,7 @@
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     to_binary, to_json_binary, wasm_execute, Binary, Coin, Deps, DepsMut, Env, MessageInfo, Order,
-    Response, StdResult, Timestamp, Uint128,
+    Response, StdResult, Timestamp, Uint128, WasmMsg,
 };
 use cw2::set_contract_version;
 use cw_storage_plus::Bound;
@@ -12,6 +12,7 @@ use cw_utils::{maybe_addr, must_pay};
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, UpdateWhitelistRound};
 use crate::state::{CONFIG, MEMBERS};
+use omniflix_minter::msg::ExecuteMsg as MinterExecuteMsg;
 use types::whitelist::{
     Config, HasEndedResponse, HasMemberResponse, HasStartedResponse, IsActiveResponse,
     MembersResponse, PerAddressLimitResponse, WhitelistQueryMsgs,
@@ -149,25 +150,35 @@ pub fn update_start_time(
         return Err(ContractError::InvalidStartTime {});
     }
     config.start_time = start_time;
-
-    if minter_address.is_some() {
-        let addr = deps.api.addr_validate(&minter_address.unwrap())?;
-        // Generate minter message
-        let update_minter_msg = UpdateWhitelistRound {
-            start_time: Some(start_time),
-            end_time: None,
-            mint_price: None,
-            round_limit: None,
-        };
-        let msg = to_json_binary(&update_minter_msg)?;
-        // Send message to minter contract
-        wasm_execute(addr, &msg, Vec::new())?;
-    }
-
     CONFIG.save(deps.storage, &config)?;
-    Ok(Response::default()
-        .add_attribute("method", "update_start_time")
-        .add_attribute("start_time", config.start_time.to_string()))
+    let minter_address = maybe_addr(deps.api, minter_address)?;
+    match minter_address {
+        Some(addr) => {
+            // Generate minter message
+            let update_minter_msg = MinterExecuteMsg::UpdateWhitelistRound {
+                end_time: None,
+                start_time: Some(start_time),
+                mint_price: None,
+                round_limit: None,
+            };
+
+            let wasm_msg = WasmMsg::Execute {
+                contract_addr: addr.into_string(),
+                msg: to_json_binary(&update_minter_msg)?,
+                funds: (&[]).to_vec(),
+            };
+
+            return Ok(Response::default()
+                .add_attribute("method", "update_start_time")
+                .add_attribute("start_time", config.start_time.to_string())
+                .add_message(wasm_msg));
+        }
+        None => {
+            return Ok(Response::default()
+                .add_attribute("method", "update_start_time")
+                .add_attribute("start_time", config.start_time.to_string()));
+        }
+    }
 }
 
 pub fn update_end_time(
@@ -197,24 +208,35 @@ pub fn update_end_time(
         return Err(ContractError::InvalidEndTime {});
     }
     config.end_time = end_time;
-    if minter_address.is_some() {
-        let addr = deps.api.addr_validate(&minter_address.unwrap())?;
-        // Generate minter message
-        let update_minter_msg = UpdateWhitelistRound {
-            start_time: None,
-            end_time: Some(end_time),
-            mint_price: None,
-            round_limit: None,
-        };
-        let msg = to_json_binary(&update_minter_msg)?;
-        // Send message to minter contract
-        wasm_execute(addr, &msg, Vec::new())?;
-    }
-
     CONFIG.save(deps.storage, &config)?;
-    Ok(Response::default()
-        .add_attribute("method", "update_end_time")
-        .add_attribute("end_time", config.end_time.to_string()))
+    let minter_address = maybe_addr(deps.api, minter_address)?;
+    match minter_address {
+        Some(addr) => {
+            // Generate minter message
+            let update_minter_msg = MinterExecuteMsg::UpdateWhitelistRound {
+                end_time: Some(end_time),
+                start_time: None,
+                mint_price: None,
+                round_limit: None,
+            };
+
+            let wasm_msg = WasmMsg::Execute {
+                contract_addr: addr.into_string(),
+                msg: to_json_binary(&update_minter_msg)?,
+                funds: (&[]).to_vec(),
+            };
+
+            return Ok(Response::default()
+                .add_attribute("method", "update_end_time")
+                .add_attribute("end_time", config.end_time.to_string())
+                .add_message(wasm_msg));
+        }
+        None => {
+            return Ok(Response::default()
+                .add_attribute("method", "update_end_time")
+                .add_attribute("end_time", config.end_time.to_string()));
+        }
+    }
 }
 
 pub fn add_members(
@@ -338,26 +360,37 @@ pub fn update_per_address_limit(
     if amount <= 0 {
         return Err(ContractError::InvalidPerAddressLimit {});
     }
-    if minter_address.is_some() {
-        let addr = deps.api.addr_validate(&minter_address.unwrap())?;
-        // Generate minter message
-        let update_minter_msg = UpdateWhitelistRound {
-            start_time: None,
-            end_time: None,
-            mint_price: None,
-            round_limit: Some(amount),
-        };
-        let msg = to_json_binary(&update_minter_msg)?;
-        // Send message to minter contract
-        wasm_execute(addr, &msg, Vec::new())?;
-    }
-
     config.per_address_limit = amount;
 
     CONFIG.save(deps.storage, &config)?;
-    Ok(Response::default()
-        .add_attribute("method", "update_per_address_limit")
-        .add_attribute("per_address_limit", config.per_address_limit.to_string()))
+    let minter_address = maybe_addr(deps.api, minter_address)?;
+    match minter_address {
+        Some(addr) => {
+            // Generate minter message
+            let update_minter_msg = MinterExecuteMsg::UpdateWhitelistRound {
+                start_time: None,
+                end_time: None,
+                mint_price: None,
+                round_limit: Some(amount),
+            };
+
+            let wasm_msg = WasmMsg::Execute {
+                contract_addr: addr.into_string(),
+                msg: to_json_binary(&update_minter_msg)?,
+                funds: (&[]).to_vec(),
+            };
+
+            return Ok(Response::default()
+                .add_attribute("method", "update_per_address_limit")
+                .add_attribute("per_address_limit", config.per_address_limit.to_string())
+                .add_message(wasm_msg));
+        }
+        None => {
+            return Ok(Response::default()
+                .add_attribute("method", "update_per_address_limit")
+                .add_attribute("per_address_limit", config.per_address_limit.to_string()));
+        }
+    }
 }
 
 pub fn increase_member_limit(
@@ -464,25 +497,35 @@ pub fn update_mint_price(
         return Err(ContractError::InvalidMintPrice {});
     }
     config.mint_price = mint_price.clone();
-
-    if minter_address.is_some() {
-        let addr = deps.api.addr_validate(&minter_address.unwrap())?;
-        // Generate minter message
-        let update_minter_msg = UpdateWhitelistRound {
-            start_time: None,
-            end_time: None,
-            mint_price: Some(mint_price.amount),
-            round_limit: None,
-        };
-        let msg = to_json_binary(&update_minter_msg)?;
-        // Send message to minter contract
-        wasm_execute(addr, &msg, Vec::new())?;
-    }
-
     CONFIG.save(deps.storage, &config)?;
-    Ok(Response::default()
-        .add_attribute("method", "update_mint_price")
-        .add_attribute("mint_price", config.mint_price.to_string()))
+    let minter_address = maybe_addr(deps.api, minter_address)?;
+    match minter_address {
+        Some(addr) => {
+            // Generate minter message
+            let update_minter_msg = MinterExecuteMsg::UpdateWhitelistRound {
+                start_time: None,
+                end_time: None,
+                mint_price: Some(mint_price.amount),
+                round_limit: None,
+            };
+
+            let wasm_msg = WasmMsg::Execute {
+                contract_addr: addr.into_string(),
+                msg: to_json_binary(&update_minter_msg)?,
+                funds: (&[]).to_vec(),
+            };
+
+            return Ok(Response::default()
+                .add_attribute("method", "update_mint_price")
+                .add_attribute("mint_price", config.mint_price.to_string())
+                .add_message(wasm_msg));
+        }
+        None => {
+            return Ok(Response::default()
+                .add_attribute("method", "update_mint_price")
+                .add_attribute("mint_price", config.mint_price.to_string()));
+        }
+    }
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
