@@ -711,6 +711,7 @@ dependencies = [
  "cw-storage-plus 1.1.0",
  "cw-utils 1.0.2",
  "cw2 1.1.1",
+ "omniflix-minter",
  "omniflix-std",
  "serde",
  "thiserror",

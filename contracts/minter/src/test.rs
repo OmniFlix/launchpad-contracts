@@ -1,16 +1,14 @@
 #[cfg(test)]
 mod tests {
-    use std::env;
-    use std::fmt::format;
 
     use crate::error::ContractError;
     use crate::msg::{CollectionDetails, ExecuteMsg, InstantiateMsg, QueryMsg};
 
     use crate::contract::{execute, instantiate, query};
-    use crate::state::{Config, Token};
+    use crate::state::{Config, Round, Token, UserDetails};
 
     use cosmwasm_std::testing::{mock_dependencies, mock_info};
-    use cosmwasm_std::{coin, from_binary, to_binary, CosmosMsg, Decimal};
+    use cosmwasm_std::{coin, from_binary, to_binary, Decimal, StdError};
     use cosmwasm_std::{testing::mock_env, Addr, Timestamp, TransactionInfo, Uint128};
     use cw_utils::PaymentError;
     use omniflix_std::types::omniflix::onft::v1beta1::{Metadata, MsgCreateDenom, MsgMintOnft};
@@ -33,7 +31,7 @@ mod tests {
             per_address_limit: 10,
             creator: Some("creator".to_string()),
             collection_details: collection_details,
-            whitelist_address: None,
+            rounds: None,
             mint_denom: "uflix".to_string(),
             start_time: Timestamp::from_nanos(782784568767866),
             mint_price: Uint128::from(1000000u128),
@@ -181,6 +179,12 @@ mod tests {
         assert_eq!(mintable_tokens.len(), 1000);
         // This is not a proper check but I am making sure list is randomized and is not starting from 1
         assert_ne!(mintable_tokens[0].token_id, 1.to_string());
+
+        // Check total tokens remaining
+        let total_tokens_remaining_data =
+            query(deps.as_ref(), env.clone(), QueryMsg::TotalTokens {}).unwrap();
+        let total_tokens_remaining: u32 = from_binary(&total_tokens_remaining_data).unwrap();
+        assert_eq!(total_tokens_remaining, 1000);
     }
 
     #[test]
@@ -271,9 +275,9 @@ mod tests {
             },
         )
         .unwrap();
-        let minted_tokens: Vec<Token> = from_binary(&minted_tokens_data).unwrap();
+        let user_details: UserDetails = from_binary(&minted_tokens_data).unwrap();
         assert_eq!(
-            minted_tokens[0],
+            user_details.minted_tokens[0],
             Token {
                 token_id: "425".to_string()
             }
@@ -318,7 +322,7 @@ mod tests {
         let mut minted_list: Vec<Token> = Vec::new();
 
         for i in 1..=999 {
-            let minted_tokens_data = query(
+            let user_details_data = query(
                 deps.as_ref(),
                 env.clone(),
                 QueryMsg::MintedTokens {
@@ -326,12 +330,12 @@ mod tests {
                 },
             )
             .unwrap();
-            let minted_tokens: Vec<Token> = from_binary(&minted_tokens_data).unwrap();
-            assert_eq!(minted_tokens.len(), 1);
-            if minted_list.iter().any(|t| t == &minted_tokens[0]) {
-                panic!("Token is not unique");
-            }
-            minted_list.push(minted_tokens[0].clone());
+            let user_details: UserDetails = from_binary(&user_details_data).unwrap();
+            minted_list.push(user_details.minted_tokens[0].clone());
+        }
+        minted_list.sort_by(|a, b| a.token_id.cmp(&b.token_id));
+        for i in 0..=997 {
+            assert_ne!(minted_list[i], minted_list[i + 1]);
         }
     }
 
@@ -406,7 +410,7 @@ mod tests {
         .unwrap();
         // Check minted tokens for address
         // Check second token minted with random denom id is not same as first one
-        let minted_tokens_data = query(
+        let user_details_data = query(
             deps.as_ref(),
             env.clone(),
             QueryMsg::MintedTokens {
@@ -414,14 +418,9 @@ mod tests {
             },
         )
         .unwrap();
-        let minted_tokens: Vec<Token> = from_binary(&minted_tokens_data).unwrap();
 
-        assert_eq!(
-            minted_tokens[0],
-            Token {
-                token_id: "334".to_string()
-            }
-        );
+        let user_details: UserDetails = from_binary(&user_details_data).unwrap();
+        let minted_tokens = user_details.minted_tokens;
         assert_ne!(
             minted_tokens[1],
             Token {
@@ -442,7 +441,7 @@ mod tests {
         )
         .unwrap();
         // Here we are not changing any entropy but that token is minted so this one must be something else
-        let minted_tokens_data = query(
+        let user_details_data = query(
             deps.as_ref(),
             env.clone(),
             QueryMsg::MintedTokens {
@@ -451,55 +450,12 @@ mod tests {
         )
         .unwrap();
 
-        let minted_tokens: Vec<Token> = from_binary(&minted_tokens_data).unwrap();
-        assert_ne!(minted_tokens[2], minted_tokens[1]);
-    }
-
-    #[test]
-    pub fn test_set_whitelist() {
-        let mut env = mock_env();
-        env.block.height = 100_000_000;
-        env.block.time = Timestamp::from_nanos(100_000_000);
-        env.transaction = Some(TransactionInfo { index: 100_000_000 });
-        let mut deps = mock_dependencies();
-
-        let instantiate_msg = return_instantiate_msg();
-
-        // instantiate
-        let info = mock_info("creator", &[coin(100000000, "uflix")]);
-        let _res = instantiate(deps.as_mut(), env.clone(), info, instantiate_msg.clone()).unwrap();
-
-        // Try setting whitelist with non creator
-        let info = mock_info("non_creator", &[]);
-        let res = execute(
-            deps.as_mut(),
-            env.clone(),
-            info,
-            ExecuteMsg::SetWhitelist {
-                address: "new_whitelist".to_string(),
-            },
-        )
-        .unwrap_err();
-        assert_eq!(res, ContractError::Unauthorized {});
-
-        // Try setting whitelist with creator
-        let info = mock_info("creator", &[]);
-        let _res = execute(
-            deps.as_mut(),
-            env.clone(),
-            info,
-            ExecuteMsg::SetWhitelist {
-                address: "new_whitelist".to_string(),
-            },
-        )
-        .unwrap();
-
-        // Check whitelist
-        let config_data = query(deps.as_ref(), env.clone(), QueryMsg::Config {}).unwrap();
-        let config: Config = from_binary(&config_data).unwrap();
-        assert_eq!(
-            config.whitelist_address,
-            Some(Addr::unchecked("new_whitelist"))
+        let user_details: UserDetails = from_binary(&user_details_data).unwrap();
+        assert_ne!(
+            user_details.minted_tokens[2],
+            Token {
+                token_id: "334".to_string()
+            }
         );
     }
 
@@ -681,5 +637,302 @@ mod tests {
             query(deps.as_ref(), env.clone(), QueryMsg::MintableTokens {}).unwrap();
         let mintable_tokens: Vec<Token> = from_binary(&mintable_tokens_data).unwrap();
         assert_ne!(mintable_tokens[4], fifth_token);
+    }
+
+    #[test]
+    fn test_rounds() {
+        let mut env = mock_env();
+        env.block.height = 100_000;
+        env.block.time = Timestamp::from_nanos(100_000);
+        env.transaction = Some(TransactionInfo { index: 100_000 });
+        let mut deps = mock_dependencies();
+
+        let mut instantiate_msg = return_instantiate_msg();
+
+        // Add three rounds
+
+        instantiate_msg.rounds = Some(vec![
+            Round::WhitelistCollection {
+                collection_id: "collection_id".to_string(),
+                start_time: Timestamp::from_nanos(200_000),
+                end_time: Timestamp::from_nanos(300_000),
+                mint_price: Uint128::from(100_000u128),
+                round_limit: 10,
+            },
+            Round::WhitelistCollection {
+                collection_id: "collection_id".to_string(),
+                start_time: Timestamp::from_nanos(300_000),
+                end_time: Timestamp::from_nanos(400_000),
+                mint_price: Uint128::from(200_000u128),
+                round_limit: 10,
+            },
+            Round::WhitelistCollection {
+                collection_id: "collection_id".to_string(),
+                start_time: Timestamp::from_nanos(400_000),
+                end_time: Timestamp::from_nanos(500_000),
+                mint_price: Uint128::from(300_000u128),
+                round_limit: 10,
+            },
+        ]);
+        instantiate_msg.start_time = Timestamp::from_nanos(500_000);
+
+        // instantiate
+        // This is a happy path
+        let info = mock_info("creator", &[coin(100000000, "uflix")]);
+        let _res = instantiate(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            instantiate_msg.clone(),
+        )
+        .unwrap();
+
+        // Check rounds
+        let rounds_data = query(deps.as_ref(), env.clone(), QueryMsg::Rounds {}).unwrap();
+        let rounds: Vec<(u32, Round)> = from_binary(&rounds_data).unwrap();
+        assert_eq!(rounds.len(), 3);
+
+        // Now make them overlaped by changing start time
+        instantiate_msg.start_time = Timestamp::from_nanos(100_000);
+        let res = instantiate(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            instantiate_msg.clone(),
+        )
+        .unwrap_err();
+        // left: RoundsOverlaped { round: WhitelistAddress { address: Addr("public"), start_time: Some(Timestamp(Uint64(100000))), end_time: Some(Timestamp(Uint64(8640000000100000))), mint_price: Uint128(0), round_limit: 0 } }
+        assert_eq!(
+            res,
+            ContractError::RoundsOverlaped {
+                round: Round::WhitelistAddress {
+                    // This is a hacky solution should be fixed in future
+                    // For public sale I generate if its a round too
+                    // Dont save it that way but returning error
+                    address: Addr::unchecked("public"),
+                    start_time: Some(Timestamp::from_nanos(100_000)),
+                    end_time: Some(Timestamp::from_nanos(864000000000100000)),
+                    mint_price: Uint128::zero(),
+                    round_limit: 0,
+                }
+            }
+        );
+
+        // Now make them overlaped by changing round 1 end time
+        instantiate_msg.start_time = Timestamp::from_nanos(500_000);
+        instantiate_msg.rounds = Some(vec![
+            Round::WhitelistCollection {
+                collection_id: "collection_id".to_string(),
+                start_time: Timestamp::from_nanos(200_000),
+                end_time: Timestamp::from_nanos(300_000 + 1),
+                mint_price: Uint128::from(100_000u128),
+                round_limit: 10,
+            },
+            Round::WhitelistCollection {
+                collection_id: "collection_id".to_string(),
+                start_time: Timestamp::from_nanos(300_000),
+                end_time: Timestamp::from_nanos(400_000),
+                mint_price: Uint128::from(200_000u128),
+                round_limit: 10,
+            },
+            Round::WhitelistCollection {
+                collection_id: "collection_id".to_string(),
+                start_time: Timestamp::from_nanos(400_000),
+                end_time: Timestamp::from_nanos(500_000),
+                mint_price: Uint128::from(300_000u128),
+                round_limit: 10,
+            },
+        ]);
+        let res = instantiate(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            instantiate_msg.clone(),
+        )
+        .unwrap_err();
+
+        assert_eq!(
+            res,
+            ContractError::RoundsOverlaped {
+                round: Round::WhitelistCollection {
+                    collection_id: "collection_id".to_string(),
+                    start_time: Timestamp::from_nanos(200_000),
+                    end_time: Timestamp::from_nanos(300_000 + 1),
+                    mint_price: Uint128::from(100_000u128),
+                    round_limit: 10,
+                }
+            }
+        );
+
+        // Restart fresh
+        let mut env = mock_env();
+        env.block.height = 100_000;
+        env.block.time = Timestamp::from_nanos(100_000);
+        env.transaction = Some(TransactionInfo { index: 100_000 });
+        let mut deps = mock_dependencies();
+
+        let mut instantiate_msg = return_instantiate_msg();
+        instantiate_msg.start_time = Timestamp::from_nanos(1_000_000);
+
+        // Add only one round
+        instantiate_msg.rounds = Some(vec![Round::WhitelistCollection {
+            collection_id: "collection_id".to_string(),
+            start_time: Timestamp::from_nanos(200_000),
+            end_time: Timestamp::from_nanos(300_000),
+            mint_price: Uint128::from(100_000u128),
+            round_limit: 10,
+        }]);
+
+        // instantiate
+        let info = mock_info("creator", &[coin(100000000, "uflix")]);
+        let _res = instantiate(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            instantiate_msg.clone(),
+        )
+        .unwrap();
+
+        // Now try adding same round again
+        let res = execute(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            ExecuteMsg::AddRound {
+                round: Round::WhitelistCollection {
+                    collection_id: "collection_id".to_string(),
+                    start_time: Timestamp::from_nanos(200_000),
+                    end_time: Timestamp::from_nanos(300_000),
+                    mint_price: Uint128::from(100_000u128),
+                    round_limit: 10,
+                },
+            },
+        )
+        .unwrap_err();
+        assert_eq!(res, ContractError::RoundAlreadyExists {});
+
+        // Try adding a round already started
+        let res = execute(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            ExecuteMsg::AddRound {
+                round: Round::WhitelistCollection {
+                    collection_id: "collection_id".to_string(),
+                    start_time: Timestamp::from_nanos(50_000),
+                    end_time: Timestamp::from_nanos(60_000),
+                    mint_price: Uint128::from(100_000u128),
+                    round_limit: 10,
+                },
+            },
+        )
+        .unwrap_err();
+        assert_eq!(res, ContractError::RoundAlreadyStarted {});
+
+        // Try adding overlapping round
+        let res = execute(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            ExecuteMsg::AddRound {
+                round: Round::WhitelistCollection {
+                    collection_id: "collection_id".to_string(),
+                    start_time: Timestamp::from_nanos(100_000),
+                    end_time: Timestamp::from_nanos(250_000),
+                    mint_price: Uint128::from(100_000u128),
+                    round_limit: 10,
+                },
+            },
+        )
+        .unwrap_err();
+        assert_eq!(
+            res,
+            ContractError::RoundsOverlaped {
+                round: Round::WhitelistCollection {
+                    collection_id: "collection_id".to_string(),
+                    start_time: Timestamp::from_nanos(100_000),
+                    end_time: Timestamp::from_nanos(250_000),
+                    mint_price: Uint128::from(100_000u128),
+                    round_limit: 10,
+                }
+            }
+        );
+
+        // Try updating collection round with wrong index
+        let res = execute(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            ExecuteMsg::UpdateCollectionRound {
+                round_index: 0,
+                round: Round::WhitelistCollection {
+                    collection_id: "collection_id".to_string(),
+                    start_time: Timestamp::from_nanos(100_000),
+                    end_time: Timestamp::from_nanos(250_000),
+                    mint_price: Uint128::from(100_000u128),
+                    round_limit: 10,
+                },
+            },
+        )
+        .unwrap_err();
+        assert_eq!(res, ContractError::RoundNotFound {});
+
+        // Try updating wrong round type
+        let res = execute(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            ExecuteMsg::UpdateCollectionRound {
+                round_index: 1,
+                round: Round::WhitelistAddress {
+                    address: Addr::unchecked("public"),
+                    start_time: Some(Timestamp::from_nanos(100_000)),
+                    end_time: Some(Timestamp::from_nanos(250_000)),
+                    mint_price: Uint128::from(100_000u128),
+                    round_limit: 10,
+                },
+            },
+        )
+        .unwrap_err();
+        assert_eq!(
+            res,
+            ContractError::InvalidRoundType {
+                expected: "collection".to_string(),
+                actual: "address".to_string()
+            }
+        );
+
+        // Update round
+        let _res = execute(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            ExecuteMsg::UpdateCollectionRound {
+                round_index: 1,
+                round: Round::WhitelistCollection {
+                    collection_id: "collection_id".to_string(),
+                    start_time: Timestamp::from_nanos(100_000),
+                    end_time: Timestamp::from_nanos(250_000),
+                    mint_price: Uint128::from(100_000u128),
+                    round_limit: 10,
+                },
+            },
+        )
+        .unwrap();
+
+        // Check rounds
+        let rounds_data = query(deps.as_ref(), env.clone(), QueryMsg::Rounds {}).unwrap();
+        let rounds: Vec<(u32, Round)> = from_binary(&rounds_data).unwrap();
+        assert_eq!(rounds.len(), 1);
+        assert_eq!(
+            rounds[0].1,
+            Round::WhitelistCollection {
+                collection_id: "collection_id".to_string(),
+                start_time: Timestamp::from_nanos(100_000),
+                end_time: Timestamp::from_nanos(250_000),
+                mint_price: Uint128::from(100_000u128),
+                round_limit: 10,
+            }
+        );
     }
 }

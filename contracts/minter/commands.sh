@@ -41,3 +41,73 @@ Address: omniflix1wr6vc3g4caz9aclgjacxewr0pjlre9wl2uhq73rp8mawwmqaczsq656r5u
 
 Code id: 15
 Address: omniflix1dkcsehtk7vq2ta9x4kdazlcpr4s58xfxt3dvuj98025rmleg4g2qdhf3gk
+
+-Round Test-
+
+    # WhitelistAddress {
+    #     address: Addr,
+    #     start_time: Option<Timestamp>,
+    #     end_time: Option<Timestamp>,
+    #     mint_price: Uint128,
+    #     round_limit: u32,
+    # },
+omniflixhubd tx wasm instantiate 16 '{"collection_details": {"name": "test","description": "test","preview_uri": "test","schema": "test","symbol": "roundtest","id": "roundtest","extensible": true,"nsfw": false,"num_tokens": 100,"base_uri": "test"},"mint_price":"1000000","mint_denom": "uflix","start_time": "1699014928000000000","rounds":["whitelist_round":{"address":"omniflix1s66zhks8v3fm24974crzxufh7w6ktt69jq8e3zt8q7cyvr52vlqq2lrdp7","mint_price":"100","round_limit":2}],"per_address_limit": 100,"royalty_ratio": "0.1" }' --label test --no-admin --from test --chain-id test-1 --fees 1000000uflix --gas auto --amount 100000000uflix --gas-adjustment 1.3
+omniflixhubd tx wasm instantiate 17 '{"start_time":"1699016400000000000","end_time":"1699018200000000000","mint_price":{"denom":"uflix","amount":"100000"},"per_address_limit":2,"members":["omniflix1pvrwmjuusn9wh34j7y520g8gumuy9xtl3gvprlljfdpwju3x7ucsu4gssy"],"member_limit":100}' --label test --no-admin --from test --chain-id test-1 --fees 1000000uflix --gas auto --amount 100000000uflix --gas-adjustment 1.3
+
+
+ omniflixhubd tx wasm instantiate 16 '{
+    "collection_details": {
+        "name": "test",
+        "description": "test",
+        "preview_uri": "test",
+        "schema": "test",
+        "symbol": "roundtest1",
+        "id": "roundtest1",
+        "extensible": true,
+        "nsfw": false,
+        "num_tokens": 100,
+        "base_uri": "test"
+    },
+    "mint_price": "1000000",
+    "mint_denom": "uflix",
+    "start_time": "1699016400000000000",
+    "rounds": [
+        {
+            "whitelist_address": {
+                "address": "omniflix14n26cr7dj79smrgg44hfylhph9y45h4yy5emshwymd395g38kdpqthnhlm",
+                "mint_price": "100",
+                "round_limit": 2
+            }
+        },
+        {
+            "whitelist_collection": {
+                "collection_id": "test7",
+                "start_time": "1699018200000000000",
+                "end_time": "1699020000000000000",
+                "mint_price": "1000000",
+                "round_limit": 2
+            }
+        }
+    ],
+    "per_address_limit": 100,
+    "royalty_ratio": "0.1"
+}' --label test --no-admin --from test --chain-id test-1 --fees 1000000uflix --gas auto --amount 100000000uflix --gas-adjustment 1.3
+
+
+
+
+// Test suite
+Minter starts at 5:00 pm in nanos =               1699020000000000000
+Whitelist_address starts at 4:00 pm in nanos =    1699016400000000000
+Whitelist_collection starts at 4:30 pm in nanos = 1699018200000000000
+
+
+
+
+
+
+
+Code Id: 16
+Minter Address:
+Code Id: 17 
+Whitelist Address:omniflix1s66zhks8v3fm24974crzxufh7w6ktt69jq8e3zt8q7cyvr52vlqq2lrdp7

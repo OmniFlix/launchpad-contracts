@@ -1,69 +1,21 @@
 use std::convert::TryInto;
 
-use cosmwasm_std::{
-    from_binary, from_json, Addr, Binary, DepsMut, Env, Order, StdError, Timestamp,
-};
+use cosmwasm_std::{Addr, Deps, DepsMut, Env, StdError, Timestamp};
+use omniflix_std::types::omniflix::onft::v1beta1::OnftQuerier;
 use rand_core::{RngCore, SeedableRng};
 use rand_xoshiro::Xoshiro128PlusPlus;
-use serde::de::value;
 use sha2::{Digest, Sha256};
 use shuffle::{fy::FisherYates, shuffler::Shuffler};
 
 use crate::{
     error::ContractError,
-    state::{Config, Token, CONFIG, MINTED_TOKENS},
+    state::{Round, Token},
 };
-use types::whitelist::{
-    HasMemberResponse, IsActiveResponse, PerAddressLimitResponse, WhitelistQueryMsgs,
-};
-
-pub fn check_whitelist(
-    deps: &DepsMut,
-    config: &Config,
-    address: Addr,
-) -> Result<bool, ContractError> {
-    let whitelist_address = config.whitelist_address.clone();
-
-    match whitelist_address {
-        Some(whitelist_address) => {
-            let is_active_response: IsActiveResponse = deps
-                .querier
-                .query_wasm_smart(whitelist_address.clone(), &WhitelistQueryMsgs::IsActive {})?;
-            let is_active: bool = is_active_response.is_active;
-
-            let has_member_response: HasMemberResponse = deps.querier.query_wasm_smart(
-                whitelist_address.clone(),
-                &WhitelistQueryMsgs::HasMember {
-                    member: address.clone().to_string(),
-                },
-            )?;
-            let has_member: bool = has_member_response.has_member;
-            if !has_member {
-                return Err(ContractError::AddressNotWhitelisted {});
-            }
-            // Check if this address has reached the limit
-            let whitelist_per_address_limit_response: PerAddressLimitResponse =
-                deps.querier.query_wasm_smart(
-                    whitelist_address.clone(),
-                    &WhitelistQueryMsgs::PerAddressLimit {},
-                )?;
-            let whitelist_per_address_limit =
-                whitelist_per_address_limit_response.per_address_limit;
-
-            // Check if the address has reached the limit
-            let is_mintable =
-                check_mint_limit_for_addr(&deps, address, Some(whitelist_per_address_limit))?;
-            if is_mintable {
-                return Err(ContractError::AddressReachedMintLimit {});
-            }
-            Ok(is_active && has_member && is_mintable)
-        }
-        None => Ok(false),
-    }
-}
+use types::whitelist::Config as WhitelistConfig;
+use types::whitelist::{HasMemberResponse, WhitelistQueryMsgs};
 
 pub fn randomize_token_list(
-    mut tokens: Vec<(u32, Token)>,
+    tokens: Vec<(u32, Token)>,
     total_tokens: u32,
     env: Env,
 ) -> Result<Vec<(u32, Token)>, StdError> {
@@ -136,30 +88,169 @@ pub fn return_random_token_id(
     }
 }
 
-pub fn check_mint_limit_for_addr(
-    deps: &DepsMut,
-    minter: Addr,
-    limit: Option<u32>,
-) -> Result<bool, ContractError> {
-    let mut minted_tokens = MINTED_TOKENS.may_load(deps.storage, minter.clone())?;
+pub fn check_round_overlaps(
+    now: Timestamp,
+    rounds: Vec<(u32, Round)>,
+    public_start_time: Timestamp,
+) -> Result<(), ContractError> {
+    let mut rounds = rounds;
 
-    let config = CONFIG.load(deps.storage)?;
-    let limit = limit.unwrap_or(config.per_address_limit);
-
-    match minted_tokens {
-        Some(tokens) => {
-            if tokens.len() >= limit as usize {
-                return Ok(false);
-            }
-            Ok(true)
+    // add public as a round
+    rounds.push((
+        u32::MAX,
+        Round::WhitelistAddress {
+            address: Addr::unchecked("public"),
+            start_time: Some(public_start_time),
+            // There is no public mint end time we generate 10_000 day after start time to be safe
+            // Only to check for overlaps
+            end_time: Some(public_start_time.plus_days(10_000)),
+            mint_price: Default::default(),
+            round_limit: Default::default(),
+        },
+    ));
+    // Sort rounds by start time
+    rounds.sort_by(|a, b| a.1.start_time().cmp(&b.1.start_time()));
+    // Check for overlaps
+    for (i, round) in rounds.iter().enumerate() {
+        if i == rounds.len() - 1 {
+            break;
         }
-        None => Ok(true),
+        // Check for start time can not be bigger than end time
+        if round.1.start_time() > round.1.end_time() {
+            return Err(ContractError::InvalidRoundTime {
+                round: round.1.clone(),
+            });
+        }
+        let next_round = &rounds[i + 1];
+        if round.1.end_time() > next_round.1.start_time() {
+            return Err(ContractError::RoundsOverlaped {
+                round: round.1.clone(),
+            });
+        }
+    }
+    // Check for overlaps with now none of them should be started
+    for round in rounds {
+        if round.1.start_time() < now {
+            return Err(ContractError::RoundAlreadyStarted {});
+        }
+    }
+    Ok(())
+}
+pub fn return_updated_round(deps: &DepsMut, round: Round) -> Result<Round, ContractError> {
+    match round {
+        Round::WhitelistAddress {
+            address,
+            start_time,
+            end_time,
+            mint_price,
+            round_limit,
+        } => {
+            let whitelist_config: WhitelistConfig = deps
+                .querier
+                .query_wasm_smart(address.clone(), &WhitelistQueryMsgs::Config {})?;
+            let round = Round::WhitelistAddress {
+                address,
+                start_time: Some(whitelist_config.start_time),
+                end_time: Some(whitelist_config.end_time),
+                mint_price: whitelist_config.mint_price.amount,
+                round_limit: whitelist_config.per_address_limit,
+            };
+            Ok(round)
+        }
+        Round::WhitelistCollection {
+            collection_id,
+            start_time,
+            end_time,
+            mint_price,
+            round_limit,
+        } => {
+            let round = Round::WhitelistCollection {
+                collection_id: collection_id.clone(),
+                start_time,
+                end_time,
+                mint_price,
+                round_limit,
+            };
+            Ok(round)
+        }
     }
 }
+
+pub fn check_if_whitelisted(
+    member: String,
+    round: Round,
+    deps: Deps,
+) -> Result<bool, ContractError> {
+    match round {
+        Round::WhitelistAddress {
+            address,
+            start_time,
+            end_time,
+            mint_price,
+            round_limit,
+        } => {
+            let has_member_response: HasMemberResponse = deps.querier.query_wasm_smart(
+                address,
+                &WhitelistQueryMsgs::HasMember {
+                    member: member.clone(),
+                },
+            )?;
+            if has_member_response.has_member {
+                return Ok(true);
+            }
+        }
+        Round::WhitelistCollection {
+            collection_id,
+            start_time,
+            end_time,
+            mint_price,
+            round_limit,
+        } => {
+            let onft_querier = OnftQuerier::new(&deps.querier);
+            // TODO: Check if there is better way
+            let owner_amount = onft_querier.supply(collection_id, member)?;
+            if owner_amount.amount > 0 {
+                return Ok(true);
+            }
+        }
+    }
+
+    Ok(false)
+}
+
+pub fn find_active_round(
+    now: Timestamp,
+    rounds: Vec<(u32, Round)>,
+) -> Result<(u32, Round), ContractError> {
+    let mut rounds = rounds;
+    // Sort rounds by start time
+    rounds.sort_by(|a, b| a.1.start_time().cmp(&b.1.start_time()));
+    // Find active round
+    for round in rounds {
+        if round.1.start_time() <= now && round.1.end_time() >= now {
+            return Ok(round);
+        }
+    }
+    Err(ContractError::RoundEnded {})
+}
+
+pub fn check_if_round_exists(round: &Round, rounds: Vec<(u32, Round)>) -> bool {
+    match round {
+        Round::WhitelistAddress { address, .. } => rounds.iter().any(|(_, r)| match r {
+            Round::WhitelistAddress {
+                address: round_address,
+                ..
+            } => address == round_address,
+            _ => false,
+        }),
+        Round::WhitelistCollection { collection_id, .. } => rounds.iter().any(|(_, r)| r == round),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cosmwasm_std::{testing::mock_env, TransactionInfo};
+    use cosmwasm_std::{testing::mock_env, TransactionInfo, Uint128};
 
     #[test]
     fn test_randomize_token_list() {
@@ -247,5 +338,225 @@ mod tests {
         println!("Modified List Count: {:?}", modified_list.clone().len());
         // Spoiler allert - it takes 896 times to pick the token
         // Add 1 to tx index and it takes 123 times
+    }
+    #[test]
+    fn test_no_overlap() {
+        // Three non-overlapping rounds
+        let round1 = Round::WhitelistAddress {
+            address: Addr::unchecked("A"),
+            start_time: Some(Timestamp::from_seconds(2)),
+            end_time: Some(Timestamp::from_seconds(5)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+        let round2 = Round::WhitelistAddress {
+            address: Addr::unchecked("C"),
+            start_time: Some(Timestamp::from_seconds(5)),
+            end_time: Some(Timestamp::from_seconds(7)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+        let round3 = Round::WhitelistAddress {
+            address: Addr::unchecked("E"),
+            start_time: Some(Timestamp::from_seconds(7)),
+            end_time: Some(Timestamp::from_seconds(9)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+
+        let now = Timestamp::from_seconds(0);
+        let public_start_time = Timestamp::from_seconds(10);
+        let public_end_time = Timestamp::from_seconds(12);
+
+        let rounds: Vec<(u32, Round)> = vec![(1, round1), (2, round2), (3, round3)];
+
+        // Check for no overlaps
+        let result = check_round_overlaps(now, rounds, public_start_time);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_overlap_between_rounds() {
+        // Three rounds with overlaps between round 1 and round 2
+        let round1 = Round::WhitelistAddress {
+            address: Addr::unchecked("A"),
+            start_time: Some(Timestamp::from_seconds(0)),
+            end_time: Some(Timestamp::from_seconds(3)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+        let round2 = Round::WhitelistAddress {
+            address: Addr::unchecked("C"),
+            start_time: Some(Timestamp::from_seconds(2)),
+            end_time: Some(Timestamp::from_seconds(4)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+        let round3 = Round::WhitelistAddress {
+            address: Addr::unchecked("E"),
+            start_time: Some(Timestamp::from_seconds(5)),
+            end_time: Some(Timestamp::from_seconds(7)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+
+        let now = Timestamp::from_seconds(0);
+        let public_start_time = Timestamp::from_seconds(0);
+        let public_end_time = Timestamp::from_seconds(8);
+
+        let rounds: Vec<(u32, Round)> = vec![(1, round1), (2, round2), (3, round3)];
+
+        // Check for overlap between rounds 1 and 2
+        let result = check_round_overlaps(now, rounds, public_start_time);
+        assert!(result.is_err());
+
+        // Test case of start time bigger than end time for one of the rounds
+        let round1 = Round::WhitelistAddress {
+            address: Addr::unchecked("A"),
+            start_time: Some(Timestamp::from_seconds(0)),
+            end_time: Some(Timestamp::from_seconds(3)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+        let round2 = Round::WhitelistAddress {
+            address: Addr::unchecked("C"),
+            start_time: Some(Timestamp::from_seconds(4)),
+            end_time: Some(Timestamp::from_seconds(2)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+        let round3 = Round::WhitelistAddress {
+            address: Addr::unchecked("E"),
+            start_time: Some(Timestamp::from_seconds(5)),
+            end_time: Some(Timestamp::from_seconds(7)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+
+        let now = Timestamp::from_seconds(0);
+        let public_start_time = Timestamp::from_seconds(10);
+
+        let rounds: Vec<(u32, Round)> = vec![(1, round1), (2, round2.clone()), (3, round3)];
+
+        // Check for the error
+        let result = check_round_overlaps(now, rounds, public_start_time).unwrap_err();
+        assert_eq!(result, ContractError::InvalidRoundTime { round: round2 });
+    }
+
+    #[test]
+    fn test_overlap_with_public_time() {
+        // Three rounds with overlaps between round 1 and public time
+        let round1 = Round::WhitelistAddress {
+            address: Addr::unchecked("A"),
+            start_time: Some(Timestamp::from_seconds(0)),
+            end_time: Some(Timestamp::from_seconds(3)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+        let round2 = Round::WhitelistAddress {
+            address: Addr::unchecked("C"),
+            start_time: Some(Timestamp::from_seconds(4)),
+            end_time: Some(Timestamp::from_seconds(5)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+        let round3 = Round::WhitelistAddress {
+            address: Addr::unchecked("E"),
+            start_time: Some(Timestamp::from_seconds(5)),
+            end_time: Some(Timestamp::from_seconds(7)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+
+        let now = Timestamp::from_seconds(0);
+        let public_start_time = Timestamp::from_seconds(0);
+        let public_end_time = Timestamp::from_seconds(9);
+
+        let rounds: Vec<(u32, Round)> = vec![(1, round1), (2, round2), (3, round3)];
+
+        // Check for overlap between round 1 and public time
+        let result = check_round_overlaps(now, rounds, public_start_time);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_find_active_round() {
+        // Generete 3 rounds
+        let round1 = Round::WhitelistAddress {
+            address: Addr::unchecked("A"),
+            start_time: Some(Timestamp::from_seconds(0)),
+            end_time: Some(Timestamp::from_seconds(3)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+        let round2 = Round::WhitelistAddress {
+            address: Addr::unchecked("C"),
+            start_time: Some(Timestamp::from_seconds(4)),
+            end_time: Some(Timestamp::from_seconds(5)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+        let round3 = Round::WhitelistAddress {
+            address: Addr::unchecked("E"),
+            start_time: Some(Timestamp::from_seconds(5)),
+            end_time: Some(Timestamp::from_seconds(7)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+
+        let now = Timestamp::from_seconds(0);
+
+        let rounds: Vec<(u32, Round)> = vec![(1, round1), (2, round2), (3, round3)];
+        let result = find_active_round(now, rounds.clone()).unwrap();
+        assert_eq!(result.0, 1);
+
+        let now = Timestamp::from_seconds(9);
+        let result = find_active_round(now, rounds).unwrap_err();
+        assert_eq!(result, ContractError::RoundEnded {});
+    }
+
+    #[test]
+    pub fn test_check_if_round_exist() {
+        let round1 = Round::WhitelistAddress {
+            address: Addr::unchecked("A"),
+            start_time: Some(Timestamp::from_seconds(0)),
+            end_time: Some(Timestamp::from_seconds(3)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+        let round2 = Round::WhitelistAddress {
+            address: Addr::unchecked("C"),
+            start_time: Some(Timestamp::from_seconds(4)),
+            end_time: Some(Timestamp::from_seconds(5)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+        let round3 = Round::WhitelistAddress {
+            address: Addr::unchecked("E"),
+            start_time: Some(Timestamp::from_seconds(5)),
+            end_time: Some(Timestamp::from_seconds(7)),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+        let round4 = Round::WhitelistCollection {
+            collection_id: "1".to_string(),
+            start_time: Timestamp::from_seconds(5),
+            end_time: Timestamp::from_seconds(7),
+            mint_price: Uint128::new(100),
+            round_limit: 1,
+        };
+
+        let rounds: Vec<(u32, Round)> = vec![
+            (1, round1.clone()),
+            (2, round2),
+            (3, round3),
+            (4, round4.clone()),
+        ];
+
+        let result = check_if_round_exists(&round1, rounds.clone());
+        assert_eq!(result, true);
+
+        let result = check_if_round_exists(&round4, rounds.clone());
+        assert_eq!(result, true);
     }
 }

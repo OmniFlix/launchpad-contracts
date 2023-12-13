@@ -34,6 +34,11 @@ backtraces = ["cosmwasm-std/backtraces"]
 # use library feature to disable all instantiate/execute/query exports
 library = []
 
+[[bin]]
+name = "schema"
+path = "src/bin/schema.rs"
+doc  = false
+
 [dependencies]
 cosmwasm-storage = { workspace = true }
 omniflix-std = { workspace = true }

@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CollectionDetails",
+  "type": "object",
+  "required": [
+    "base_uri",
+    "description",
+    "extensible",
+    "id",
+    "name",
+    "nsfw",
+    "num_tokens",
+    "preview_uri",
+    "schema",
+    "symbol"
+  ],
+  "properties": {
+    "base_uri": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "extensible": {
+      "type": "boolean"
+    },
+    "id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "nsfw": {
+      "type": "boolean"
+    },
+    "num_tokens": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
+    },
+    "preview_uri": {
+      "type": "string"
+    },
+    "schema": {
+      "type": "string"
+    },
+    "symbol": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

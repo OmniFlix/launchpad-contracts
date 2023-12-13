@@ -2,18 +2,24 @@ use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Addr, Coin, Timestamp};
 
 #[cw_serde]
+#[derive(QueryResponses)]
 pub enum WhitelistQueryMsgs {
+    #[returns(HasStartedResponse)]
     HasStarted {},
+    #[returns(HasEndedResponse)]
     HasEnded {},
+    #[returns(IsActiveResponse)]
     IsActive {},
+    #[returns(MembersResponse)]
     Members {
         start_after: Option<String>,
         limit: Option<u32>,
     },
-    HasMember {
-        member: String,
-    },
+    #[returns(HasMemberResponse)]
+    HasMember { member: String },
+    #[returns(Config)]
     Config {},
+    #[returns(PerAddressLimitResponse)]
     PerAddressLimit {},
 }
 

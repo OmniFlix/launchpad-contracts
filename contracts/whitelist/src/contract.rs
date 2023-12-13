@@ -1,8 +1,8 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_binary, to_json_binary, Binary, Deps, DepsMut, Env, MessageInfo, Order, Response, StdResult,
-    Timestamp, Uint128,
+    to_binary, to_json_binary, wasm_execute, Binary, Coin, Deps, DepsMut, Env, MessageInfo, Order,
+    Response, StdResult, Timestamp, Uint128, WasmMsg,
 };
 use cw2::set_contract_version;
 use cw_storage_plus::Bound;
@@ -10,20 +10,15 @@ use cw_utils::{maybe_addr, must_pay};
 // use cw2::set_contract_version;
 
 use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg};
+use crate::msg::{ExecuteMsg, InstantiateMsg, UpdateWhitelistRound};
 use crate::state::{CONFIG, MEMBERS};
+use omniflix_minter::msg::ExecuteMsg as MinterExecuteMsg;
 use types::whitelist::{
     Config, HasEndedResponse, HasMemberResponse, HasStartedResponse, IsActiveResponse,
     MembersResponse, PerAddressLimitResponse, WhitelistQueryMsgs,
 };
-
 const CONTRACT_NAME: &str = "crates.io:omniflix-whitelist";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
-
-// Currently we are not collecting any fees
-// If we want it we can hard code it here
-// const FEE_DENOM: &str = "uflix";
-// const FEE_AMOUNT: u128 = 1;
 
 const PAGINATION_LIMIT: u32 = 100;
 
@@ -35,11 +30,6 @@ pub fn instantiate(
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
-    // If fee is set we activate here
-    // let amount = must_pay(&info, FEE_DENOM)?;
-    // if amount != Uint128::from(FEE_AMOUNT) {
-    //     return Err(ContractError::InvalidMintPrice {});
-    // }
 
     let admin = match msg.admin {
         Some(admin) => deps.api.addr_validate(&admin)?,
@@ -108,20 +98,29 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        ExecuteMsg::UpdateStartTime { start_time } => {
-            update_start_time(deps, env, info, start_time)
-        }
-        ExecuteMsg::UpdateEndTime { end_time } => update_end_time(deps, env, info, end_time),
+        ExecuteMsg::UpdateStartTime {
+            start_time,
+            minter_address,
+        } => update_start_time(deps, env, info, start_time, minter_address),
+        ExecuteMsg::UpdateEndTime {
+            end_time,
+            minter_address,
+        } => update_end_time(deps, env, info, end_time, minter_address),
         ExecuteMsg::AddMembers { addresses } => add_members(deps, env, info, addresses),
         ExecuteMsg::RemoveMembers { addresses } => remove_members(deps, env, info, addresses),
-        ExecuteMsg::UpdatePerAddressLimit { amount } => {
-            update_per_address_limit(deps, env, info, amount)
-        }
+        ExecuteMsg::UpdatePerAddressLimit {
+            amount,
+            minter_address,
+        } => update_per_address_limit(deps, env, info, amount, minter_address),
         ExecuteMsg::IncreaseMemberLimit { amount } => {
             increase_member_limit(deps, env, info, amount)
         }
         ExecuteMsg::UpdateAdmin { admin } => update_admin(deps, env, info, admin),
         ExecuteMsg::Freeze {} => freeze(deps, env, info),
+        ExecuteMsg::UpdateMintPrice {
+            mint_price,
+            minter_address,
+        } => update_mint_price(deps, env, info, mint_price, minter_address),
     }
 }
 
@@ -130,6 +129,7 @@ pub fn update_start_time(
     env: Env,
     info: MessageInfo,
     start_time: Timestamp,
+    minter_address: Option<String>,
 ) -> Result<Response, ContractError> {
     let mut config = CONFIG.load(deps.storage)?;
 
@@ -150,11 +150,35 @@ pub fn update_start_time(
         return Err(ContractError::InvalidStartTime {});
     }
     config.start_time = start_time;
-
     CONFIG.save(deps.storage, &config)?;
-    Ok(Response::default()
-        .add_attribute("method", "update_start_time")
-        .add_attribute("start_time", config.start_time.to_string()))
+    let minter_address = maybe_addr(deps.api, minter_address)?;
+    match minter_address {
+        Some(addr) => {
+            // Generate minter message
+            let update_minter_msg = MinterExecuteMsg::UpdateWhitelistRound {
+                end_time: None,
+                start_time: Some(start_time),
+                mint_price: None,
+                round_limit: None,
+            };
+
+            let wasm_msg = WasmMsg::Execute {
+                contract_addr: addr.into_string(),
+                msg: to_json_binary(&update_minter_msg)?,
+                funds: (&[]).to_vec(),
+            };
+
+            return Ok(Response::default()
+                .add_attribute("method", "update_start_time")
+                .add_attribute("start_time", config.start_time.to_string())
+                .add_message(wasm_msg));
+        }
+        None => {
+            return Ok(Response::default()
+                .add_attribute("method", "update_start_time")
+                .add_attribute("start_time", config.start_time.to_string()));
+        }
+    }
 }
 
 pub fn update_end_time(
@@ -162,6 +186,7 @@ pub fn update_end_time(
     env: Env,
     info: MessageInfo,
     end_time: Timestamp,
+    minter_address: Option<String>,
 ) -> Result<Response, ContractError> {
     let mut config = CONFIG.load(deps.storage)?;
 
@@ -183,11 +208,35 @@ pub fn update_end_time(
         return Err(ContractError::InvalidEndTime {});
     }
     config.end_time = end_time;
-
     CONFIG.save(deps.storage, &config)?;
-    Ok(Response::default()
-        .add_attribute("method", "update_end_time")
-        .add_attribute("end_time", config.end_time.to_string()))
+    let minter_address = maybe_addr(deps.api, minter_address)?;
+    match minter_address {
+        Some(addr) => {
+            // Generate minter message
+            let update_minter_msg = MinterExecuteMsg::UpdateWhitelistRound {
+                end_time: Some(end_time),
+                start_time: None,
+                mint_price: None,
+                round_limit: None,
+            };
+
+            let wasm_msg = WasmMsg::Execute {
+                contract_addr: addr.into_string(),
+                msg: to_json_binary(&update_minter_msg)?,
+                funds: (&[]).to_vec(),
+            };
+
+            return Ok(Response::default()
+                .add_attribute("method", "update_end_time")
+                .add_attribute("end_time", config.end_time.to_string())
+                .add_message(wasm_msg));
+        }
+        None => {
+            return Ok(Response::default()
+                .add_attribute("method", "update_end_time")
+                .add_attribute("end_time", config.end_time.to_string()));
+        }
+    }
 }
 
 pub fn add_members(
@@ -218,12 +267,6 @@ pub fn add_members(
     // Check if address is already in whitelist
     for member in &unvalidated_members {
         if MEMBERS.may_load(deps.storage, deps.api.addr_validate(&member)?)? == Some(true) {
-            // Should we return error if member already exists?
-            // We can just ignore it
-            // return Err(ContractError::MemberAlreadyExists {
-            //     member: member.to_string(),
-            // }
-            //);
         } else {
             MEMBERS.save(deps.storage, deps.api.addr_validate(&member)?, &true)?;
         }
@@ -258,15 +301,10 @@ pub fn remove_members(
     if info.sender != config.admin {
         return Err(ContractError::Unauthorized {});
     }
-    // TODO Should we let user to remove members after whitelist started?
     // Check if whitelist started
     if env.block.time > config.start_time {
         return Err(ContractError::WhiteListAlreadyStarted {});
     }
-    // Check if whitelist ended
-    // if env.block.time > config.end_time {
-    //     return Err(ContractError::WhitelistEnded {});
-    // }
 
     // Check if frozen
     if config.is_frozen {
@@ -299,6 +337,7 @@ pub fn update_per_address_limit(
     env: Env,
     info: MessageInfo,
     amount: u32,
+    minter_address: Option<String>,
 ) -> Result<Response, ContractError> {
     let mut config = CONFIG.load(deps.storage)?;
 
@@ -324,9 +363,34 @@ pub fn update_per_address_limit(
     config.per_address_limit = amount;
 
     CONFIG.save(deps.storage, &config)?;
-    Ok(Response::default()
-        .add_attribute("method", "update_per_address_limit")
-        .add_attribute("per_address_limit", config.per_address_limit.to_string()))
+    let minter_address = maybe_addr(deps.api, minter_address)?;
+    match minter_address {
+        Some(addr) => {
+            // Generate minter message
+            let update_minter_msg = MinterExecuteMsg::UpdateWhitelistRound {
+                start_time: None,
+                end_time: None,
+                mint_price: None,
+                round_limit: Some(amount),
+            };
+
+            let wasm_msg = WasmMsg::Execute {
+                contract_addr: addr.into_string(),
+                msg: to_json_binary(&update_minter_msg)?,
+                funds: (&[]).to_vec(),
+            };
+
+            return Ok(Response::default()
+                .add_attribute("method", "update_per_address_limit")
+                .add_attribute("per_address_limit", config.per_address_limit.to_string())
+                .add_message(wasm_msg));
+        }
+        None => {
+            return Ok(Response::default()
+                .add_attribute("method", "update_per_address_limit")
+                .add_attribute("per_address_limit", config.per_address_limit.to_string()));
+        }
+    }
 }
 
 pub fn increase_member_limit(
@@ -407,6 +471,61 @@ pub fn freeze(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response, Co
     Ok(Response::default()
         .add_attribute("method", "freeze")
         .add_attribute("end_time", config.end_time.to_string()))
+}
+
+pub fn update_mint_price(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    mint_price: Coin,
+    minter_address: Option<String>,
+) -> Result<Response, ContractError> {
+    let mut config = CONFIG.load(deps.storage)?;
+
+    if info.sender != config.admin {
+        return Err(ContractError::Unauthorized {});
+    }
+    // Check if frozen
+    if config.is_frozen {
+        return Err(ContractError::WhitelistFrozen {});
+    }
+    if env.block.time > config.end_time {
+        return Err(ContractError::WhitelistEnded {});
+    }
+
+    if mint_price.amount < Uint128::zero() {
+        return Err(ContractError::InvalidMintPrice {});
+    }
+    config.mint_price = mint_price.clone();
+    CONFIG.save(deps.storage, &config)?;
+    let minter_address = maybe_addr(deps.api, minter_address)?;
+    match minter_address {
+        Some(addr) => {
+            // Generate minter message
+            let update_minter_msg = MinterExecuteMsg::UpdateWhitelistRound {
+                start_time: None,
+                end_time: None,
+                mint_price: Some(mint_price.amount),
+                round_limit: None,
+            };
+
+            let wasm_msg = WasmMsg::Execute {
+                contract_addr: addr.into_string(),
+                msg: to_json_binary(&update_minter_msg)?,
+                funds: (&[]).to_vec(),
+            };
+
+            return Ok(Response::default()
+                .add_attribute("method", "update_mint_price")
+                .add_attribute("mint_price", config.mint_price.to_string())
+                .add_message(wasm_msg));
+        }
+        None => {
+            return Ok(Response::default()
+                .add_attribute("method", "update_mint_price")
+                .add_attribute("mint_price", config.mint_price.to_string()));
+        }
+    }
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -590,6 +709,7 @@ mod tests {
             env.clone(),
             info.clone(),
             Timestamp::from_seconds(1_000_002),
+            None,
         )
         .unwrap_err();
         assert_eq!(res, ContractError::WhiteListAlreadyStarted {});
@@ -603,6 +723,7 @@ mod tests {
             env.clone(),
             info.clone(),
             Timestamp::from_seconds(100_000 - 1),
+            None,
         )
         .unwrap_err();
         assert_eq!(res, ContractError::InvalidStartTime {});
@@ -616,6 +737,7 @@ mod tests {
             env.clone(),
             info.clone(),
             Timestamp::from_seconds(100_000 + 1),
+            None,
         )
         .unwrap();
     }
@@ -640,6 +762,7 @@ mod tests {
             env.clone(),
             info.clone(),
             Timestamp::from_seconds(100_000 - 1),
+            None,
         )
         .unwrap_err();
         assert_eq!(res, ContractError::InvalidEndTime {});
@@ -655,6 +778,7 @@ mod tests {
             env.clone(),
             info.clone(),
             Timestamp::from_seconds(5_000_000 - 1),
+            None,
         )
         .unwrap_err();
         assert_eq!(res, ContractError::WhiteListAlreadyStarted {});
@@ -669,6 +793,7 @@ mod tests {
             env.clone(),
             info.clone(),
             Timestamp::from_seconds(5_000_000 + 1),
+            None,
         )
         .unwrap();
     }
@@ -826,31 +951,32 @@ mod tests {
         let mut env = mock_env();
         env.block.time = Timestamp::from_seconds(1_000_001);
         let info = mock_info("creator", &[]);
-        let res =
-            update_per_address_limit(deps.as_mut(), env.clone(), info.clone(), 2).unwrap_err();
+        let res = update_per_address_limit(deps.as_mut(), env.clone(), info.clone(), 2, None)
+            .unwrap_err();
         assert_eq!(res, ContractError::WhiteListAlreadyStarted {});
 
         // Try updating per address limit after whitelist ended
         let mut env = mock_env();
         env.block.time = Timestamp::from_seconds(5_000_001);
         let info = mock_info("creator", &[]);
-        let res =
-            update_per_address_limit(deps.as_mut(), env.clone(), info.clone(), 2).unwrap_err();
+        let res = update_per_address_limit(deps.as_mut(), env.clone(), info.clone(), 2, None)
+            .unwrap_err();
         assert_eq!(res, ContractError::WhitelistEnded {});
 
         // Try updating per address limit with invalid amount
         let mut env = mock_env();
         env.block.time = Timestamp::from_seconds(100_000);
         let info = mock_info("creator", &[]);
-        let res =
-            update_per_address_limit(deps.as_mut(), env.clone(), info.clone(), 0).unwrap_err();
+        let res = update_per_address_limit(deps.as_mut(), env.clone(), info.clone(), 0, None)
+            .unwrap_err();
         assert_eq!(res, ContractError::InvalidPerAddressLimit {});
 
         // Try updating per address limit with valid amount
         let mut env = mock_env();
         env.block.time = Timestamp::from_seconds(100_000);
         let info = mock_info("creator", &[]);
-        let res = update_per_address_limit(deps.as_mut(), env.clone(), info.clone(), 2).unwrap();
+        let res =
+            update_per_address_limit(deps.as_mut(), env.clone(), info.clone(), 2, None).unwrap();
     }
 
     #[test]
@@ -985,6 +1111,7 @@ mod tests {
             env.clone(),
             info.clone(),
             Timestamp::from_seconds(100_000 + 1),
+            None,
         )
         .unwrap_err();
         assert_eq!(res, ContractError::WhitelistFrozen {});
@@ -998,6 +1125,7 @@ mod tests {
             env.clone(),
             info.clone(),
             Timestamp::from_seconds(5_000_000 + 1),
+            None,
         )
         .unwrap_err();
         assert_eq!(res, ContractError::WhitelistFrozen {});
@@ -1037,8 +1165,8 @@ mod tests {
         env.block.time = Timestamp::from_seconds(100_000);
         let info = mock_info("creator", &[]);
         // Try updating per address limit after whitelist ended
-        let res =
-            update_per_address_limit(deps.as_mut(), env.clone(), info.clone(), 2).unwrap_err();
+        let res = update_per_address_limit(deps.as_mut(), env.clone(), info.clone(), 2, None)
+            .unwrap_err();
         assert_eq!(res, ContractError::WhitelistFrozen {});
 
         // Try increasing member limit after freeze
