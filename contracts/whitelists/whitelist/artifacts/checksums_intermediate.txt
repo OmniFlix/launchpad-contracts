@@ -1,1 +1,0 @@
-90d38e424be657c93992651c0cbfca8ccc5b7053fc59df8f3930fcb7b746357a  ./target/wasm32-unknown-unknown/release/omniflix_whitelist.wasm
