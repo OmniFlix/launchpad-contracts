@@ -1,6 +1,9 @@
 [workspace]
 members = [
-    "contracts/*"
+    "contracts/minters/*",
+    "contracts/whitelists/*",
+    "packages/*"
+
 ]
 resolver = "2"
 
