@@ -4,8 +4,6 @@ use cosmwasm_std::{CheckedFromRatioError, ConversionOverflowError, StdError, Uin
 use cw_utils::PaymentError;
 use thiserror::Error;
 
-use crate::state::Round;
-
 #[derive(Error, Debug, PartialEq)]
 pub enum ContractError {
     #[error("{0}")]
@@ -77,9 +75,6 @@ pub enum ContractError {
     #[error("Round limit is reached")]
     RoundReachedMintLimit {},
 
-    #[error("Rounds overlaped")]
-    RoundsOverlaped { round: Round },
-
     #[error("Round is not active")]
     RoundEnded {},
 
@@ -100,9 +95,6 @@ pub enum ContractError {
 
     #[error("Invalid roud type")]
     InvalidRoundType { expected: String, actual: String },
-
-    #[error("Round start time can not be later than end time")]
-    InvalidRoundTime { round: Round },
 }
 
 impl From<ContractError> for StdError {
