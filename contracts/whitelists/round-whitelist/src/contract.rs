@@ -5,9 +5,7 @@ use cosmwasm_std::{
     Response, StdResult, Timestamp, Uint128, WasmMsg,
 };
 use cw2::set_contract_version;
-use cw_storage_plus::Bound;
 use cw_utils::{maybe_addr, must_pay};
-// use cw2::set_contract_version;
 
 use types::whitelist::{
     Config, HasEndedResponse, HasMemberResponse, HasStartedResponse, IsActiveResponse,
@@ -24,7 +22,11 @@ pub fn instantiate(
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
-    set_contract_version(deps.storage, "whitelist-registry", "1.0.0");
+    set_contract_version(deps.storage, "whitelist-round", "1.0.0");
+
+    // TODO: Check instantiator is factory contract
+
+    let admin = maybe_addr(info.sender).unwrap_or(info.sender);
 
     Ok(Response::default())
 }
