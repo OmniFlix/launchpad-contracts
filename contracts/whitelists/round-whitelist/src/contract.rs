@@ -14,7 +14,7 @@ use types::whitelist::{
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg};
-use crate::state::{Config, Round, CONFIG, ROUNDS};
+use crate::state::{Config, Round, RoundMints, Rounds, CONFIG, ROUNDS_KEY, ROUND_MINTS};
 use crate::utils::check_round_overlaps;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -36,14 +36,14 @@ pub fn instantiate(
     let rounds = msg.rounds;
     // Check if rounds are valid
     for round in rounds.clone() {
-        round.check_integrity(deps.as_ref())?;
+        round.check_integrity(deps.as_ref(), env.block.time)?;
     }
     // Check if rounds overlap
     check_round_overlaps(env.block.time, rounds.clone())?;
 
     // Save rounds
-    for (i, round) in rounds.clone().into_iter().enumerate() {
-        ROUNDS.save(deps.storage, (i + 1) as u32, &round)?;
+    for round in rounds {
+        Rounds::new(ROUNDS_KEY).save(deps.storage, &round)?;
     }
 
     let config = Config {
@@ -78,21 +78,18 @@ pub fn execute_remove_round(
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
     let config = CONFIG.load(deps.storage)?;
+    let rounds = Rounds::new(ROUNDS_KEY);
     if info.sender != config.admin {
         return Err(ContractError::Unauthorized {});
     }
     // Check if the round exists
-    let round = ROUNDS.may_load(deps.storage, round_index)?;
-    if round.is_none() {
-        return Err(ContractError::RoundNotFound {});
-    }
+    let round = rounds.load(deps.storage, round_index)?;
     // Check if the round has started
-    let round = round.unwrap();
     if round.start_time() < env.block.time {
         return Err(ContractError::RoundAlreadyStarted {});
     }
     // Remove the round
-    ROUNDS.remove(deps.storage, round_index);
+    rounds.remove(deps.storage, round_index)?;
 
     let res = Response::new()
         .add_attribute("action", "remove_round")
@@ -112,28 +109,48 @@ pub fn execute_add_round(
         return Err(ContractError::Unauthorized {});
     }
     round.check_integrity(deps.as_ref(), env.block.time)?;
-
-    // Load all the rounds
-    let mut rounds: Vec<Round> = ROUNDS
-        .range(deps.storage, None, None, Order::Ascending)
-        .into_iter()
-        .map(|result| result.unwrap().1)
-        .collect::<Vec<_>>();
-
-    let new_rounds_index = rounds.len() as u32 + 1;
-    // Add the new round to the list
-    rounds.push(round.clone());
-
-    // Check if rounds overlap
-    check_round_overlaps(env.block.time, rounds)?;
-    // If not overlapping save the round
-    ROUNDS.save(deps.storage, new_rounds_index, &round)?;
+    let rounds = Rounds::new(ROUNDS_KEY);
+    // Check overlaps
+    rounds.check_round_overlaps(deps.storage, Some(round))?;
+    // Save the round
+    let new_round_index = rounds.save(deps.storage, &round)?;
 
     let res = Response::new()
         .add_attribute("action", "add_round")
-        .add_attribute("round_index", (new_rounds_index).to_string());
+        .add_attribute("round_index", (new_round_index).to_string());
 
     Ok(res)
+}
+
+pub fn execute_privately_mint(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    minter: String,
+    admin: String,
+) -> Result<Response, ContractError> {
+    // Load config
+    let config = CONFIG.load(deps.storage)?;
+    // Check if the msg admin is same as the config admin
+    let admin = deps.api.addr_validate(admin.as_str())?;
+    let minter = deps.api.addr_validate(minter.as_str())?;
+
+    if config.admin != admin {
+        return Err(ContractError::Unauthorized {});
+    };
+    // TODO: Query if sender is a minter contract
+    let rounds = Rounds::new(ROUNDS_KEY);
+
+    // Find active round
+    let active_round = rounds.load_active_round(deps.storage, env.block.time);
+    if active_round.is_none() {
+        return Err(ContractError::NoActiveRound {});
+    };
+    let active_round = active_round.unwrap();
+    // Load round mints for the address
+    let mut round_mints = ROUND_MINTS
+        .load(deps.storage, minter)
+        .unwrap_or(RoundMints { rounds: vec![] });
 }
 
 // pub fn execute_update_collection_round(

@@ -83,4 +83,7 @@ pub enum ContractError {
 
     #[error("Empty address list")]
     EmptyAddressList {},
+
+    #[error("No active round")]
+    NoActiveRound {},
 }
