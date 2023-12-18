@@ -80,4 +80,7 @@ pub enum ContractError {
 
     #[error("Rounds overlaped")]
     RoundsOverlaped { round: Round },
+
+    #[error("Empty address list")]
+    EmptyAddressList {},
 }

@@ -1,5 +1,7 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, Coin, Timestamp};
+use cosmwasm_std::{Addr, Coin, Deps, Timestamp};
+
+use crate::error::ContractError;
 
 #[cw_serde]
 pub enum Round {
@@ -61,5 +63,49 @@ impl Round {
             Round::WhitelistAddresses { end_time, .. } => *end_time,
             Round::WhitelistCollection { end_time, .. } => *end_time,
         }
+    }
+
+    pub fn check_integrity(&self, deps: Deps) -> Result<(), ContractError> {
+        match self {
+            Round::WhitelistAddresses {
+                addresses,
+                start_time,
+                end_time,
+                mint_price,
+                round_per_address_limit,
+            } => {
+                if addresses.is_empty() {
+                    return Err(ContractError::EmptyAddressList {});
+                }
+                if *start_time >= *end_time {
+                    return Err(ContractError::InvalidStartTime {});
+                }
+                if *round_per_address_limit == 0 {
+                    return Err(ContractError::InvalidPerAddressLimit {});
+                }
+                for address in addresses {
+                    deps.api.addr_validate(address.as_str())?;
+                }
+            }
+            Round::WhitelistCollection {
+                collection_id,
+                start_time,
+                end_time,
+                mint_price,
+                round_per_address_limit,
+            } => {
+                // TODO: Validate collection id by Querying the collection
+                if collection_id.is_empty() {
+                    return Err(ContractError::InvalidMemberLimit {});
+                }
+                if *start_time >= *end_time {
+                    return Err(ContractError::InvalidStartTime {});
+                }
+                if *round_per_address_limit == 0 {
+                    return Err(ContractError::InvalidPerAddressLimit {});
+                }
+            }
+        }
+        Ok(())
     }
 }

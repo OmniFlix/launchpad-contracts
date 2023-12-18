@@ -14,6 +14,8 @@ use types::whitelist::{
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg};
+use crate::state::Round;
+use crate::utils::check_round_overlaps;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -29,6 +31,15 @@ pub fn instantiate(
     // Try parsing the response to the params struct
 
     let admin = maybe_addr(deps.api, msg.admin)?.unwrap_or(info.sender);
+    // // Put index from 1 to n for rounds and return the rounds as Vec(index, round)
+    // let rounds: Vec<(usize, Round)> = msg.rounds.into_iter().enumerate().collect::<Vec<_>>();
+    let rounds = msg.rounds;
+    // Check if rounds are valid
+    for round in rounds.clone() {
+        round.check_integrity(deps.as_ref())?;
+    }
+    // Check if rounds overlap
+    check_round_overlaps(env.block.time, rounds.clone())?;
 
     Ok(Response::default())
 }
@@ -244,54 +255,7 @@ pub fn instantiate(
 //     Ok(res)
 // }
 
-// pub fn check_round_overlaps(
-//     now: Timestamp,
-//     rounds: Vec<(u32, Round)>,
-//     public_start_time: Timestamp,
-// ) -> Result<(), ContractError> {
-//     let mut rounds = rounds;
-
-//     // add public as a round
-//     rounds.push((
-//         u32::MAX,
-//         Round::WhitelistAddress {
-//             address: Addr::unchecked("public"),
-//             start_time: Some(public_start_time),
-//             // There is no public mint end time we generate 10_000 day after start time to be safe
-//             // Only to check for overlaps
-//             end_time: Some(public_start_time.plus_days(10_000)),
-//             mint_price: Default::default(),
-//             round_limit: Default::default(),
-//         },
-//     ));
-//     // Sort rounds by start time
-//     rounds.sort_by(|a, b| a.1.start_time().cmp(&b.1.start_time()));
-//     // Check for overlaps
-//     for (i, round) in rounds.iter().enumerate() {
-//         if i == rounds.len() - 1 {
-//             break;
-//         }
-//         // Check for start time can not be bigger than end time
-//         if round.1.start_time() > round.1.end_time() {
-//             return Err(ContractError::InvalidRoundTime {
-//                 round: round.1.clone(),
-//             });
-//         }
-//         let next_round = &rounds[i + 1];
-//         if round.1.end_time() > next_round.1.start_time() {
-//             return Err(ContractError::RoundsOverlaped {
-//                 round: round.1.clone(),
-//             });
-//         }
-//     }
-//     // Check for overlaps with now none of them should be started
-//     for round in rounds {
-//         if round.1.start_time() < now {
-//             return Err(ContractError::RoundAlreadyStarted {});
-//         }
-//     }
-//     Ok(())
-// }
+//
 // pub fn return_updated_round(deps: &DepsMut, round: Round) -> Result<Round, ContractError> {
 //     match round {
 //         Round::WhitelistAddress {
