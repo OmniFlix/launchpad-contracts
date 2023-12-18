@@ -134,29 +134,35 @@ impl Round {
         Ok(())
     }
 }
-
+pub type MintCount = u32;
 #[cw_serde]
 pub struct RoundMints {
-    pub rounds: Vec<(u32, Round)>,
+    pub rounds: Vec<(Round, MintCount)>,
 }
 
 impl RoundMints {
     pub fn new() -> Self {
         RoundMints { rounds: Vec::new() }
     }
-    pub fn try_mint(&mut self, round: Round) -> Result<(), ContractError> {
-        // find the round
-        let mint_round = self
+    pub fn try_mint(&mut self, active_round: Round) -> Result<(), ContractError> {
+        let mut mint_round = self
             .rounds
-            .iter()
-            .find(|(mint_count, round)| round == round)
-            .unwrap_or(&(0 as u32, round));
-        let mint_limit_for_round = round.round_per_address_limit();
-        let mint_count = mint_round.0 + 1;
-        if mint_count > mint_limit_for_round {
-            return Err(ContractError::RoundReachedMintLimit {});
-        };
-        self.rounds.push((mint_count, round));
+            .iter_mut()
+            .find(|(round, _)| round == &active_round);
+        if mint_round.is_none() {
+            let mut mint_round = (active_round, 0);
+            mint_round.1 += 1;
+            if mint_round.0.round_per_address_limit() < mint_round.1 {
+                return Err(ContractError::RoundReachedMintLimit {});
+            };
+            self.rounds.push(mint_round);
+        } else {
+            let mint_round = mint_round.unwrap();
+            mint_round.1 += 1;
+            if active_round.round_per_address_limit() < mint_round.1 {
+                return Err(ContractError::RoundReachedMintLimit {});
+            };
+        }
         Ok(())
     }
 }

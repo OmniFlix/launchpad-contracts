@@ -66,7 +66,7 @@ pub fn execute(
         }
         ExecuteMsg::AddRound { round } => execute_add_round(deps, env, info, round),
         ExecuteMsg::PrivatelyMint { minter, admin } => {
-            execute_privately_mint(deps, env, info, minter)
+            execute_privately_mint(deps, env, info, minter, admin)
         }
     }
 }
@@ -111,7 +111,7 @@ pub fn execute_add_round(
     round.check_integrity(deps.as_ref(), env.block.time)?;
     let rounds = Rounds::new(ROUNDS_KEY);
     // Check overlaps
-    rounds.check_round_overlaps(deps.storage, Some(round))?;
+    rounds.check_round_overlaps(deps.storage, Some(round.clone()))?;
     // Save the round
     let new_round_index = rounds.save(deps.storage, &round)?;
 
@@ -149,8 +149,17 @@ pub fn execute_privately_mint(
     let active_round = active_round.unwrap();
     // Load round mints for the address
     let mut round_mints = ROUND_MINTS
-        .load(deps.storage, minter)
-        .unwrap_or(RoundMints { rounds: vec![] });
+        .load(deps.storage, minter.clone())
+        .unwrap_or(RoundMints::new());
+    // Check if address has already reached the limit for the round. If not reached mint count will be incremented
+    round_mints.try_mint(active_round.clone())?;
+    // Save the round mints
+    ROUND_MINTS.save(deps.storage, minter.clone(), &round_mints)?;
+
+    let res = Response::new()
+        .add_attribute("action", "privately_mint")
+        .add_attribute("minter", minter.to_string());
+    Ok(res)
 }
 
 // pub fn execute_update_collection_round(
