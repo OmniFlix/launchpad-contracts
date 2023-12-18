@@ -1,3 +1,4 @@
+use crate::state::Round;
 use cosmwasm_std::StdError;
 use cw_utils::PaymentError;
 use thiserror::Error;
@@ -50,4 +51,33 @@ pub enum ContractError {
     },
     #[error("Whitelist frozen")]
     WhitelistFrozen {},
+
+    #[error("Round limit is reached")]
+    RoundReachedMintLimit {},
+
+    #[error("Round is not active")]
+    RoundEnded {},
+
+    #[error("Round has already started")]
+    RoundAlreadyStarted {},
+
+    #[error("Round start time is invalid")]
+    RoundStartTimeInvalid {},
+
+    #[error("Collection not found")]
+    CollectionNotFound {},
+
+    #[error("Round does not exist")]
+    RoundNotFound {},
+
+    #[error("Round already exists")]
+    RoundAlreadyExists {},
+
+    #[error("Invalid roud type")]
+    InvalidRoundType { expected: String, actual: String },
+    #[error("Invalid round time")]
+    InvalidRoundTime { round: Round },
+
+    #[error("Rounds overlaped")]
+    RoundsOverlaped { round: Round },
 }

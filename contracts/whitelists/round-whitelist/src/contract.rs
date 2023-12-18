@@ -25,8 +25,10 @@ pub fn instantiate(
     set_contract_version(deps.storage, "whitelist-round", "1.0.0");
 
     // TODO: Check instantiator is factory contract
+    // After factory is written import params of the contract
+    // Try parsing the response to the params struct
 
-    let admin = maybe_addr(info.sender).unwrap_or(info.sender);
+    let admin = maybe_addr(deps.api, msg.admin)?.unwrap_or(info.sender);
 
     Ok(Response::default())
 }
@@ -398,5 +400,95 @@ pub fn instantiate(
 //             _ => false,
 //         }),
 //         Round::WhitelistCollection { collection_id, .. } => rounds.iter().any(|(_, r)| r == round),
+//     }
+// }
+
+// impl Round {
+//     //     pub fn start_time(&self) -> Timestamp {
+//     //         match self {
+//     //             Round::WhitelistAddress { start_time, .. } => start_time.unwrap(),
+//     //             Round::WhitelistCollection { start_time, .. } => *start_time,
+//     //         }
+//     //     }
+//     //     pub fn end_time(&self) -> Timestamp {
+//     //         match self {
+//     //             Round::WhitelistAddress { end_time, .. } => end_time.unwrap(),
+//     //             Round::WhitelistCollection { end_time, .. } => *end_time,
+//     //         }
+//     //     }
+//     //     pub fn mint_price(&self) -> Uint128 {
+//     //         match self {
+//     //             Round::WhitelistAddress { mint_price, .. } => *mint_price,
+//     //             Round::WhitelistCollection { mint_price, .. } => *mint_price,
+//     //         }
+//     //     }
+//     //     pub fn round_limit(&self) -> u32 {
+//     //         match self {
+//     //             Round::WhitelistAddress { round_limit, .. } => *round_limit,
+//     //             Round::WhitelistCollection { round_limit, .. } => *round_limit,
+//     //         }
+//     //     }
+//     //     pub fn return_whitelist_address(&self) -> Option<Addr> {
+//     //         match self {
+//     //             Round::WhitelistAddress { address, .. } => Some(address.clone()),
+//     //             Round::WhitelistCollection { .. } => None,
+//     //         }
+//     //     }
+//     pub fn update_params(
+//         &mut self,
+//         start_time: Option<Timestamp>,
+//         end_time: Option<Timestamp>,
+//         mint_price: Option<Uint128>,
+//         round_limit: Option<u32>,
+//     ) -> Result<(), ContractError> {
+//         match self {
+//             Round::WhitelistAddress {
+//                 start_time: ref mut s,
+//                 end_time: ref mut e,
+//                 mint_price: ref mut m,
+//                 round_limit: ref mut r,
+//                 ..
+//             } => {
+//                 if let Some(start_time) = start_time {
+//                     *s = Some(start_time);
+//                 }
+//                 if let Some(end_time) = end_time {
+//                     *e = Some(end_time);
+//                 }
+//                 if let Some(mint_price) = mint_price {
+//                     *m = mint_price;
+//                 }
+//                 if let Some(round_limit) = round_limit {
+//                     *r = round_limit;
+//                 }
+//             }
+//             Round::WhitelistCollection {
+//                 start_time: ref mut s,
+//                 end_time: ref mut e,
+//                 mint_price: ref mut m,
+//                 round_limit: ref mut r,
+//                 ..
+//             } => {
+//                 if let Some(start_time) = start_time {
+//                     *s = start_time;
+//                 }
+//                 if let Some(end_time) = end_time {
+//                     *e = end_time;
+//                 }
+//                 if let Some(mint_price) = mint_price {
+//                     *m = mint_price;
+//                 }
+//                 if let Some(round_limit) = round_limit {
+//                     *r = round_limit;
+//                 }
+//             }
+//         }
+//         Ok(())
+//     }
+//     pub fn return_round_type(&self) -> String {
+//         match self {
+//             Round::WhitelistAddress { .. } => "address".to_string(),
+//             Round::WhitelistCollection { .. } => "collection".to_string(),
+//         }
 //     }
 // }

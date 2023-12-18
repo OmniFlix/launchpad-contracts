@@ -219,6 +219,7 @@ pub fn execute_mint(
     let config = CONFIG.load(deps.storage)?;
 
     let mut mint_price = config.mint_price;
+
     // Collect mintable tokens
     // TODO try writing it more elegantly
     let mut mintable_tokens: Vec<(u32, Token)> = Vec::new();
@@ -238,6 +239,13 @@ pub fn execute_mint(
         // Query whitelist contract for current active rounds price and check if this address is whitelisted
         // Change price to the active round price
     } else {
+        // Check if address has reached the limit
+        if user_details.total_minted_count >= config.per_address_limit {
+            return Err(ContractError::AddressReachedMintLimit {});
+        }
+        // Increment total minted count
+        user_details.total_minted_count += 1;
+
         // If we are here it means public minting has started
     }
 
