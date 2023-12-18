@@ -8,13 +8,13 @@ use cw2::set_contract_version;
 use cw_utils::{maybe_addr, must_pay};
 
 use types::whitelist::{
-    Config, HasEndedResponse, HasMemberResponse, HasStartedResponse, IsActiveResponse,
-    MembersResponse, PerAddressLimitResponse, WhitelistQueryMsgs,
+    HasEndedResponse, HasMemberResponse, HasStartedResponse, IsActiveResponse, MembersResponse,
+    PerAddressLimitResponse, WhitelistQueryMsgs,
 };
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg};
-use crate::state::Round;
+use crate::state::{Config, Round, CONFIG, ROUNDS};
 use crate::utils::check_round_overlaps;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -41,111 +41,100 @@ pub fn instantiate(
     // Check if rounds overlap
     check_round_overlaps(env.block.time, rounds.clone())?;
 
+    // Save rounds
+    for (i, round) in rounds.clone().into_iter().enumerate() {
+        ROUNDS.save(deps.storage, (i + 1) as u32, &round)?;
+    }
+
+    let config = Config {
+        admin: admin.clone(),
+    };
+    CONFIG.save(deps.storage, &config)?;
+
     Ok(Response::default())
 }
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn execute(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    msg: ExecuteMsg,
+) -> Result<Response, ContractError> {
+    match msg {
+        ExecuteMsg::RemoveRound { round_index } => {
+            execute_remove_round(deps, env, info, round_index)
+        }
+        ExecuteMsg::AddRound { round } => execute_add_round(deps, env, info, round),
+        ExecuteMsg::PrivatelyMint { minter, admin } => {
+            execute_privately_mint(deps, env, info, minter)
+        }
+    }
+}
+pub fn execute_remove_round(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    round_index: u32,
+) -> Result<Response, ContractError> {
+    // Check if sender is admin
+    let config = CONFIG.load(deps.storage)?;
+    if info.sender != config.admin {
+        return Err(ContractError::Unauthorized {});
+    }
+    // Check if the round exists
+    let round = ROUNDS.may_load(deps.storage, round_index)?;
+    if round.is_none() {
+        return Err(ContractError::RoundNotFound {});
+    }
+    // Check if the round has started
+    let round = round.unwrap();
+    if round.start_time() < env.block.time {
+        return Err(ContractError::RoundAlreadyStarted {});
+    }
+    // Remove the round
+    ROUNDS.remove(deps.storage, round_index);
 
-// // If not public mint try to find the rounds
-// let rounds: StdResult<Vec<(u32, Round)>> = ROUNDS
-//     .range(deps.storage, None, None, Order::Ascending)
-//     .collect();
-// let rounds = rounds.unwrap_or(Vec::new());
-// if rounds.is_empty() {
-//     return Err(ContractError::MintingNotStarted {
-//         start_time: config.start_time.nanos(),
-//         current_time: env.block.time.nanos(),
-//     });
-// }
-// // Check if any active round exists
-// let active_round = find_active_round(env.block.time, rounds)?;
-// let active_round_index = active_round.0;
-// // Check if the address is whitelisted
-// let is_member = check_if_whitelisted(
-//     info.sender.clone().into_string(),
-//     active_round.1.clone(),
-//     deps.as_ref(),
-// )?;
-// if !is_member {
-//     return Err(ContractError::AddressNotWhitelisted {});
-// }
-// // This function tries to add mintable token to user details
-// // If succesfully updates it that means per_address_limit or round limit is not reached
-// user_details.add_minted_token(
-//     config.per_address_limit,
-//     Some(active_round.1.round_limit()),
-//     random_token.clone().1,
-//     Some(active_round_index),
-// )?;
-// // Determine mint price
-// mint_price = active_round.1.mint_price()
+    let res = Response::new()
+        .add_attribute("action", "remove_round")
+        .add_attribute("round_index", round_index.to_string());
+    Ok(res)
+}
 
-// pub fn execute_remove_round(
-//     deps: DepsMut,
-//     env: Env,
-//     info: MessageInfo,
-//     round_index: u32,
-// ) -> Result<Response, ContractError> {
-//     // Check if sender is admin
-//     let config = CONFIG.load(deps.storage)?;
-//     if info.sender != config.creator {
-//         return Err(ContractError::Unauthorized {});
-//     }
-//     // Check if the round exists
-//     let round = ROUNDS.may_load(deps.storage, round_index)?;
-//     if round.is_none() {
-//         return Err(ContractError::RoundNotFound {});
-//     }
-//     // Check if the round has started
-//     let round = round.unwrap();
-//     if round.start_time() < env.block.time {
-//         return Err(ContractError::RoundAlreadyStarted {});
-//     }
-//     // Remove the round
-//     ROUNDS.remove(deps.storage, round_index);
+pub fn execute_add_round(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    round: Round,
+) -> Result<Response, ContractError> {
+    // Check if sender is admin
+    let config = CONFIG.load(deps.storage)?;
+    if info.sender != config.admin {
+        return Err(ContractError::Unauthorized {});
+    }
+    round.check_integrity(deps.as_ref(), env.block.time)?;
 
-//     let res = Response::new()
-//         .add_attribute("action", "remove_round")
-//         .add_attribute("round_index", round_index.to_string());
-//     Ok(res)
-// }
+    // Load all the rounds
+    let mut rounds: Vec<Round> = ROUNDS
+        .range(deps.storage, None, None, Order::Ascending)
+        .into_iter()
+        .map(|result| result.unwrap().1)
+        .collect::<Vec<_>>();
 
-// pub fn execute_add_round(
-//     deps: DepsMut,
-//     env: Env,
-//     info: MessageInfo,
-//     round: Round,
-// ) -> Result<Response, ContractError> {
-//     // Check if sender is admin
-//     let config = CONFIG.load(deps.storage)?;
-//     if info.sender != config.creator {
-//         return Err(ContractError::Unauthorized {});
-//     }
-//     // Check round type
-//     let rounds = ROUNDS
-//         .range(deps.storage, None, None, Order::Ascending)
-//         .collect::<StdResult<Vec<(u32, Round)>>>()?;
-//     let round_exists = check_if_round_exists(&round, rounds.clone());
-//     let latest_index = rounds.iter().map(|(i, _)| i).max().unwrap_or(&0);
+    let new_rounds_index = rounds.len() as u32 + 1;
+    // Add the new round to the list
+    rounds.push(round.clone());
 
-//     if round_exists {
-//         return Err(ContractError::RoundAlreadyExists {});
-//     }
-//     let updated_round = return_updated_round(&deps, round.clone())?;
-//     // Check if the round start time is valid
-//     if updated_round.start_time() < env.block.time {
-//         return Err(ContractError::RoundAlreadyStarted {});
-//     }
-//     let mut updated_rounds = rounds.clone();
-//     updated_rounds.push((*latest_index as u32 + 1, updated_round.clone()));
-//     // Check if rounds overlap
-//     check_round_overlaps(env.block.time, updated_rounds, config.start_time)?;
-//     ROUNDS.save(deps.storage, *latest_index as u32 + 1, &updated_round)?;
+    // Check if rounds overlap
+    check_round_overlaps(env.block.time, rounds)?;
+    // If not overlapping save the round
+    ROUNDS.save(deps.storage, new_rounds_index, &round)?;
 
-//     let res = Response::new()
-//         .add_attribute("action", "add_round")
-//         .add_attribute("round_index", (*latest_index as u32 + 1).to_string());
+    let res = Response::new()
+        .add_attribute("action", "add_round")
+        .add_attribute("round_index", (new_rounds_index).to_string());
 
-//     Ok(res)
-// }
+    Ok(res)
+}
 
 // pub fn execute_update_collection_round(
 //     deps: DepsMut,

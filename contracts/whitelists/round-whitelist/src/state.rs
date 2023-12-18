@@ -1,5 +1,6 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Coin, Deps, Timestamp};
+use cw_storage_plus::{Item, Map};
 
 use crate::error::ContractError;
 
@@ -19,6 +20,10 @@ pub enum Round {
         mint_price: Coin,
         round_per_address_limit: u32,
     },
+}
+#[cw_serde]
+pub struct Config {
+    pub admin: Addr,
 }
 
 impl Round {
@@ -65,7 +70,7 @@ impl Round {
         }
     }
 
-    pub fn check_integrity(&self, deps: Deps) -> Result<(), ContractError> {
+    pub fn check_integrity(&self, deps: Deps, now: Timestamp) -> Result<(), ContractError> {
         match self {
             Round::WhitelistAddresses {
                 addresses,
@@ -76,6 +81,9 @@ impl Round {
             } => {
                 if addresses.is_empty() {
                     return Err(ContractError::EmptyAddressList {});
+                }
+                if now >= *start_time {
+                    return Err(ContractError::InvalidStartTime {});
                 }
                 if *start_time >= *end_time {
                     return Err(ContractError::InvalidStartTime {});
@@ -98,6 +106,9 @@ impl Round {
                 if collection_id.is_empty() {
                     return Err(ContractError::InvalidMemberLimit {});
                 }
+                if now >= *start_time {
+                    return Err(ContractError::InvalidStartTime {});
+                }
                 if *start_time >= *end_time {
                     return Err(ContractError::InvalidStartTime {});
                 }
@@ -109,3 +120,6 @@ impl Round {
         Ok(())
     }
 }
+
+pub const ROUNDS: Map<u32, Round> = Map::new("mintable_tokens");
+pub const CONFIG: Item<Config> = Item::new("config");
