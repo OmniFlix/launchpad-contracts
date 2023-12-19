@@ -272,3 +272,42 @@ impl<'a> Rounds<'a> {
 pub const CONFIG: Item<Config> = Item::new("config");
 pub const ROUND_MINTS: Map<Addr, RoundMints> = Map::new("round_mints");
 pub const ROUNDS_KEY: &str = "rounds";
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use cosmwasm_std::testing::mock_dependencies;
+    use cosmwasm_std::{coin, Addr, CosmosMsg, Empty, MessageInfo, Response, SubMsg, WasmMsg};
+
+    #[test]
+    fn test_rounds_save() {
+        let mut deps = mock_dependencies();
+        let rounds = Rounds::new("rounds");
+        let round = Round::WhitelistAddresses {
+            addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
+            start_time: Timestamp::from_seconds(1000),
+            end_time: Timestamp::from_seconds(2000),
+            mint_price: coin(100, "flix"),
+            round_per_address_limit: 1,
+        };
+        let round2 = Round::WhitelistAddresses {
+            addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
+            start_time: Timestamp::from_seconds(3000),
+            end_time: Timestamp::from_seconds(4000),
+            mint_price: coin(100, "atom"),
+            round_per_address_limit: 1,
+        };
+        let round1_index = rounds.save(&mut deps.storage, &round).unwrap();
+        assert_eq!(round1_index, 1);
+        assert_eq!(rounds.load(&deps.storage, round1_index).unwrap(), round);
+
+        let round2_index = rounds.save(&mut deps.storage, &round2).unwrap();
+        assert_eq!(round2_index, 2);
+        assert_eq!(rounds.load(&deps.storage, round2_index).unwrap(), round2);
+
+        let loadled_rounds = rounds.load_all_rounds(&deps.storage).unwrap();
+        assert_eq!(loadled_rounds.len(), 2);
+        assert_eq!(loadled_rounds[0], round);
+        assert_eq!(loadled_rounds[1], round2);
+    }
+}
