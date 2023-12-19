@@ -43,6 +43,12 @@ impl Round {
             } => current_time >= *start_time && current_time <= *end_time,
         }
     }
+    pub fn is_member(&self, address: &Addr) -> bool {
+        match self {
+            Round::WhitelistAddresses { addresses, .. } => addresses.contains(address),
+            Round::WhitelistCollection { .. } => false,
+        }
+    }
 
     pub fn has_started(&self, current_time: Timestamp) -> bool {
         match self {

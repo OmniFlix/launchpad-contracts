@@ -166,9 +166,7 @@ pub fn execute_private_mint(
 pub fn query(deps: Deps, env: Env, msg: RoundWhitelistQueryMsgs) -> StdResult<Binary> {
     match msg {
         RoundWhitelistQueryMsgs::ActiveRound {} => to_binary(&query_active_round(deps, env)?),
-        RoundWhitelistQueryMsgs::IsActive { round_index } => {
-            to_binary(&query_is_active(deps, env, round_index)?)
-        }
+        RoundWhitelistQueryMsgs::IsActive {} => to_binary(&query_is_active(deps, env)?),
         RoundWhitelistQueryMsgs::Members {
             round_index,
             start_after,
@@ -180,7 +178,7 @@ pub fn query(deps: Deps, env: Env, msg: RoundWhitelistQueryMsgs) -> StdResult<Bi
             to_binary(&query_round(deps, round_index)?)
         }
         RoundWhitelistQueryMsgs::IsMember { address } => {
-            to_binary(&query_is_member(deps, address)?)
+            to_binary(&query_is_member(deps, env, address)?)
         }
     }
 }
@@ -195,11 +193,13 @@ pub fn query_active_round(deps: Deps, env: Env) -> Result<Round, ContractError> 
     Ok(active_round)
 }
 
-pub fn query_is_active(deps: Deps, env: Env, round_index: u32) -> Result<bool, ContractError> {
+pub fn query_is_active(deps: Deps, env: Env) -> Result<bool, ContractError> {
     let rounds = Rounds::new(ROUNDS_KEY);
-    let round = rounds.load(deps.storage, round_index)?;
-    let is_active = round.is_active(env.block.time);
-    let res = IsActiveResponse { is_active };
+    let active_round = rounds.load_active_round(deps.storage, env.block.time);
+    let is_active = match active_round {
+        Some(_) => true,
+        None => false,
+    };
     Ok(is_active)
 }
 
@@ -240,14 +240,14 @@ pub fn query_round(deps: Deps, round_index: u32) -> Result<Round, ContractError>
     Ok(round)
 }
 
-pub fn query_is_member(deps: Deps, address: String) -> Result<bool, ContractError> {
+pub fn query_is_member(deps: Deps, env: Env, address: String) -> Result<bool, ContractError> {
     let rounds = Rounds::new(ROUNDS_KEY);
-    let rounds = rounds.load_all_rounds(deps.storage)?;
-    for round in rounds {
-        let members = round.members(None, None)?;
-        if members.contains(&address) {
-            return Ok(true);
-        }
-    }
-    Ok(false)
+    let active_round = rounds.load_active_round(deps.storage, env.block.time);
+    let active_round = match active_round {
+        Some(active_round) => active_round,
+        None => return Err(ContractError::NoActiveRound {}),
+    };
+    let address = deps.api.addr_validate(&address)?;
+    let is_member = active_round.is_member(&address);
+    Ok(is_member)
 }

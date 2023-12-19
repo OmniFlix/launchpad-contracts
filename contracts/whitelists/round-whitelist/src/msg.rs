@@ -24,7 +24,7 @@ pub enum RoundWhitelistQueryMsgs {
     #[returns(Round)]
     Round { round_index: u32 },
     #[returns(IsActiveResponse)]
-    IsActive { round_index: u32 },
+    IsActive {},
     #[returns(Round)]
     ActiveRound {},
     #[returns(MembersResponse)]
