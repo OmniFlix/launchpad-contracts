@@ -79,7 +79,7 @@ pub enum ContractError {
     InvalidRoundTime { round: Round },
 
     #[error("Rounds overlaped")]
-    RoundsOverlaped { round: Round },
+    RoundsOverlaped {},
 
     #[error("Empty address list")]
     EmptyAddressList {},

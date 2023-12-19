@@ -258,9 +258,7 @@ impl<'a> Rounds<'a> {
             let next_round = &rounds[i + 1];
 
             if current_round.end_time() > next_round.start_time() {
-                return Err(ContractError::InvalidRoundTime {
-                    round: current_round.clone(),
-                });
+                return Err(ContractError::RoundsOverlaped {});
             }
         }
         Ok(())
@@ -373,5 +371,56 @@ mod tests {
         assert_eq!(active_round, None);
         let active_round = rounds.load_active_round(&deps.storage, Timestamp::from_seconds(0));
         assert_eq!(active_round, None);
+
+        // Check load active round with overlapping rounds
+        let round3 = Round::WhitelistAddresses {
+            addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
+            start_time: Timestamp::from_seconds(1500),
+            end_time: Timestamp::from_seconds(2500),
+            mint_price: coin(100, "atom"),
+            round_per_address_limit: 1,
+        };
+
+        let round3_index = rounds.save(&mut deps.storage, &round3).unwrap();
+        let active_round = rounds
+            .load_active_round(&deps.storage, Timestamp::from_seconds(1600))
+            .unwrap();
+        // We wont let that happen but if it does we will return the first round that is active
+        assert_eq!(active_round, round);
+    }
+
+    #[test]
+    fn test_rounds_check_round_overlaps() {
+        let mut deps = mock_dependencies();
+        let rounds = Rounds::new("rounds");
+        let round = Round::WhitelistAddresses {
+            addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
+            start_time: Timestamp::from_seconds(1000),
+            end_time: Timestamp::from_seconds(2000),
+            mint_price: coin(100, "flix"),
+            round_per_address_limit: 1,
+        };
+        let round2 = Round::WhitelistAddresses {
+            addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
+            start_time: Timestamp::from_seconds(3000),
+            end_time: Timestamp::from_seconds(4000),
+            mint_price: coin(100, "atom"),
+            round_per_address_limit: 1,
+        };
+        let round3 = Round::WhitelistAddresses {
+            addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
+            start_time: Timestamp::from_seconds(1500),
+            end_time: Timestamp::from_seconds(2500),
+            mint_price: coin(100, "atom"),
+            round_per_address_limit: 1,
+        };
+        let round1_index = rounds.save(&mut deps.storage, &round).unwrap();
+        let round2_index = rounds.save(&mut deps.storage, &round2).unwrap();
+        // No overlap so unwrap should not fail
+        rounds.check_round_overlaps(&deps.storage, None).unwrap();
+        let error = rounds
+            .check_round_overlaps(&deps.storage, Some(round3.clone()))
+            .unwrap_err();
+        assert_eq!(error, ContractError::RoundsOverlaped {});
     }
 }
