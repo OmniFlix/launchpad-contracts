@@ -229,13 +229,11 @@ impl<'a> Rounds<'a> {
     pub fn remove(&self, store: &mut dyn Storage, id: u32) -> StdResult<()> {
         Ok(self.0.remove(store, id))
     }
-
     pub fn load_active_round(&self, store: &dyn Storage, current_time: Timestamp) -> Option<Round> {
         self.0
             .range(store, None, None, Order::Ascending)
-            .map(|result| result.map(|(_, v)| v))
-            .flatten()
-            .next()
+            .filter_map(|result| result.ok().map(|(_, v)| v))
+            .find(|round| round.is_active(current_time))
     }
 
     pub fn load_all_rounds(&self, store: &dyn Storage) -> StdResult<Vec<Round>> {
@@ -309,5 +307,71 @@ mod tests {
         assert_eq!(loadled_rounds.len(), 2);
         assert_eq!(loadled_rounds[0], round);
         assert_eq!(loadled_rounds[1], round2);
+    }
+
+    #[test]
+    fn test_rounds_remove() {
+        let mut deps = mock_dependencies();
+        let rounds = Rounds::new("rounds");
+        let round = Round::WhitelistAddresses {
+            addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
+            start_time: Timestamp::from_seconds(1000),
+            end_time: Timestamp::from_seconds(2000),
+            mint_price: coin(100, "flix"),
+            round_per_address_limit: 1,
+        };
+        let round2 = Round::WhitelistAddresses {
+            addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
+            start_time: Timestamp::from_seconds(3000),
+            end_time: Timestamp::from_seconds(4000),
+            mint_price: coin(100, "atom"),
+            round_per_address_limit: 1,
+        };
+        let round1_index = rounds.save(&mut deps.storage, &round).unwrap();
+        let round2_index = rounds.save(&mut deps.storage, &round2).unwrap();
+
+        rounds.remove(&mut deps.storage, round1_index).unwrap();
+        let loadled_rounds = rounds.load_all_rounds(&deps.storage).unwrap();
+        assert_eq!(loadled_rounds.len(), 1);
+        assert_eq!(loadled_rounds[0], round2);
+    }
+
+    #[test]
+    fn test_rounds_load_active_round() {
+        let mut deps = mock_dependencies();
+        let rounds = Rounds::new("rounds");
+        let round = Round::WhitelistAddresses {
+            addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
+            start_time: Timestamp::from_seconds(1000),
+            end_time: Timestamp::from_seconds(2000),
+            mint_price: coin(100, "flix"),
+            round_per_address_limit: 1,
+        };
+        let round2 = Round::WhitelistAddresses {
+            addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
+            start_time: Timestamp::from_seconds(3000),
+            end_time: Timestamp::from_seconds(4000),
+            mint_price: coin(100, "atom"),
+            round_per_address_limit: 1,
+        };
+        let round1_index = rounds.save(&mut deps.storage, &round).unwrap();
+        let round2_index = rounds.save(&mut deps.storage, &round2).unwrap();
+        let loaded_rounds = rounds.load_all_rounds(&deps.storage).unwrap();
+        assert_eq!(loaded_rounds.len(), 2);
+
+        let active_round = rounds
+            .load_active_round(&deps.storage, Timestamp::from_seconds(1500))
+            .unwrap();
+        assert_eq!(active_round, round);
+
+        let active_round = rounds
+            .load_active_round(&deps.storage, Timestamp::from_seconds(3500))
+            .unwrap();
+        assert_eq!(active_round, round2);
+
+        let active_round = rounds.load_active_round(&deps.storage, Timestamp::from_seconds(5000));
+        assert_eq!(active_round, None);
+        let active_round = rounds.load_active_round(&deps.storage, Timestamp::from_seconds(0));
+        assert_eq!(active_round, None);
     }
 }
