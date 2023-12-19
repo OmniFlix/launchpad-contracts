@@ -17,30 +17,25 @@ pub enum ExecuteMsg {
 }
 
 #[cw_serde]
-pub enum WhitelistQueryMsg {
+#[derive(QueryResponses)]
+pub enum RoundWhitelistQueryMsgs {
+    #[returns(Vec<Round>)]
     Rounds {},
-    Round {
-        round_index: u32,
-    },
-    HasStarted {
-        round_index: u32,
-    },
-    HasEnded {
-        round_index: u32,
-    },
-    IsActive {
-        round_index: u32,
-    },
+    #[returns(Round)]
+    Round { round_index: u32 },
+    #[returns(bool)]
+    IsActive { round_index: u32 },
+    #[returns(Round)]
     ActiveRound {},
-
+    #[returns(Vec<String>)]
     Members {
         round_index: u32,
         start_after: Option<String>,
         limit: Option<u32>,
     },
-    // This query is for minter contract to check mint price for the active round
-    // Will be implemented for the classical whitelist contract as well
-
-    // Returns mint price with Coin type
+    // Returns price of the active round
+    #[returns(Coin)]
     Price {},
+    #[returns(bool)]
+    IsMember { address: String },
 }

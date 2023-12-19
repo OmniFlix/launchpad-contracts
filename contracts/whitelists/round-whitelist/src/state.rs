@@ -83,6 +83,37 @@ impl Round {
             } => *round_per_address_limit,
         }
     }
+    pub fn members(
+        &self,
+        start_after: Option<String>,
+        limit: Option<u32>,
+    ) -> Result<Vec<String>, ContractError> {
+        match self {
+            Round::WhitelistAddresses { addresses, .. } => {
+                let mut members: Vec<String> = addresses.iter().map(|x| x.to_string()).collect();
+                let start_after = start_after.unwrap_or_default();
+                let start_index = members
+                    .iter()
+                    .position(|x| x.as_str() == start_after.as_str())
+                    .unwrap_or_default();
+                let end_index = match limit {
+                    Some(limit) => start_index + limit as usize,
+                    None => members.len(),
+                };
+                Ok(members[start_index..end_index].to_vec())
+            }
+            Round::WhitelistCollection { .. } => Err(ContractError::InvalidRoundType {
+                expected: "WhitelistAddresses".to_string(),
+                actual: "WhitelistCollection".to_string(),
+            }),
+        }
+    }
+    pub fn mint_price(&self) -> Coin {
+        match self {
+            Round::WhitelistAddresses { mint_price, .. } => mint_price.clone(),
+            Round::WhitelistCollection { mint_price, .. } => mint_price.clone(),
+        }
+    }
 
     pub fn check_integrity(&self, deps: Deps, now: Timestamp) -> Result<(), ContractError> {
         match self {

@@ -9,11 +9,11 @@ use cw_utils::{maybe_addr, must_pay};
 
 use types::whitelist::{
     HasEndedResponse, HasMemberResponse, HasStartedResponse, IsActiveResponse, MembersResponse,
-    PerAddressLimitResponse, WhitelistQueryMsgs,
+    PerAddressLimitResponse,
 };
 
 use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg};
+use crate::msg::{ExecuteMsg, InstantiateMsg, RoundWhitelistQueryMsgs};
 use crate::state::{Config, Round, RoundMints, Rounds, CONFIG, ROUNDS_KEY, ROUND_MINTS};
 use crate::utils::check_round_overlaps;
 
@@ -160,4 +160,94 @@ pub fn execute_private_mint(
         .add_attribute("action", "privately_mint")
         .add_attribute("minter", minter.to_string());
     Ok(res)
+}
+
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn query(deps: Deps, env: Env, msg: RoundWhitelistQueryMsgs) -> StdResult<Binary> {
+    match msg {
+        RoundWhitelistQueryMsgs::ActiveRound {} => to_binary(&query_active_round(deps, env)?),
+        RoundWhitelistQueryMsgs::IsActive { round_index } => {
+            to_binary(&query_is_active(deps, env, round_index)?)
+        }
+        RoundWhitelistQueryMsgs::Members {
+            round_index,
+            start_after,
+            limit,
+        } => to_binary(&query_members(deps, env, round_index, start_after, limit)?),
+        RoundWhitelistQueryMsgs::Price {} => to_binary(&query_price(deps, env)?),
+        RoundWhitelistQueryMsgs::Rounds {} => to_binary(&query_rounds(deps, env)?),
+        RoundWhitelistQueryMsgs::Round { round_index } => {
+            to_binary(&query_round(deps, round_index)?)
+        }
+        RoundWhitelistQueryMsgs::IsMember { address } => {
+            to_binary(&query_is_member(deps, address)?)
+        }
+    }
+}
+
+pub fn query_active_round(deps: Deps, env: Env) -> Result<Round, ContractError> {
+    let rounds = Rounds::new(ROUNDS_KEY);
+    let active_round = rounds.load_active_round(deps.storage, env.block.time);
+    let active_round = match active_round {
+        Some(active_round) => active_round,
+        None => return Err(ContractError::NoActiveRound {}),
+    };
+    Ok(active_round)
+}
+
+pub fn query_is_active(deps: Deps, env: Env, round_index: u32) -> Result<bool, ContractError> {
+    let rounds = Rounds::new(ROUNDS_KEY);
+    let round = rounds.load(deps.storage, round_index)?;
+    let is_active = round.is_active(env.block.time);
+    let res = IsActiveResponse { is_active };
+    Ok(is_active)
+}
+
+pub fn query_members(
+    deps: Deps,
+    env: Env,
+    round_index: u32,
+    start_after: Option<String>,
+    limit: Option<u32>,
+) -> Result<MembersResponse, ContractError> {
+    let rounds = Rounds::new(ROUNDS_KEY);
+    let round = rounds.load(deps.storage, round_index)?;
+    let members = round.members(start_after, limit)?;
+    let res = MembersResponse { members };
+    Ok(res)
+}
+
+pub fn query_price(deps: Deps, env: Env) -> Result<Coin, ContractError> {
+    let rounds = Rounds::new(ROUNDS_KEY);
+    let active_round = rounds.load_active_round(deps.storage, env.block.time);
+    let active_round = match active_round {
+        Some(active_round) => active_round,
+        None => return Err(ContractError::NoActiveRound {}),
+    };
+    let price = active_round.mint_price();
+    Ok(price)
+}
+
+pub fn query_rounds(deps: Deps, env: Env) -> Result<Vec<Round>, ContractError> {
+    let rounds = Rounds::new(ROUNDS_KEY);
+    let rounds = rounds.load_all_rounds(deps.storage)?;
+    Ok(rounds)
+}
+
+pub fn query_round(deps: Deps, round_index: u32) -> Result<Round, ContractError> {
+    let rounds = Rounds::new(ROUNDS_KEY);
+    let round = rounds.load(deps.storage, round_index)?;
+    Ok(round)
+}
+
+pub fn query_is_member(deps: Deps, address: String) -> Result<bool, ContractError> {
+    let rounds = Rounds::new(ROUNDS_KEY);
+    let rounds = rounds.load_all_rounds(deps.storage)?;
+    for round in rounds {
+        let members = round.members(None, None)?;
+        if members.contains(&address) {
+            return Ok(true);
+        }
+    }
+    Ok(false)
 }
