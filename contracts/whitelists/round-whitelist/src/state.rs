@@ -166,6 +166,8 @@ impl Round {
     }
 }
 pub type MintCount = u32;
+
+// Refactor RoundMints to use a map instead of a vector
 #[cw_serde]
 pub struct RoundMints {
     pub rounds: Vec<(Round, MintCount)>,
@@ -271,6 +273,8 @@ pub const ROUNDS_KEY: &str = "rounds";
 
 #[cfg(test)]
 mod tests {
+    use crate::error;
+
     use super::*;
     use cosmwasm_std::testing::mock_dependencies;
     use cosmwasm_std::{coin, Addr, CosmosMsg, Empty, MessageInfo, Response, SubMsg, WasmMsg};
@@ -352,6 +356,10 @@ mod tests {
             mint_price: coin(100, "atom"),
             round_per_address_limit: 1,
         };
+        // Try to load active round when no round is saved
+        let active_round = rounds.load_active_round(&deps.storage, Timestamp::from_seconds(1500));
+        assert_eq!(active_round, None);
+
         let round1_index = rounds.save(&mut deps.storage, &round).unwrap();
         let round2_index = rounds.save(&mut deps.storage, &round2).unwrap();
         let loaded_rounds = rounds.load_all_rounds(&deps.storage).unwrap();

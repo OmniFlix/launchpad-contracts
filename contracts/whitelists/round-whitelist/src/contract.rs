@@ -39,7 +39,7 @@ pub fn instantiate(
         round.check_integrity(deps.as_ref(), env.block.time)?;
     }
     // Check if rounds overlap
-    check_round_overlaps(env.block.time, rounds.clone())?;
+    check_round_overlaps(rounds.clone())?;
 
     // Save rounds
     for round in rounds {

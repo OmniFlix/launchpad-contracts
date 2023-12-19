@@ -23,19 +23,59 @@ pub enum RoundWhitelistQueryMsgs {
     Rounds {},
     #[returns(Round)]
     Round { round_index: u32 },
-    #[returns(bool)]
+    #[returns(IsActiveResponse)]
     IsActive { round_index: u32 },
     #[returns(Round)]
     ActiveRound {},
-    #[returns(Vec<String>)]
+    #[returns(MembersResponse)]
     Members {
         round_index: u32,
         start_after: Option<String>,
         limit: Option<u32>,
     },
     // Returns price of the active round
-    #[returns(Coin)]
+    #[returns(MintPriceResponse)]
     Price {},
-    #[returns(bool)]
+    #[returns(HasMemberResponse)]
     IsMember { address: String },
+}
+#[cw_serde]
+pub struct MembersResponse {
+    pub members: Vec<String>,
+}
+
+#[cw_serde]
+pub struct HasMemberResponse {
+    pub has_member: bool,
+}
+
+#[cw_serde]
+pub struct HasEndedResponse {
+    pub has_ended: bool,
+}
+
+#[cw_serde]
+pub struct HasStartedResponse {
+    pub has_started: bool,
+}
+
+#[cw_serde]
+pub struct IsActiveResponse {
+    pub is_active: bool,
+}
+
+#[cw_serde]
+pub struct MintPriceResponse {
+    pub mint_price: Coin,
+}
+
+#[cw_serde]
+pub struct ConfigResponse {
+    pub num_members: u32,
+    pub per_address_limit: u32,
+    pub member_limit: u32,
+    pub start_time: Timestamp,
+    pub end_time: Timestamp,
+    pub mint_price: Coin,
+    pub is_active: bool,
 }

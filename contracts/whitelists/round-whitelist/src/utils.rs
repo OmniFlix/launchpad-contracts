@@ -2,7 +2,7 @@ use cosmwasm_std::Timestamp;
 
 use crate::{error::ContractError, state::Round};
 
-pub fn check_round_overlaps(now: Timestamp, rounds: Vec<Round>) -> Result<(), ContractError> {
+pub fn check_round_overlaps(rounds: Vec<Round>) -> Result<(), ContractError> {
     let mut rounds = rounds;
     rounds.sort_by_key(|round| round.start_time());
 
