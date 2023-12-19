@@ -423,4 +423,33 @@ mod tests {
             .unwrap_err();
         assert_eq!(error, ContractError::RoundsOverlaped {});
     }
+    #[test]
+    fn test_try_mint() {
+        let mut deps = mock_dependencies();
+        let round = Round::WhitelistAddresses {
+            addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
+            start_time: Timestamp::from_seconds(1000),
+            end_time: Timestamp::from_seconds(2000),
+            mint_price: coin(100, "flix"),
+            round_per_address_limit: 1,
+        };
+        let round2 = Round::WhitelistAddresses {
+            addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
+            start_time: Timestamp::from_seconds(3000),
+            end_time: Timestamp::from_seconds(4000),
+            mint_price: coin(100, "atom"),
+            round_per_address_limit: 1,
+        };
+        let mut round_mints = RoundMints::new();
+        // First mint should pass
+        round_mints.try_mint(round.clone()).unwrap();
+        // Second mint should fail
+        let error = round_mints.try_mint(round.clone()).unwrap_err();
+        assert_eq!(error, ContractError::RoundReachedMintLimit {});
+        // First mint of round2 should pass
+        round_mints.try_mint(round2.clone()).unwrap();
+        // Second mint of round2 should fail
+        let error = round_mints.try_mint(round2.clone()).unwrap_err();
+        assert_eq!(error, ContractError::RoundReachedMintLimit {});
+    }
 }
