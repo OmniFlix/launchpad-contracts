@@ -13,7 +13,7 @@ pub struct InstantiateMsg {
 pub enum ExecuteMsg {
     RemoveRound { round_index: u32 },
     AddRound { round: Round },
-    PrivatelyMint { minter: String, admin: String },
+    PrivateMint { minter: String, admin: String },
 }
 
 #[cw_serde]
