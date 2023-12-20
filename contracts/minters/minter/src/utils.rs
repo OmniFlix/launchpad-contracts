@@ -1,14 +1,12 @@
 use std::convert::TryInto;
 
-use cosmwasm_std::{Addr, Deps, DepsMut, Env, StdError, Timestamp};
-use omniflix_std::types::omniflix::onft::v1beta1::OnftQuerier;
+use cosmwasm_std::{Env, StdError};
 use rand_core::{RngCore, SeedableRng};
 use rand_xoshiro::Xoshiro128PlusPlus;
 use sha2::{Digest, Sha256};
 use shuffle::{fy::FisherYates, shuffler::Shuffler};
 
 use crate::{error::ContractError, state::Token};
-use types::whitelist::Config as WhitelistConfig;
 use types::whitelist::{HasMemberResponse, WhitelistQueryMsgs};
 
 pub fn randomize_token_list(
@@ -88,7 +86,7 @@ pub fn return_random_token_id(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cosmwasm_std::{testing::mock_env, TransactionInfo, Uint128};
+    use cosmwasm_std::{testing::mock_env, Timestamp, TransactionInfo, Uint128};
 
     #[test]
     fn test_randomize_token_list() {
