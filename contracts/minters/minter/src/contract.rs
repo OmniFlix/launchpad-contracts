@@ -4,16 +4,16 @@ use std::str::FromStr;
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     to_json_binary, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo, Order,
-    Response, StdResult, Timestamp, Uint128,
+    Response, StdResult, Timestamp, Uint128, WasmMsg,
 };
-
 use cw_utils::{maybe_addr, must_pay, nonpayable};
+use round_whitelist::msg::{ExecuteMsg::PrivateMint, MintPriceResponse, RoundWhitelistQueryMsgs};
 
 use crate::msg::{CollectionDetails, ExecuteMsg, InstantiateMsg, QueryMsg};
 
 use crate::error::ContractError;
 use crate::state::{
-    Config, Token, UserDetails, COLLECTION, CONFIG, MINTABLE_TOKENS, MINTED_TOKENS,
+    self, Config, Token, UserDetails, COLLECTION, CONFIG, MINTABLE_TOKENS, MINTED_TOKENS,
     TOTAL_TOKENS_REMAINING,
 };
 use crate::utils::{randomize_token_list, return_random_token_id};
@@ -107,6 +107,7 @@ pub fn instantiate(
             denom: msg.mint_denom.clone(),
             amount: msg.mint_price,
         },
+        whitelist_address: maybe_addr(deps.api, msg.whitelist_address.clone())?,
     };
     CONFIG.save(deps.storage, &config)?;
 
@@ -206,6 +207,7 @@ pub fn execute_mint(
     info: MessageInfo,
     _msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
+    let config = CONFIG.load(deps.storage)?;
     // Check if any tokens are left
     let total_tokens_remaining = TOTAL_TOKENS_REMAINING.load(deps.storage)?;
 
@@ -215,8 +217,10 @@ pub fn execute_mint(
     let mut user_details = MINTED_TOKENS
         .may_load(deps.storage, info.sender.clone())?
         .unwrap_or(UserDetails::new());
-
-    let config = CONFIG.load(deps.storage)?;
+    // Check if address has reached the limit
+    if user_details.total_minted_count >= config.per_address_limit {
+        return Err(ContractError::AddressReachedMintLimit {});
+    }
 
     let mut mint_price = config.mint_price;
 
@@ -228,25 +232,56 @@ pub fn execute_mint(
         // Add the (key, value) tuple to the vector
         mintable_tokens.push((key, value));
     }
+    // Increment total minted count
+    user_details.total_minted_count += 1;
     // Get a random token id
     let random_token = return_random_token_id(&mintable_tokens, env.clone())?;
 
+    // Check if minting is started
     let is_public = env.block.time > config.start_time;
 
-    // Check if minting is started
-    if is_public {
-        // TODO
-        // Query whitelist contract for current active rounds price and check if this address is whitelisted
-        // Change price to the active round price
-    } else {
-        // Check if address has reached the limit
-        if user_details.total_minted_count >= config.per_address_limit {
-            return Err(ContractError::AddressReachedMintLimit {});
-        }
-        // Increment total minted count
-        user_details.total_minted_count += 1;
+    let mut messages: Vec<CosmosMsg> = vec![];
 
-        // If we are here it means public minting has started
+    if !is_public {
+        // Check if any whitelist is present
+        if let Some(whitelist_address) = config.whitelist_address {
+            let is_active: bool = deps.querier.query_wasm_smart(
+                whitelist_address.clone().into_string(),
+                &RoundWhitelistQueryMsgs::IsActive {},
+            )?;
+            if !is_active {
+                return Err(ContractError::WhitelistNotActive {});
+            }
+            // Check whitelist price
+            let whitelist_price_response: MintPriceResponse = deps.querier.query_wasm_smart(
+                whitelist_address.clone().into_string(),
+                &RoundWhitelistQueryMsgs::Price {},
+            )?;
+            mint_price = whitelist_price_response.mint_price;
+            // Check if member is whitelisted
+            let is_whitelisted: bool = deps.querier.query_wasm_smart(
+                whitelist_address.clone().into_string(),
+                &RoundWhitelistQueryMsgs::IsMember {
+                    address: info.sender.clone().into_string(),
+                },
+            )?;
+            if !is_whitelisted {
+                return Err(ContractError::AddressNotWhitelisted {});
+            }
+            messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: whitelist_address.into_string(),
+                msg: to_json_binary(&PrivateMint {
+                    admin: config.admin.into_string(),
+                    minter: info.sender.clone().into_string(),
+                })?,
+                funds: vec![],
+            }));
+        } else {
+            return Err(ContractError::MintingNotStarted {
+                start_time: config.start_time,
+                current_time: env.block.time,
+            });
+        };
     }
 
     // Check the payment
@@ -279,6 +314,7 @@ pub fn execute_mint(
         media_uri: format!("{}/{}", collection.base_uri, token_id),
         preview_uri: collection.preview_uri,
     };
+
     // Create the mint message
     let mint_msg: CosmosMsg = MsgMintOnft {
         data: "".to_string(),
@@ -304,9 +340,11 @@ pub fn execute_mint(
     })
     .into();
 
+    messages.push(mint_msg.clone());
+    messages.push(bank_msg.clone());
+
     let res = Response::new()
-        .add_message(mint_msg)
-        .add_message(bank_msg)
+        .add_messages(messages)
         .add_attribute("action", "mint")
         .add_attribute("token_id", token_id.to_string())
         .add_attribute("denom_id", token_id.to_string());

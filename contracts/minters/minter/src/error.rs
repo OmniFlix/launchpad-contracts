@@ -1,6 +1,6 @@
 use std::convert::Infallible;
 
-use cosmwasm_std::{CheckedFromRatioError, ConversionOverflowError, StdError, Uint128};
+use cosmwasm_std::{CheckedFromRatioError, ConversionOverflowError, StdError, Timestamp, Uint128};
 use cw_utils::PaymentError;
 use thiserror::Error;
 
@@ -25,7 +25,10 @@ pub enum ContractError {
     InvalidCreationFee { expected: Uint128, sent: Uint128 },
 
     #[error("Minting has not started yet")]
-    MintingNotStarted { start_time: u64, current_time: u64 },
+    MintingNotStarted {
+        start_time: Timestamp,
+        current_time: Timestamp,
+    },
 
     #[error("Minting has already started")]
     MintingAlreadyStarted {},

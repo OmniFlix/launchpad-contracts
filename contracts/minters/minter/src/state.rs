@@ -14,6 +14,7 @@ pub struct Config {
     pub mint_price: Coin,
     pub royalty_ratio: Decimal,
     pub admin: Addr,
+    pub whitelist_address: Option<Addr>,
 }
 
 #[cw_serde]
@@ -29,6 +30,13 @@ pub struct UserDetails {
 
 impl UserDetails {
     pub fn new() -> Self {
+        UserDetails {
+            minted_tokens: Vec::new(),
+            total_minted_count: 0,
+        }
+    }
+    // Default UserDetails
+    pub fn default() -> Self {
         UserDetails {
             minted_tokens: Vec::new(),
             total_minted_count: 0,

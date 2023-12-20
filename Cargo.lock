@@ -663,27 +663,11 @@ dependencies = [
  "omniflix-std",
  "rand_core 0.6.4",
  "rand_xoshiro",
+ "round-whitelist",
  "schemars",
  "serde",
  "sha2 0.10.8",
  "shuffle",
- "thiserror",
- "types",
-]
-
-[[package]]
-name = "omniflix-round-whitelist"
-version = "0.0.1"
-dependencies = [
- "cosmwasm-schema",
- "cosmwasm-std",
- "cosmwasm-storage",
- "cw-controllers",
- "cw-storage-plus 1.1.0",
- "cw-utils 1.0.2",
- "cw2 1.1.1",
- "omniflix-std",
- "serde",
  "thiserror",
  "types",
 ]
@@ -853,6 +837,23 @@ checksum = "f8dd2a808d456c4a54e300a23e9f5a67e122c3024119acbfd73e3bf664491cb2"
 dependencies = [
  "hmac",
  "subtle",
+]
+
+[[package]]
+name = "round-whitelist"
+version = "0.0.1"
+dependencies = [
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "cw-controllers",
+ "cw-storage-plus 1.1.0",
+ "cw-utils 1.0.2",
+ "cw2 1.1.1",
+ "omniflix-std",
+ "serde",
+ "thiserror",
+ "types",
 ]
 
 [[package]]

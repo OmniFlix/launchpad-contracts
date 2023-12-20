@@ -18,6 +18,7 @@ pub struct InstantiateMsg {
     // FE "0.1"
     pub royalty_ratio: String,
     pub payment_collector: Option<String>,
+    pub whitelist_address: Option<String>,
 }
 
 #[cw_serde]
