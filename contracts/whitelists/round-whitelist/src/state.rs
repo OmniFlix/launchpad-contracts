@@ -5,31 +5,30 @@ use cosmwasm_std::{Addr, Coin, Deps, Order, StdError, StdResult, Storage, Timest
 use cw_storage_plus::{Item, Map};
 
 use crate::error::ContractError;
+use types::Round;
 
-#[cw_serde]
-pub enum Round {
-    WhitelistAddresses {
-        addresses: Vec<Addr>,
-        start_time: Timestamp,
-        end_time: Timestamp,
-        mint_price: Coin,
-        round_per_address_limit: u32,
-    },
-    WhitelistCollection {
-        collection_id: String,
-        start_time: Timestamp,
-        end_time: Timestamp,
-        mint_price: Coin,
-        round_per_address_limit: u32,
-    },
-}
 #[cw_serde]
 pub struct Config {
     pub admin: Addr,
 }
-
-impl Round {
-    pub fn is_active(&self, current_time: Timestamp) -> bool {
+pub trait RoundMethods {
+    fn is_active(&self, current_time: Timestamp) -> bool;
+    fn is_member(&self, address: &Addr) -> bool;
+    fn has_started(&self, current_time: Timestamp) -> bool;
+    fn has_ended(&self, current_time: Timestamp) -> bool;
+    fn start_time(&self) -> Timestamp;
+    fn end_time(&self) -> Timestamp;
+    fn round_per_address_limit(&self) -> u32;
+    fn members(
+        &self,
+        start_after: Option<String>,
+        limit: Option<u32>,
+    ) -> Result<Vec<String>, ContractError>;
+    fn mint_price(&self) -> Coin;
+    fn check_integrity(&self, deps: Deps, now: Timestamp) -> Result<(), ContractError>;
+}
+impl RoundMethods for Round {
+    fn is_active(&self, current_time: Timestamp) -> bool {
         match self {
             Round::WhitelistAddresses {
                 start_time,
@@ -43,41 +42,41 @@ impl Round {
             } => current_time >= *start_time && current_time <= *end_time,
         }
     }
-    pub fn is_member(&self, address: &Addr) -> bool {
+    fn is_member(&self, address: &Addr) -> bool {
         match self {
             Round::WhitelistAddresses { addresses, .. } => addresses.contains(address),
             Round::WhitelistCollection { .. } => false,
         }
     }
 
-    pub fn has_started(&self, current_time: Timestamp) -> bool {
+    fn has_started(&self, current_time: Timestamp) -> bool {
         match self {
             Round::WhitelistAddresses { start_time, .. } => current_time >= *start_time,
             Round::WhitelistCollection { start_time, .. } => current_time >= *start_time,
         }
     }
 
-    pub fn has_ended(&self, current_time: Timestamp) -> bool {
+    fn has_ended(&self, current_time: Timestamp) -> bool {
         match self {
             Round::WhitelistAddresses { end_time, .. } => current_time >= *end_time,
             Round::WhitelistCollection { end_time, .. } => current_time >= *end_time,
         }
     }
 
-    pub fn start_time(&self) -> Timestamp {
+    fn start_time(&self) -> Timestamp {
         match self {
             Round::WhitelistAddresses { start_time, .. } => *start_time,
             Round::WhitelistCollection { start_time, .. } => *start_time,
         }
     }
 
-    pub fn end_time(&self) -> Timestamp {
+    fn end_time(&self) -> Timestamp {
         match self {
             Round::WhitelistAddresses { end_time, .. } => *end_time,
             Round::WhitelistCollection { end_time, .. } => *end_time,
         }
     }
-    pub fn round_per_address_limit(&self) -> u32 {
+    fn round_per_address_limit(&self) -> u32 {
         match self {
             Round::WhitelistAddresses {
                 round_per_address_limit,
@@ -89,7 +88,7 @@ impl Round {
             } => *round_per_address_limit,
         }
     }
-    pub fn members(
+    fn members(
         &self,
         start_after: Option<String>,
         limit: Option<u32>,
@@ -114,14 +113,14 @@ impl Round {
             }),
         }
     }
-    pub fn mint_price(&self) -> Coin {
+    fn mint_price(&self) -> Coin {
         match self {
             Round::WhitelistAddresses { mint_price, .. } => mint_price.clone(),
             Round::WhitelistCollection { mint_price, .. } => mint_price.clone(),
         }
     }
 
-    pub fn check_integrity(&self, deps: Deps, now: Timestamp) -> Result<(), ContractError> {
+    fn check_integrity(&self, deps: Deps, now: Timestamp) -> Result<(), ContractError> {
         match self {
             Round::WhitelistAddresses {
                 addresses,
@@ -153,10 +152,6 @@ impl Round {
                 mint_price,
                 round_per_address_limit,
             } => {
-                // TODO: Validate collection id by Querying the collection
-                if collection_id.is_empty() {
-                    return Err(ContractError::InvalidMemberLimit {});
-                }
                 if now >= *start_time {
                     return Err(ContractError::InvalidStartTime {});
                 }
@@ -171,6 +166,7 @@ impl Round {
         Ok(())
     }
 }
+
 pub type MintCount = u32;
 
 // Refactor RoundMints to use a map instead of a vector

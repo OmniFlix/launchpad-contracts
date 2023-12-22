@@ -33,6 +33,9 @@ pub struct CollectionDetails {
     pub nsfw: bool,
     pub num_tokens: u32,
     pub base_uri: String,
+    pub uri: String,
+    pub uri_hash: String,
+    pub data: String,
 }
 
 #[cw_serde]

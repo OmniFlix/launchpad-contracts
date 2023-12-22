@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use crate::msg::{CollectionDetails, ExecuteMsg, InstantiateMsg, QueryMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
@@ -7,13 +8,12 @@ use cosmwasm_std::{
     Response, StdResult, Timestamp, Uint128, WasmMsg,
 };
 use cw_utils::{maybe_addr, must_pay, nonpayable};
-use round_whitelist::msg::{ExecuteMsg::PrivateMint, MintPriceResponse, RoundWhitelistQueryMsgs};
-
-use crate::msg::{CollectionDetails, ExecuteMsg, InstantiateMsg, QueryMsg};
+use round_whitelist::msg::ExecuteMsg::PrivateMint;
+use types::{MintPriceResponse, RoundWhitelistQueryMsgs};
 
 use crate::error::ContractError;
 use crate::state::{
-    self, Config, Token, UserDetails, COLLECTION, CONFIG, MINTABLE_TOKENS, MINTED_TOKENS,
+    Config, Token, UserDetails, COLLECTION, CONFIG, MINTABLE_TOKENS, MINTED_TOKENS,
     TOTAL_TOKENS_REMAINING,
 };
 use crate::utils::{randomize_token_list, return_random_token_id};
@@ -122,6 +122,9 @@ pub fn instantiate(
         extensible: msg.collection_details.extensible,
         nsfw: msg.collection_details.nsfw,
         base_uri: msg.collection_details.base_uri,
+        uri: msg.collection_details.uri,
+        uri_hash: msg.collection_details.uri_hash,
+        data: msg.collection_details.data,
     };
     COLLECTION.save(deps.storage, &collection)?;
 
@@ -160,6 +163,9 @@ pub fn instantiate(
         schema: collection.schema,
         sender: env.contract.address.into_string(),
         symbol: collection.symbol,
+        data: collection.data,
+        uri: collection.uri,
+        uri_hash: collection.uri_hash,
         creation_fee: Some(
             Coin {
                 denom: creation_fee_denom,
@@ -313,6 +319,7 @@ pub fn execute_mint(
         description: collection.description,
         media_uri: format!("{}/{}", collection.base_uri, token_id),
         preview_uri: collection.preview_uri,
+        uri_hash: collection.uri_hash,
     };
 
     // Create the mint message
@@ -419,6 +426,7 @@ pub fn execute_mint_admin(
         description: collection.description,
         media_uri: format!("{}/{}", collection.preview_uri, denom_id),
         preview_uri: collection.preview_uri,
+        uri_hash: collection.uri_hash,
     };
 
     // Create the mint message

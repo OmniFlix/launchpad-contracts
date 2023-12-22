@@ -1,7 +1,7 @@
-use crate::state::Round;
 use cosmwasm_std::StdError;
 use cw_utils::PaymentError;
 use thiserror::Error;
+use types::Round;
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ContractError {

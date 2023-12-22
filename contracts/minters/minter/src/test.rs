@@ -186,7 +186,7 @@
 //         let total_tokens_remaining: u32 = from_binary(&total_tokens_remaining_data).unwrap();
 //         assert_eq!(total_tokens_remaining, 1000);
 //     }
-
+// }
 //     #[test]
 //     pub fn test_mint() {
 //         let mut env = mock_env();
