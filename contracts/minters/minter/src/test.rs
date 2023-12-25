@@ -312,6 +312,12 @@ mod tests {
         let mintable_tokens: Vec<Token> = from_binary(&mintable_tokens_data).unwrap();
         assert_eq!(mintable_tokens.len(), 0);
 
+        // query total tokens remaining
+        let total_tokens_remaining_data =
+            query(deps.as_ref(), env.clone(), QueryMsg::TotalTokens {}).unwrap();
+        let total_tokens_remaining: u32 = from_binary(&total_tokens_remaining_data).unwrap();
+        assert_eq!(total_tokens_remaining, 0);
+
         // There should be no tokens left to mint
         let info = mock_info("creator", &[coin(1000000, "uflix")]);
         let res = execute(deps.as_mut(), env.clone(), info, ExecuteMsg::Mint {}).unwrap_err();

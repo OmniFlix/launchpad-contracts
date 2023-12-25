@@ -98,6 +98,9 @@ pub enum ContractError {
 
     #[error("Invalid roud type")]
     InvalidRoundType { expected: String, actual: String },
+
+    #[error("Error saving tokens")]
+    ErrorSavingTokens {},
 }
 
 impl From<ContractError> for StdError {

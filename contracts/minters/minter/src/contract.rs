@@ -97,6 +97,7 @@ pub fn instantiate(
     let payment_collector =
         maybe_addr(deps.api, msg.payment_collector.clone())?.unwrap_or(info.sender.clone());
     let num_tokens = msg.collection_details.num_tokens;
+
     let config = Config {
         per_address_limit: msg.per_address_limit,
         payment_collector: payment_collector,
@@ -139,19 +140,15 @@ pub fn instantiate(
             )
         })
         .collect();
-    let randomized_list = randomize_token_list(tokens, num_tokens, env.clone())?;
+
     // Save mintable tokens
-    randomized_list.into_iter().for_each(|(key, value)| {
-        MINTABLE_TOKENS
-            .save(deps.storage, key, &value)
-            // TODO Fix here
-            .unwrap_or_else(|_| {
-                panic!(
-                    "Unable to save mintable tokens with key {} and value {}",
-                    key, value.token_id
-                )
-            });
-    });
+    for (key, value) in randomize_token_list(tokens, num_tokens, env.clone())? {
+        match MINTABLE_TOKENS.save(deps.storage, key, &value) {
+            Ok(_) => (),
+            Err(_) => return Err(ContractError::ErrorSavingTokens {}),
+        }
+    }
+
     // Save total tokens
     TOTAL_TOKENS_REMAINING.save(deps.storage, &num_tokens)?;
 
@@ -216,30 +213,28 @@ pub fn execute_mint(
     let config = CONFIG.load(deps.storage)?;
     // Check if any tokens are left
     let total_tokens_remaining = TOTAL_TOKENS_REMAINING.load(deps.storage)?;
-
     if total_tokens_remaining == 0 {
         return Err(ContractError::NoTokensLeftToMint {});
     }
     let mut user_details = MINTED_TOKENS
         .may_load(deps.storage, info.sender.clone())?
         .unwrap_or(UserDetails::new());
+
+    // Increment total minted count
+    user_details.total_minted_count += 1;
     // Check if address has reached the limit
-    if user_details.total_minted_count >= config.per_address_limit {
+    if user_details.total_minted_count > config.per_address_limit {
         return Err(ContractError::AddressReachedMintLimit {});
     }
 
     let mut mint_price = config.mint_price;
 
     // Collect mintable tokens
-    // TODO try writing it more elegantly
     let mut mintable_tokens: Vec<(u32, Token)> = Vec::new();
     for item in MINTABLE_TOKENS.range(deps.storage, None, None, Order::Ascending) {
         let (key, value) = item?;
-        // Add the (key, value) tuple to the vector
         mintable_tokens.push((key, value));
     }
-    // Increment total minted count
-    user_details.total_minted_count += 1;
     // Get a random token id
     let random_token = return_random_token_id(&mintable_tokens, env.clone())?;
     // Add the minted token to the user details
