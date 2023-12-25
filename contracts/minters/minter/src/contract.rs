@@ -242,7 +242,8 @@ pub fn execute_mint(
     user_details.total_minted_count += 1;
     // Get a random token id
     let random_token = return_random_token_id(&mintable_tokens, env.clone())?;
-
+    // Add the minted token to the user details
+    user_details.minted_tokens.push(random_token.1.clone());
     // Check if minting is started
     let is_public = env.block.time > config.start_time;
 
@@ -326,7 +327,7 @@ pub fn execute_mint(
     let mint_msg: CosmosMsg = MsgMintOnft {
         data: "".to_string(),
         id: format!("{}{}", collection.id, token_id),
-        metadata: Some(metadata),
+        metadata: Some(metadata.clone()),
         denom_id: collection.id.clone(),
         transferable: true,
         sender: env.contract.address.clone().into_string(),
