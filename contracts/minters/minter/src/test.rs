@@ -505,439 +505,138 @@ mod tests {
         let res = execute(deps.as_mut(), env.clone(), info, ExecuteMsg::Mint {}).unwrap_err();
         assert_eq!(res, ContractError::NoTokensLeftToMint {});
     }
+    #[test]
+    pub fn test_update_royalty_ratio() {
+        let mut env = mock_env();
+        env.block.height = 100_000_000;
+        env.block.time = Timestamp::from_nanos(100_000_000);
+        env.transaction = Some(TransactionInfo { index: 100_000_000 });
+        let mut deps = mock_dependencies();
+
+        let instantiate_msg = return_instantiate_msg();
+
+        // instantiate
+        let info = mock_info("admin", &[coin(100000000, "uflix")]);
+        let _res = instantiate(deps.as_mut(), env.clone(), info, instantiate_msg.clone()).unwrap();
+
+        // Try updating royalty ratio with non creator
+        let info = mock_info("non_creator", &[]);
+        let res = execute(
+            deps.as_mut(),
+            env.clone(),
+            info,
+            ExecuteMsg::UpdateRoyaltyRatio {
+                ratio: "0.2".to_string(),
+            },
+        )
+        .unwrap_err();
+        assert_eq!(res, ContractError::Unauthorized {});
+
+        // Try updating royalty ratio with admin
+        let info = mock_info("admin", &[]);
+        let _res = execute(
+            deps.as_mut(),
+            env.clone(),
+            info,
+            ExecuteMsg::UpdateRoyaltyRatio {
+                ratio: "0.2".to_string(),
+            },
+        )
+        .unwrap();
+
+        // Check royalty ratio
+        let config_data = query(deps.as_ref(), env.clone(), QueryMsg::Config {}).unwrap();
+        let config: Config = from_binary(&config_data).unwrap();
+        assert_eq!(config.royalty_ratio, Decimal::from_ratio(2u128, 10u128));
+    }
+    #[test]
+    pub fn test_update_mint_price() {
+        let mut env = mock_env();
+        env.block.height = 100_000_000;
+        env.block.time = Timestamp::from_nanos(100_000_000);
+        env.transaction = Some(TransactionInfo { index: 100_000_000 });
+        let mut deps = mock_dependencies();
+
+        let instantiate_msg = return_instantiate_msg();
+
+        // instantiate
+        let info = mock_info("creator", &[coin(100000000, "uflix")]);
+        let _res = instantiate(deps.as_mut(), env.clone(), info, instantiate_msg.clone()).unwrap();
+
+        // Try updating mint price with non creator
+        let info = mock_info("non_creator", &[]);
+        let res = execute(
+            deps.as_mut(),
+            env.clone(),
+            info,
+            ExecuteMsg::UpdateMintPrice {
+                mint_price: Uint128::from(1000000u128),
+            },
+        )
+        .unwrap_err();
+        assert_eq!(res, ContractError::Unauthorized {});
+
+        // Try updating mint price with creator
+        let info = mock_info("admin", &[]);
+        let _res = execute(
+            deps.as_mut(),
+            env.clone(),
+            info,
+            ExecuteMsg::UpdateMintPrice {
+                mint_price: Uint128::from(1000000u128),
+            },
+        )
+        .unwrap();
+
+        // Check mint price
+        let config_data = query(deps.as_ref(), env.clone(), QueryMsg::Config {}).unwrap();
+        let config: Config = from_binary(&config_data).unwrap();
+        assert_eq!(config.mint_price, coin(1000000, "uflix"));
+    }
+    #[test]
+    pub fn test_randomize_list() {
+        let mut env = mock_env();
+        env.block.time = Timestamp::from_nanos(100_000_000);
+        env.transaction = Some(TransactionInfo { index: 12147492 });
+        let mut deps = mock_dependencies();
+
+        let instantiate_msg = return_instantiate_msg();
+
+        // instantiate
+        let info = mock_info("creator", &[coin(100000000, "uflix")]);
+        let _res = instantiate(deps.as_mut(), env.clone(), info, instantiate_msg.clone()).unwrap();
+
+        // Try randomizing list with non creator
+        let info = mock_info("non_creator", &[]);
+        let res = execute(
+            deps.as_mut(),
+            env.clone(),
+            info,
+            ExecuteMsg::RandomizeList {},
+        )
+        .unwrap_err();
+        assert_eq!(res, ContractError::Unauthorized {});
+
+        // Check mintable tokens
+        let mintable_tokens_data =
+            query(deps.as_ref(), env.clone(), QueryMsg::MintableTokens {}).unwrap();
+        let mintable_tokens: Vec<Token> = from_binary(&mintable_tokens_data).unwrap();
+        let fifth_token = mintable_tokens[4].clone();
+
+        // Try randomizing list with creator
+        let info = mock_info("admin", &[]);
+        let _res = execute(
+            deps.as_mut(),
+            env.clone(),
+            info,
+            ExecuteMsg::RandomizeList {},
+        )
+        .unwrap();
+
+        // Check mintable tokens
+        let mintable_tokens_data =
+            query(deps.as_ref(), env.clone(), QueryMsg::MintableTokens {}).unwrap();
+        let mintable_tokens: Vec<Token> = from_binary(&mintable_tokens_data).unwrap();
+        assert_ne!(mintable_tokens[4], fifth_token);
+    }
 }
-//     #[test]
-//     pub fn test_update_royalty_ratio() {
-//         let mut env = mock_env();
-//         env.block.height = 100_000_000;
-//         env.block.time = Timestamp::from_nanos(100_000_000);
-//         env.transaction = Some(TransactionInfo { index: 100_000_000 });
-//         let mut deps = mock_dependencies();
-
-//         let instantiate_msg = return_instantiate_msg();
-
-//         // instantiate
-//         let info = mock_info("creator", &[coin(100000000, "uflix")]);
-//         let _res = instantiate(deps.as_mut(), env.clone(), info, instantiate_msg.clone()).unwrap();
-
-//         // Try updating royalty ratio with non creator
-//         let info = mock_info("non_creator", &[]);
-//         let res = execute(
-//             deps.as_mut(),
-//             env.clone(),
-//             info,
-//             ExecuteMsg::UpdateRoyaltyRatio {
-//                 ratio: "0.2".to_string(),
-//             },
-//         )
-//         .unwrap_err();
-//         assert_eq!(res, ContractError::Unauthorized {});
-
-//         // Try updating royalty ratio with creator
-//         let info = mock_info("creator", &[]);
-//         let _res = execute(
-//             deps.as_mut(),
-//             env.clone(),
-//             info,
-//             ExecuteMsg::UpdateRoyaltyRatio {
-//                 ratio: "0.2".to_string(),
-//             },
-//         )
-//         .unwrap();
-
-//         // Check royalty ratio
-//         let config_data = query(deps.as_ref(), env.clone(), QueryMsg::Config {}).unwrap();
-//         let config: Config = from_binary(&config_data).unwrap();
-//         assert_eq!(config.royalty_ratio, Decimal::from_ratio(2u128, 10u128));
-//     }
-
-//     #[test]
-//     pub fn test_update_mint_price() {
-//         let mut env = mock_env();
-//         env.block.height = 100_000_000;
-//         env.block.time = Timestamp::from_nanos(100_000_000);
-//         env.transaction = Some(TransactionInfo { index: 100_000_000 });
-//         let mut deps = mock_dependencies();
-
-//         let instantiate_msg = return_instantiate_msg();
-
-//         // instantiate
-//         let info = mock_info("creator", &[coin(100000000, "uflix")]);
-//         let _res = instantiate(deps.as_mut(), env.clone(), info, instantiate_msg.clone()).unwrap();
-
-//         // Try updating mint price with non creator
-//         let info = mock_info("non_creator", &[]);
-//         let res = execute(
-//             deps.as_mut(),
-//             env.clone(),
-//             info,
-//             ExecuteMsg::UpdateMintPrice {
-//                 mint_price: Uint128::from(1000000u128),
-//             },
-//         )
-//         .unwrap_err();
-//         assert_eq!(res, ContractError::Unauthorized {});
-
-//         // Try updating mint price with creator
-//         let info = mock_info("creator", &[]);
-//         let _res = execute(
-//             deps.as_mut(),
-//             env.clone(),
-//             info,
-//             ExecuteMsg::UpdateMintPrice {
-//                 mint_price: Uint128::from(1000000u128),
-//             },
-//         )
-//         .unwrap();
-
-//         // Check mint price
-//         let config_data = query(deps.as_ref(), env.clone(), QueryMsg::Config {}).unwrap();
-//         let config: Config = from_binary(&config_data).unwrap();
-//         assert_eq!(config.mint_price, Uint128::from(1000000u128));
-//     }
-
-//     #[test]
-//     pub fn test_randomize_list() {
-//         let mut env = mock_env();
-//         env.block.height = 657625347635765;
-//         env.block.time = Timestamp::from_nanos(782784568767866);
-//         env.transaction = Some(TransactionInfo { index: 12147492 });
-//         let mut deps = mock_dependencies();
-
-//         let instantiate_msg = return_instantiate_msg();
-
-//         // instantiate
-//         let info = mock_info("creator", &[coin(100000000, "uflix")]);
-//         let _res = instantiate(deps.as_mut(), env.clone(), info, instantiate_msg.clone()).unwrap();
-
-//         // Try randomizing list with non creator
-//         let info = mock_info("non_creator", &[]);
-//         let res = execute(
-//             deps.as_mut(),
-//             env.clone(),
-//             info,
-//             ExecuteMsg::RandomizeList {},
-//         )
-//         .unwrap_err();
-//         assert_eq!(res, ContractError::Unauthorized {});
-
-//         // Check mintable tokens
-//         let mintable_tokens_data =
-//             query(deps.as_ref(), env.clone(), QueryMsg::MintableTokens {}).unwrap();
-//         let mintable_tokens: Vec<Token> = from_binary(&mintable_tokens_data).unwrap();
-//         let fifth_token = mintable_tokens[4].clone();
-
-//         // Try randomizing list with creator
-//         let info = mock_info("creator", &[]);
-//         let _res = execute(
-//             deps.as_mut(),
-//             env.clone(),
-//             info,
-//             ExecuteMsg::RandomizeList {},
-//         )
-//         .unwrap();
-
-//         // Check mintable tokens
-//         let mintable_tokens_data =
-//             query(deps.as_ref(), env.clone(), QueryMsg::MintableTokens {}).unwrap();
-//         let mintable_tokens: Vec<Token> = from_binary(&mintable_tokens_data).unwrap();
-//         assert_ne!(mintable_tokens[4], fifth_token);
-//     }
-
-//     #[test]
-//     fn test_rounds() {
-//         let mut env = mock_env();
-//         env.block.height = 100_000;
-//         env.block.time = Timestamp::from_nanos(100_000);
-//         env.transaction = Some(TransactionInfo { index: 100_000 });
-//         let mut deps = mock_dependencies();
-
-//         let mut instantiate_msg = return_instantiate_msg();
-
-//         // Add three rounds
-
-//         instantiate_msg.rounds = Some(vec![
-//             Round::WhitelistCollection {
-//                 collection_id: "collection_id".to_string(),
-//                 start_time: Timestamp::from_nanos(200_000),
-//                 end_time: Timestamp::from_nanos(300_000),
-//                 mint_price: Uint128::from(100_000u128),
-//                 round_limit: 10,
-//             },
-//             Round::WhitelistCollection {
-//                 collection_id: "collection_id".to_string(),
-//                 start_time: Timestamp::from_nanos(300_000),
-//                 end_time: Timestamp::from_nanos(400_000),
-//                 mint_price: Uint128::from(200_000u128),
-//                 round_limit: 10,
-//             },
-//             Round::WhitelistCollection {
-//                 collection_id: "collection_id".to_string(),
-//                 start_time: Timestamp::from_nanos(400_000),
-//                 end_time: Timestamp::from_nanos(500_000),
-//                 mint_price: Uint128::from(300_000u128),
-//                 round_limit: 10,
-//             },
-//         ]);
-//         instantiate_msg.start_time = Timestamp::from_nanos(500_000);
-
-//         // instantiate
-//         // This is a happy path
-//         let info = mock_info("creator", &[coin(100000000, "uflix")]);
-//         let _res = instantiate(
-//             deps.as_mut(),
-//             env.clone(),
-//             info.clone(),
-//             instantiate_msg.clone(),
-//         )
-//         .unwrap();
-
-//         // Check rounds
-//         let rounds_data = query(deps.as_ref(), env.clone(), QueryMsg::Rounds {}).unwrap();
-//         let rounds: Vec<(u32, Round)> = from_binary(&rounds_data).unwrap();
-//         assert_eq!(rounds.len(), 3);
-
-//         // Now make them overlaped by changing start time
-//         instantiate_msg.start_time = Timestamp::from_nanos(100_000);
-//         let res = instantiate(
-//             deps.as_mut(),
-//             env.clone(),
-//             info.clone(),
-//             instantiate_msg.clone(),
-//         )
-//         .unwrap_err();
-//         // left: RoundsOverlaped { round: WhitelistAddress { address: Addr("public"), start_time: Some(Timestamp(Uint64(100000))), end_time: Some(Timestamp(Uint64(8640000000100000))), mint_price: Uint128(0), round_limit: 0 } }
-//         assert_eq!(
-//             res,
-//             ContractError::RoundsOverlaped {
-//                 round: Round::WhitelistAddress {
-//                     // This is a hacky solution should be fixed in future
-//                     // For public sale I generate if its a round too
-//                     // Dont save it that way but returning error
-//                     address: Addr::unchecked("public"),
-//                     start_time: Some(Timestamp::from_nanos(100_000)),
-//                     end_time: Some(Timestamp::from_nanos(864000000000100000)),
-//                     mint_price: Uint128::zero(),
-//                     round_limit: 0,
-//                 }
-//             }
-//         );
-
-//         // Now make them overlaped by changing round 1 end time
-//         instantiate_msg.start_time = Timestamp::from_nanos(500_000);
-//         instantiate_msg.rounds = Some(vec![
-//             Round::WhitelistCollection {
-//                 collection_id: "collection_id".to_string(),
-//                 start_time: Timestamp::from_nanos(200_000),
-//                 end_time: Timestamp::from_nanos(300_000 + 1),
-//                 mint_price: Uint128::from(100_000u128),
-//                 round_limit: 10,
-//             },
-//             Round::WhitelistCollection {
-//                 collection_id: "collection_id".to_string(),
-//                 start_time: Timestamp::from_nanos(300_000),
-//                 end_time: Timestamp::from_nanos(400_000),
-//                 mint_price: Uint128::from(200_000u128),
-//                 round_limit: 10,
-//             },
-//             Round::WhitelistCollection {
-//                 collection_id: "collection_id".to_string(),
-//                 start_time: Timestamp::from_nanos(400_000),
-//                 end_time: Timestamp::from_nanos(500_000),
-//                 mint_price: Uint128::from(300_000u128),
-//                 round_limit: 10,
-//             },
-//         ]);
-//         let res = instantiate(
-//             deps.as_mut(),
-//             env.clone(),
-//             info.clone(),
-//             instantiate_msg.clone(),
-//         )
-//         .unwrap_err();
-
-//         assert_eq!(
-//             res,
-//             ContractError::RoundsOverlaped {
-//                 round: Round::WhitelistCollection {
-//                     collection_id: "collection_id".to_string(),
-//                     start_time: Timestamp::from_nanos(200_000),
-//                     end_time: Timestamp::from_nanos(300_000 + 1),
-//                     mint_price: Uint128::from(100_000u128),
-//                     round_limit: 10,
-//                 }
-//             }
-//         );
-
-//         // Restart fresh
-//         let mut env = mock_env();
-//         env.block.height = 100_000;
-//         env.block.time = Timestamp::from_nanos(100_000);
-//         env.transaction = Some(TransactionInfo { index: 100_000 });
-//         let mut deps = mock_dependencies();
-
-//         let mut instantiate_msg = return_instantiate_msg();
-//         instantiate_msg.start_time = Timestamp::from_nanos(1_000_000);
-
-//         // Add only one round
-//         instantiate_msg.rounds = Some(vec![Round::WhitelistCollection {
-//             collection_id: "collection_id".to_string(),
-//             start_time: Timestamp::from_nanos(200_000),
-//             end_time: Timestamp::from_nanos(300_000),
-//             mint_price: Uint128::from(100_000u128),
-//             round_limit: 10,
-//         }]);
-
-//         // instantiate
-//         let info = mock_info("creator", &[coin(100000000, "uflix")]);
-//         let _res = instantiate(
-//             deps.as_mut(),
-//             env.clone(),
-//             info.clone(),
-//             instantiate_msg.clone(),
-//         )
-//         .unwrap();
-
-//         // Now try adding same round again
-//         let res = execute(
-//             deps.as_mut(),
-//             env.clone(),
-//             info.clone(),
-//             ExecuteMsg::AddRound {
-//                 round: Round::WhitelistCollection {
-//                     collection_id: "collection_id".to_string(),
-//                     start_time: Timestamp::from_nanos(200_000),
-//                     end_time: Timestamp::from_nanos(300_000),
-//                     mint_price: Uint128::from(100_000u128),
-//                     round_limit: 10,
-//                 },
-//             },
-//         )
-//         .unwrap_err();
-//         assert_eq!(res, ContractError::RoundAlreadyExists {});
-
-//         // Try adding a round already started
-//         let res = execute(
-//             deps.as_mut(),
-//             env.clone(),
-//             info.clone(),
-//             ExecuteMsg::AddRound {
-//                 round: Round::WhitelistCollection {
-//                     collection_id: "collection_id".to_string(),
-//                     start_time: Timestamp::from_nanos(50_000),
-//                     end_time: Timestamp::from_nanos(60_000),
-//                     mint_price: Uint128::from(100_000u128),
-//                     round_limit: 10,
-//                 },
-//             },
-//         )
-//         .unwrap_err();
-//         assert_eq!(res, ContractError::RoundAlreadyStarted {});
-
-//         // Try adding overlapping round
-//         let res = execute(
-//             deps.as_mut(),
-//             env.clone(),
-//             info.clone(),
-//             ExecuteMsg::AddRound {
-//                 round: Round::WhitelistCollection {
-//                     collection_id: "collection_id".to_string(),
-//                     start_time: Timestamp::from_nanos(100_000),
-//                     end_time: Timestamp::from_nanos(250_000),
-//                     mint_price: Uint128::from(100_000u128),
-//                     round_limit: 10,
-//                 },
-//             },
-//         )
-//         .unwrap_err();
-//         assert_eq!(
-//             res,
-//             ContractError::RoundsOverlaped {
-//                 round: Round::WhitelistCollection {
-//                     collection_id: "collection_id".to_string(),
-//                     start_time: Timestamp::from_nanos(100_000),
-//                     end_time: Timestamp::from_nanos(250_000),
-//                     mint_price: Uint128::from(100_000u128),
-//                     round_limit: 10,
-//                 }
-//             }
-//         );
-
-//         // Try updating collection round with wrong index
-//         let res = execute(
-//             deps.as_mut(),
-//             env.clone(),
-//             info.clone(),
-//             ExecuteMsg::UpdateCollectionRound {
-//                 round_index: 0,
-//                 round: Round::WhitelistCollection {
-//                     collection_id: "collection_id".to_string(),
-//                     start_time: Timestamp::from_nanos(100_000),
-//                     end_time: Timestamp::from_nanos(250_000),
-//                     mint_price: Uint128::from(100_000u128),
-//                     round_limit: 10,
-//                 },
-//             },
-//         )
-//         .unwrap_err();
-//         assert_eq!(res, ContractError::RoundNotFound {});
-
-//         // Try updating wrong round type
-//         let res = execute(
-//             deps.as_mut(),
-//             env.clone(),
-//             info.clone(),
-//             ExecuteMsg::UpdateCollectionRound {
-//                 round_index: 1,
-//                 round: Round::WhitelistAddress {
-//                     address: Addr::unchecked("public"),
-//                     start_time: Some(Timestamp::from_nanos(100_000)),
-//                     end_time: Some(Timestamp::from_nanos(250_000)),
-//                     mint_price: Uint128::from(100_000u128),
-//                     round_limit: 10,
-//                 },
-//             },
-//         )
-//         .unwrap_err();
-//         assert_eq!(
-//             res,
-//             ContractError::InvalidRoundType {
-//                 expected: "collection".to_string(),
-//                 actual: "address".to_string()
-//             }
-//         );
-
-//         // Update round
-//         let _res = execute(
-//             deps.as_mut(),
-//             env.clone(),
-//             info.clone(),
-//             ExecuteMsg::UpdateCollectionRound {
-//                 round_index: 1,
-//                 round: Round::WhitelistCollection {
-//                     collection_id: "collection_id".to_string(),
-//                     start_time: Timestamp::from_nanos(100_000),
-//                     end_time: Timestamp::from_nanos(250_000),
-//                     mint_price: Uint128::from(100_000u128),
-//                     round_limit: 10,
-//                 },
-//             },
-//         )
-//         .unwrap();
-
-//         // Check rounds
-//         let rounds_data = query(deps.as_ref(), env.clone(), QueryMsg::Rounds {}).unwrap();
-//         let rounds: Vec<(u32, Round)> = from_binary(&rounds_data).unwrap();
-//         assert_eq!(rounds.len(), 1);
-//         assert_eq!(
-//             rounds[0].1,
-//             Round::WhitelistCollection {
-//                 collection_id: "collection_id".to_string(),
-//                 start_time: Timestamp::from_nanos(100_000),
-//                 end_time: Timestamp::from_nanos(250_000),
-//                 mint_price: Uint128::from(100_000u128),
-//                 round_limit: 10,
-//             }
-//         );
-//     }
-// }
