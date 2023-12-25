@@ -349,11 +349,11 @@ mod tests {
         let instantiate_msg = return_instantiate_msg();
 
         // instantiate
-        let info = mock_info("creator", &[coin(100000000, "uflix")]);
+        let info = mock_info("admin", &[coin(100000000, "uflix")]);
         let _res = instantiate(deps.as_mut(), env.clone(), info, instantiate_msg.clone()).unwrap();
 
         // Try minting with money but non payable for admin
-        let info = mock_info("creator", &[coin(1000000, "uflix")]);
+        let info = mock_info("admin", &[coin(1000000, "uflix")]);
         let res = execute(
             deps.as_mut(),
             env.clone(),
@@ -369,7 +369,7 @@ mod tests {
             ContractError::PaymentError(PaymentError::NonPayable {})
         );
         // Try minting
-        let info = mock_info("creator", &[]);
+        let info = mock_info("admin", &[]);
         let _res = execute(
             deps.as_mut(),
             env.clone(),
@@ -381,8 +381,8 @@ mod tests {
         )
         .unwrap();
 
-        // Try minting with same denom
-        let info = mock_info("creator", &[]);
+        // Try minting with same Id
+        let info = mock_info("admin", &[]);
         let res = execute(
             deps.as_mut(),
             env.clone(),
@@ -396,7 +396,7 @@ mod tests {
         assert_eq!(res, ContractError::TokenIdNotMintable {});
 
         // Try minting with without denom id
-        let info = mock_info("creator", &[]);
+        let info = mock_info("admin", &[]);
         let _res = execute(
             deps.as_mut(),
             env.clone(),
@@ -428,7 +428,7 @@ mod tests {
         );
 
         // Test random mint again
-        let info = mock_info("creator", &[]);
+        let info = mock_info("admin", &[]);
         let _res = execute(
             deps.as_mut(),
             env.clone(),
@@ -439,7 +439,7 @@ mod tests {
             },
         )
         .unwrap();
-        // Here we are not changing any entropy but that token is minted so this one must be something else
+        // Here we are not changing any entropy source. But we have actually minted a token so list is changed so random token should be different
         let user_details_data = query(
             deps.as_ref(),
             env.clone(),
