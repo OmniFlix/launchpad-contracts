@@ -1,6 +1,8 @@
 use cosmwasm_schema::write_api;
 
-use omniflix_minter::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use omniflix_minter::msg::{ExecuteMsg, QueryMsg};
+
+use minter_types::InstantiateMsg;
 
 fn main() {
     write_api! {

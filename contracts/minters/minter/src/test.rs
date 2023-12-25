@@ -1,11 +1,11 @@
 #[cfg(test)]
 mod tests {
 
-    use crate::error::ContractError;
-    use crate::msg::{CollectionDetails, ExecuteMsg, InstantiateMsg, QueryMsg};
-
     use crate::contract::{execute, instantiate, query};
+    use crate::error::ContractError;
+    use crate::msg::{ExecuteMsg, QueryMsg};
     use crate::state::{Config, Token, UserDetails};
+    use minter_types::{CollectionDetails, InstantiateMsg};
 
     use cosmwasm_std::testing::{mock_dependencies, mock_info};
     use cosmwasm_std::{coin, from_binary, to_binary, Coin, Decimal, StdError, WasmMsg};

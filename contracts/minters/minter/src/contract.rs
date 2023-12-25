@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use crate::msg::{CollectionDetails, ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::msg::{ExecuteMsg, QueryMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
@@ -8,8 +8,9 @@ use cosmwasm_std::{
     Response, StdResult, Timestamp, Uint128, WasmMsg,
 };
 use cw_utils::{maybe_addr, must_pay, nonpayable};
+use minter_types::{CollectionDetails, InstantiateMsg};
 use round_whitelist::msg::ExecuteMsg::PrivateMint;
-use types::{MintPriceResponse, RoundWhitelistQueryMsgs};
+use whitelist_types::{MintPriceResponse, RoundWhitelistQueryMsgs};
 
 use crate::error::ContractError;
 use crate::state::{

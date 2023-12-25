@@ -11,7 +11,7 @@ use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg};
 use crate::state::{Config, RoundMethods, RoundMints, Rounds, CONFIG, ROUNDS_KEY, ROUND_MINTS};
 use crate::utils::check_round_overlaps;
-use types::{
+use whitelist_types::{
     IsActiveResponse, IsMemberResponse, MembersResponse, MintPriceResponse, Round,
     RoundWhitelistQueryMsgs,
 };

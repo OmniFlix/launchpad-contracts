@@ -32,4 +32,5 @@ semver               = "1"
 cw-ownable           = "0.5.1"
 cosmwasm-storage     = "1.5.0"
 serde                = { version = "1.0.145", default-features = false, features = ["derive"] }
-types = { version = "0.0.1", path = "packages/types" }
+whitelist-types = { version = "0.0.1", path = "packages/whitelist-types" }
+minter-types = { version = "0.0.1", path = "packages/minter-types" }
