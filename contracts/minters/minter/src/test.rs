@@ -457,50 +457,55 @@ mod tests {
             }
         );
     }
+
+    #[test]
+    pub fn test_burn_remaining_tokens() {
+        let mut env = mock_env();
+        env.block.height = 100_000_000;
+        env.block.time = Timestamp::from_nanos(100_000_000);
+        env.transaction = Some(TransactionInfo { index: 100_000_000 });
+        let mut deps = mock_dependencies();
+
+        let instantiate_msg = return_instantiate_msg();
+
+        // instantiate
+        let info = mock_info("creator", &[coin(100000000, "uflix")]);
+        let _res = instantiate(deps.as_mut(), env.clone(), info, instantiate_msg.clone()).unwrap();
+
+        // Try burning with non admin
+        let info = mock_info("admin_creator", &[]);
+        let res = execute(
+            deps.as_mut(),
+            env.clone(),
+            info,
+            ExecuteMsg::BurnRemainingTokens {},
+        )
+        .unwrap_err();
+        assert_eq!(res, ContractError::Unauthorized {});
+
+        // Try burning with creator
+        let info = mock_info("admin", &[]);
+        let _res = execute(
+            deps.as_mut(),
+            env.clone(),
+            info,
+            ExecuteMsg::BurnRemainingTokens {},
+        )
+        .unwrap();
+
+        // Check mintable tokens
+        let mintable_tokens_data =
+            query(deps.as_ref(), env.clone(), QueryMsg::MintableTokens {}).unwrap();
+        let mintable_tokens: Vec<Token> = from_binary(&mintable_tokens_data).unwrap();
+        assert_eq!(mintable_tokens.len(), 0);
+
+        // Try minting
+        env.block.time = Timestamp::from_nanos(1_000_000_000 + 1);
+        let info = mock_info("collector", &[coin(1000000, "uflix")]);
+        let res = execute(deps.as_mut(), env.clone(), info, ExecuteMsg::Mint {}).unwrap_err();
+        assert_eq!(res, ContractError::NoTokensLeftToMint {});
+    }
 }
-
-//     #[test]
-//     pub fn test_burn_remaining_tokens() {
-//         let mut env = mock_env();
-//         env.block.height = 100_000_000;
-//         env.block.time = Timestamp::from_nanos(100_000_000);
-//         env.transaction = Some(TransactionInfo { index: 100_000_000 });
-//         let mut deps = mock_dependencies();
-
-//         let instantiate_msg = return_instantiate_msg();
-
-//         // instantiate
-//         let info = mock_info("creator", &[coin(100000000, "uflix")]);
-//         let _res = instantiate(deps.as_mut(), env.clone(), info, instantiate_msg.clone()).unwrap();
-
-//         // Try burning with non creator
-//         let info = mock_info("non_creator", &[]);
-//         let res = execute(
-//             deps.as_mut(),
-//             env.clone(),
-//             info,
-//             ExecuteMsg::BurnRemainingTokens {},
-//         )
-//         .unwrap_err();
-//         assert_eq!(res, ContractError::Unauthorized {});
-
-//         // Try burning with creator
-//         let info = mock_info("creator", &[]);
-//         let _res = execute(
-//             deps.as_mut(),
-//             env.clone(),
-//             info,
-//             ExecuteMsg::BurnRemainingTokens {},
-//         )
-//         .unwrap();
-
-//         // Check mintable tokens
-//         let mintable_tokens_data =
-//             query(deps.as_ref(), env.clone(), QueryMsg::MintableTokens {}).unwrap();
-//         let mintable_tokens: Vec<Token> = from_binary(&mintable_tokens_data).unwrap();
-//         assert_eq!(mintable_tokens.len(), 0);
-//     }
-
 //     #[test]
 //     pub fn test_update_royalty_ratio() {
 //         let mut env = mock_env();
