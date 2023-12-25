@@ -660,7 +660,7 @@ dependencies = [
  "cw-storage-plus 1.1.0",
  "cw-utils 1.0.2",
  "cw2 1.1.1",
- "omniflix-std 0.0.1",
+ "omniflix-std",
  "rand_core 0.6.4",
  "rand_xoshiro",
  "round-whitelist",
@@ -674,27 +674,11 @@ dependencies = [
 
 [[package]]
 name = "omniflix-std"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "chrono",
  "cosmwasm-std",
- "omniflix-std-derive 0.0.1",
- "prost",
- "prost-types",
- "schemars",
- "serde",
- "serde-cw-value",
-]
-
-[[package]]
-name = "omniflix-std"
-version = "0.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f961bc5aa68adea4229b1dce2964d579fb6293a4f82eb168b10849b63c74275"
-dependencies = [
- "chrono",
- "cosmwasm-std",
- "omniflix-std-derive 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "omniflix-std-derive",
  "prost",
  "prost-types",
  "schemars",
@@ -705,19 +689,6 @@ dependencies = [
 [[package]]
 name = "omniflix-std-derive"
 version = "0.0.1"
-dependencies = [
- "itertools",
- "proc-macro2",
- "prost-types",
- "quote",
- "syn 1.0.109",
-]
-
-[[package]]
-name = "omniflix-std-derive"
-version = "0.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8bbd85582e3ef1a23fa7b12e0415ea604260c114e72faf40d829c2c40f1c745e"
 dependencies = [
  "itertools",
  "proc-macro2",
@@ -858,7 +829,7 @@ dependencies = [
  "cw-storage-plus 1.1.0",
  "cw-utils 1.0.2",
  "cw2 1.1.1",
- "omniflix-std 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "omniflix-std",
  "serde",
  "thiserror",
  "types",
