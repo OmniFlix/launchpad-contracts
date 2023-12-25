@@ -1,3 +1,5 @@
+use std::convert::Infallible;
+
 use cosmwasm_std::StdError;
 use cw_utils::PaymentError;
 use thiserror::Error;
@@ -86,9 +88,17 @@ pub enum ContractError {
 
     #[error("No active round")]
     NoActiveRound {},
+
+    #[error("Overflow error")]
+    OverflowError {},
 }
 impl From<ContractError> for StdError {
     fn from(err: ContractError) -> StdError {
         StdError::generic_err(err.to_string())
+    }
+}
+impl From<Infallible> for ContractError {
+    fn from(_err: Infallible) -> Self {
+        ContractError::OverflowError {}
     }
 }
