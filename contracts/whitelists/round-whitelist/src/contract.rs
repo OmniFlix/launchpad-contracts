@@ -7,15 +7,14 @@ use cosmwasm_std::{
 use cw2::set_contract_version;
 use cw_utils::{maybe_addr, must_pay};
 
-use types::whitelist::{
-    HasEndedResponse, HasMemberResponse, HasStartedResponse, IsActiveResponse, MembersResponse,
-    PerAddressLimitResponse,
-};
-
 use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg, RoundWhitelistQueryMsgs};
-use crate::state::{Config, Round, RoundMints, Rounds, CONFIG, ROUNDS_KEY, ROUND_MINTS};
+use crate::msg::{ExecuteMsg, InstantiateMsg};
+use crate::state::{Config, RoundMethods, RoundMints, Rounds, CONFIG, ROUNDS_KEY, ROUND_MINTS};
 use crate::utils::check_round_overlaps;
+use types::{
+    IsActiveResponse, IsMemberResponse, MembersResponse, MintPriceResponse, Round,
+    RoundWhitelistQueryMsgs,
+};
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -217,7 +216,7 @@ pub fn query_members(
     Ok(res)
 }
 
-pub fn query_price(deps: Deps, env: Env) -> Result<Coin, ContractError> {
+pub fn query_price(deps: Deps, env: Env) -> Result<MintPriceResponse, ContractError> {
     let rounds = Rounds::new(ROUNDS_KEY);
     let active_round = rounds.load_active_round(deps.storage, env.block.time);
     let active_round = match active_round {
@@ -225,7 +224,7 @@ pub fn query_price(deps: Deps, env: Env) -> Result<Coin, ContractError> {
         None => return Err(ContractError::NoActiveRound {}),
     };
     let price = active_round.mint_price();
-    Ok(price)
+    Ok(MintPriceResponse { mint_price: price })
 }
 
 pub fn query_rounds(deps: Deps, env: Env) -> Result<Vec<Round>, ContractError> {
@@ -240,7 +239,11 @@ pub fn query_round(deps: Deps, round_index: u32) -> Result<Round, ContractError>
     Ok(round)
 }
 
-pub fn query_is_member(deps: Deps, env: Env, address: String) -> Result<bool, ContractError> {
+pub fn query_is_member(
+    deps: Deps,
+    env: Env,
+    address: String,
+) -> Result<IsMemberResponse, ContractError> {
     let rounds = Rounds::new(ROUNDS_KEY);
     let active_round = rounds.load_active_round(deps.storage, env.block.time);
     let active_round = match active_round {
@@ -249,5 +252,7 @@ pub fn query_is_member(deps: Deps, env: Env, address: String) -> Result<bool, Co
     };
     let address = deps.api.addr_validate(&address)?;
     let is_member = active_round.is_member(&address);
-    Ok(is_member)
+    Ok(IsMemberResponse {
+        is_member: is_member,
+    })
 }

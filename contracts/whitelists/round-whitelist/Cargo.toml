@@ -36,7 +36,7 @@ library = []
 
 [dependencies]
 cosmwasm-storage = { workspace = true }
-omniflix-std = { workspace = true }
+omniflix-std = { path = "/Users/adnandenizcorlu/workspace/contracts/omniflix-rust/packages/omniflix-std" }
 thiserror = { workspace = true }
 cosmwasm-schema      = { workspace = true }
 cosmwasm-std         = { workspace = true }

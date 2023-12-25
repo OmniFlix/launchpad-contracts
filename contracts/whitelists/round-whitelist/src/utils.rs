@@ -1,6 +1,7 @@
+use crate::error::ContractError;
+use crate::state::RoundMethods;
 use cosmwasm_std::Timestamp;
-
-use crate::{error::ContractError, state::Round};
+use types::Round;
 
 pub fn check_round_overlaps(rounds: Vec<Round>) -> Result<(), ContractError> {
     let mut rounds = rounds;

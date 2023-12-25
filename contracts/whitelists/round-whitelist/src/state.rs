@@ -1,176 +1,101 @@
-use std::error::Error;
-
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Coin, Deps, Order, StdError, StdResult, Storage, Timestamp};
 use cw_storage_plus::{Item, Map};
 
 use crate::error::ContractError;
+use types::Round;
 
-#[cw_serde]
-pub enum Round {
-    WhitelistAddresses {
-        addresses: Vec<Addr>,
-        start_time: Timestamp,
-        end_time: Timestamp,
-        mint_price: Coin,
-        round_per_address_limit: u32,
-    },
-    WhitelistCollection {
-        collection_id: String,
-        start_time: Timestamp,
-        end_time: Timestamp,
-        mint_price: Coin,
-        round_per_address_limit: u32,
-    },
-}
 #[cw_serde]
 pub struct Config {
     pub admin: Addr,
 }
-
-impl Round {
-    pub fn is_active(&self, current_time: Timestamp) -> bool {
-        match self {
-            Round::WhitelistAddresses {
-                start_time,
-                end_time,
-                ..
-            } => current_time >= *start_time && current_time <= *end_time,
-            Round::WhitelistCollection {
-                start_time,
-                end_time,
-                ..
-            } => current_time >= *start_time && current_time <= *end_time,
-        }
-    }
-    pub fn is_member(&self, address: &Addr) -> bool {
-        match self {
-            Round::WhitelistAddresses { addresses, .. } => addresses.contains(address),
-            Round::WhitelistCollection { .. } => false,
-        }
+pub trait RoundMethods {
+    fn is_active(&self, current_time: Timestamp) -> bool;
+    fn is_member(&self, address: &Addr) -> bool;
+    fn has_started(&self, current_time: Timestamp) -> bool;
+    fn has_ended(&self, current_time: Timestamp) -> bool;
+    fn start_time(&self) -> Timestamp;
+    fn end_time(&self) -> Timestamp;
+    fn round_per_address_limit(&self) -> u32;
+    fn members(
+        &self,
+        start_after: Option<String>,
+        limit: Option<u32>,
+    ) -> Result<Vec<String>, ContractError>;
+    fn mint_price(&self) -> Coin;
+    fn check_integrity(&self, deps: Deps, now: Timestamp) -> Result<(), ContractError>;
+}
+impl RoundMethods for Round {
+    fn is_active(&self, current_time: Timestamp) -> bool {
+        current_time >= self.start_time && current_time <= self.end_time
     }
 
-    pub fn has_started(&self, current_time: Timestamp) -> bool {
-        match self {
-            Round::WhitelistAddresses { start_time, .. } => current_time >= *start_time,
-            Round::WhitelistCollection { start_time, .. } => current_time >= *start_time,
-        }
+    fn is_member(&self, address: &Addr) -> bool {
+        self.addresses.contains(address)
     }
 
-    pub fn has_ended(&self, current_time: Timestamp) -> bool {
-        match self {
-            Round::WhitelistAddresses { end_time, .. } => current_time >= *end_time,
-            Round::WhitelistCollection { end_time, .. } => current_time >= *end_time,
-        }
+    fn has_started(&self, current_time: Timestamp) -> bool {
+        current_time >= self.start_time
     }
 
-    pub fn start_time(&self) -> Timestamp {
-        match self {
-            Round::WhitelistAddresses { start_time, .. } => *start_time,
-            Round::WhitelistCollection { start_time, .. } => *start_time,
-        }
+    fn has_ended(&self, current_time: Timestamp) -> bool {
+        current_time > self.end_time
     }
 
-    pub fn end_time(&self) -> Timestamp {
-        match self {
-            Round::WhitelistAddresses { end_time, .. } => *end_time,
-            Round::WhitelistCollection { end_time, .. } => *end_time,
-        }
+    fn start_time(&self) -> Timestamp {
+        self.start_time
     }
-    pub fn round_per_address_limit(&self) -> u32 {
-        match self {
-            Round::WhitelistAddresses {
-                round_per_address_limit,
-                ..
-            } => *round_per_address_limit,
-            Round::WhitelistCollection {
-                round_per_address_limit,
-                ..
-            } => *round_per_address_limit,
-        }
+
+    fn end_time(&self) -> Timestamp {
+        self.end_time
     }
-    pub fn members(
+
+    fn round_per_address_limit(&self) -> u32 {
+        self.round_per_address_limit
+    }
+
+    fn members(
         &self,
         start_after: Option<String>,
         limit: Option<u32>,
     ) -> Result<Vec<String>, ContractError> {
-        match self {
-            Round::WhitelistAddresses { addresses, .. } => {
-                let mut members: Vec<String> = addresses.iter().map(|x| x.to_string()).collect();
-                let start_after = start_after.unwrap_or_default();
-                let start_index = members
-                    .iter()
-                    .position(|x| x.as_str() == start_after.as_str())
-                    .unwrap_or_default();
-                let end_index = match limit {
-                    Some(limit) => start_index + limit as usize,
-                    None => members.len(),
-                };
-                Ok(members[start_index..end_index].to_vec())
-            }
-            Round::WhitelistCollection { .. } => Err(ContractError::InvalidRoundType {
-                expected: "WhitelistAddresses".to_string(),
-                actual: "WhitelistCollection".to_string(),
-            }),
-        }
-    }
-    pub fn mint_price(&self) -> Coin {
-        match self {
-            Round::WhitelistAddresses { mint_price, .. } => mint_price.clone(),
-            Round::WhitelistCollection { mint_price, .. } => mint_price.clone(),
-        }
+        let mut members: Vec<String> = self.addresses.iter().map(|x| x.to_string()).collect();
+        let start_after = start_after.unwrap_or_default();
+        let start_index = members
+            .iter()
+            .position(|x| x.as_str() == start_after.as_str())
+            .unwrap_or_default();
+        let end_index = match limit {
+            Some(limit) => start_index + limit as usize,
+            None => members.len(),
+        };
+        Ok(members[start_index..end_index].to_vec())
     }
 
-    pub fn check_integrity(&self, deps: Deps, now: Timestamp) -> Result<(), ContractError> {
-        match self {
-            Round::WhitelistAddresses {
-                addresses,
-                start_time,
-                end_time,
-                mint_price,
-                round_per_address_limit,
-            } => {
-                if addresses.is_empty() {
-                    return Err(ContractError::EmptyAddressList {});
-                }
-                if now >= *start_time {
-                    return Err(ContractError::InvalidStartTime {});
-                }
-                if *start_time >= *end_time {
-                    return Err(ContractError::InvalidStartTime {});
-                }
-                if *round_per_address_limit == 0 {
-                    return Err(ContractError::InvalidPerAddressLimit {});
-                }
-                for address in addresses {
-                    deps.api.addr_validate(address.as_str())?;
-                }
-            }
-            Round::WhitelistCollection {
-                collection_id,
-                start_time,
-                end_time,
-                mint_price,
-                round_per_address_limit,
-            } => {
-                // TODO: Validate collection id by Querying the collection
-                if collection_id.is_empty() {
-                    return Err(ContractError::InvalidMemberLimit {});
-                }
-                if now >= *start_time {
-                    return Err(ContractError::InvalidStartTime {});
-                }
-                if *start_time >= *end_time {
-                    return Err(ContractError::InvalidStartTime {});
-                }
-                if *round_per_address_limit == 0 {
-                    return Err(ContractError::InvalidPerAddressLimit {});
-                }
-            }
+    fn mint_price(&self) -> Coin {
+        self.mint_price.clone()
+    }
+    fn check_integrity(&self, deps: Deps, now: Timestamp) -> Result<(), ContractError> {
+        if self.start_time > self.end_time {
+            return Err(ContractError::InvalidStartTime {});
         }
+        if self.start_time < now {
+            return Err(ContractError::RoundAlreadyStarted {});
+        }
+        if self.round_per_address_limit == 0 {
+            return Err(ContractError::InvalidPerAddressLimit {});
+        }
+        if self.addresses.is_empty() {
+            return Err(ContractError::EmptyAddressList {});
+        }
+        self.addresses
+            .iter()
+            .try_for_each(|address| deps.api.addr_validate(address.as_str()).map(|_| ()))?;
+
         Ok(())
     }
 }
+
 pub type MintCount = u32;
 
 // Refactor RoundMints to use a map instead of a vector
@@ -205,8 +130,6 @@ impl RoundMints {
         Ok(())
     }
 }
-
-//pub const ROUNDS: Map<u32, Round> = Map::new("mintable_tokens");
 
 pub struct Rounds<'a>(Map<'a, u32, Round>);
 impl<'a> Rounds<'a> {
@@ -289,14 +212,14 @@ mod tests {
     fn test_rounds_save() {
         let mut deps = mock_dependencies();
         let rounds = Rounds::new("rounds");
-        let round = Round::WhitelistAddresses {
+        let round = Round {
             addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
             start_time: Timestamp::from_seconds(1000),
             end_time: Timestamp::from_seconds(2000),
             mint_price: coin(100, "flix"),
             round_per_address_limit: 1,
         };
-        let round2 = Round::WhitelistAddresses {
+        let round2 = Round {
             addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
             start_time: Timestamp::from_seconds(3000),
             end_time: Timestamp::from_seconds(4000),
@@ -321,14 +244,14 @@ mod tests {
     fn test_rounds_remove() {
         let mut deps = mock_dependencies();
         let rounds = Rounds::new("rounds");
-        let round = Round::WhitelistAddresses {
+        let round = Round {
             addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
             start_time: Timestamp::from_seconds(1000),
             end_time: Timestamp::from_seconds(2000),
             mint_price: coin(100, "flix"),
             round_per_address_limit: 1,
         };
-        let round2 = Round::WhitelistAddresses {
+        let round2 = Round {
             addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
             start_time: Timestamp::from_seconds(3000),
             end_time: Timestamp::from_seconds(4000),
@@ -348,14 +271,14 @@ mod tests {
     fn test_rounds_load_active_round() {
         let mut deps = mock_dependencies();
         let rounds = Rounds::new("rounds");
-        let round = Round::WhitelistAddresses {
+        let round = Round {
             addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
             start_time: Timestamp::from_seconds(1000),
             end_time: Timestamp::from_seconds(2000),
             mint_price: coin(100, "flix"),
             round_per_address_limit: 1,
         };
-        let round2 = Round::WhitelistAddresses {
+        let round2 = Round {
             addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
             start_time: Timestamp::from_seconds(3000),
             end_time: Timestamp::from_seconds(4000),
@@ -387,7 +310,7 @@ mod tests {
         assert_eq!(active_round, None);
 
         // Check load active round with overlapping rounds
-        let round3 = Round::WhitelistAddresses {
+        let round3 = Round {
             addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
             start_time: Timestamp::from_seconds(1500),
             end_time: Timestamp::from_seconds(2500),
@@ -407,21 +330,21 @@ mod tests {
     fn test_rounds_check_round_overlaps() {
         let mut deps = mock_dependencies();
         let rounds = Rounds::new("rounds");
-        let round = Round::WhitelistAddresses {
+        let round = Round {
             addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
             start_time: Timestamp::from_seconds(1000),
             end_time: Timestamp::from_seconds(2000),
             mint_price: coin(100, "flix"),
             round_per_address_limit: 1,
         };
-        let round2 = Round::WhitelistAddresses {
+        let round2 = Round {
             addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
             start_time: Timestamp::from_seconds(3000),
             end_time: Timestamp::from_seconds(4000),
             mint_price: coin(100, "atom"),
             round_per_address_limit: 1,
         };
-        let round3 = Round::WhitelistAddresses {
+        let round3 = Round {
             addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
             start_time: Timestamp::from_seconds(1500),
             end_time: Timestamp::from_seconds(2500),
@@ -440,14 +363,14 @@ mod tests {
     #[test]
     fn test_try_mint() {
         let mut deps = mock_dependencies();
-        let round = Round::WhitelistAddresses {
+        let round = Round {
             addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
             start_time: Timestamp::from_seconds(1000),
             end_time: Timestamp::from_seconds(2000),
             mint_price: coin(100, "flix"),
             round_per_address_limit: 1,
         };
-        let round2 = Round::WhitelistAddresses {
+        let round2 = Round {
             addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
             start_time: Timestamp::from_seconds(3000),
             end_time: Timestamp::from_seconds(4000),

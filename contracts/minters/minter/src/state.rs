@@ -35,13 +35,6 @@ impl UserDetails {
             total_minted_count: 0,
         }
     }
-    // Default UserDetails
-    pub fn default() -> Self {
-        UserDetails {
-            minted_tokens: Vec::new(),
-            total_minted_count: 0,
-        }
-    }
 }
 
 pub const CONFIG: Item<Config> = Item::new("config");

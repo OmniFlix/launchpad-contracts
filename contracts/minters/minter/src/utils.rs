@@ -7,7 +7,6 @@ use sha2::{Digest, Sha256};
 use shuffle::{fy::FisherYates, shuffler::Shuffler};
 
 use crate::{error::ContractError, state::Token};
-use types::whitelist::{HasMemberResponse, WhitelistQueryMsgs};
 
 pub fn randomize_token_list(
     tokens: Vec<(u32, Token)>,
