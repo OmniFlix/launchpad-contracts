@@ -94,9 +94,9 @@ fn create_minter(
             denom: CREATION_FEE_DENOM.to_string(),
         }
     };
-    if !(info.funds == vec![nft_creation_fee.clone(), params.minter_creation_fee.clone()]) {
-        return Err(ContractError::MissingCreationFee {});
-    }
+    let nft_creation_fee_denom = nft_creation_fee.denom.clone();
+    let minter_creation_fee_denom = params.minter_creation_fee.denom.clone();
+
     if !params.allowed_minter_mint_denoms.contains(&msg.mint_denom) {
         return Err(ContractError::MintDenomNotAllowed {});
     }
