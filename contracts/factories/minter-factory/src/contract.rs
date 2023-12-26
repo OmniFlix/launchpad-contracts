@@ -3,6 +3,7 @@ use std::str::FromStr;
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::{Params, PARAMS};
+use crate::utils::check_payment;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
@@ -94,8 +95,10 @@ fn create_minter(
             denom: CREATION_FEE_DENOM.to_string(),
         }
     };
-    let nft_creation_fee_denom = nft_creation_fee.denom.clone();
-    let minter_creation_fee_denom = params.minter_creation_fee.denom.clone();
+    check_payment(
+        &info.funds,
+        &[nft_creation_fee.clone(), params.minter_creation_fee.clone()],
+    )?;
 
     if !params.allowed_minter_mint_denoms.contains(&msg.mint_denom) {
         return Err(ContractError::MintDenomNotAllowed {});
