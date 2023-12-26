@@ -4,12 +4,6 @@ use cosmwasm_std::{Coin, Timestamp, Uint128};
 use whitelist_types::Round;
 
 #[cw_serde]
-pub struct InstantiateMsg {
-    pub admin: Option<String>,
-    pub rounds: Vec<Round>,
-}
-
-#[cw_serde]
 pub enum ExecuteMsg {
     RemoveRound { round_index: u32 },
     AddRound { round: Round },

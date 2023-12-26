@@ -8,11 +8,11 @@ use cw2::set_contract_version;
 use cw_utils::{maybe_addr, must_pay};
 
 use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg};
+use crate::msg::ExecuteMsg;
 use crate::state::{Config, RoundMethods, RoundMints, Rounds, CONFIG, ROUNDS_KEY, ROUND_MINTS};
 use crate::utils::check_round_overlaps;
 use whitelist_types::{
-    IsActiveResponse, IsMemberResponse, MembersResponse, MintPriceResponse, Round,
+    InstantiateMsg, IsActiveResponse, IsMemberResponse, MembersResponse, MintPriceResponse, Round,
     RoundWhitelistQueryMsgs,
 };
 
