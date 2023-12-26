@@ -11,14 +11,14 @@ pub fn check_payment(sent_funds: &[Coin], expected_funds: &[Coin]) -> Result<(),
         });
     }
 
-    let mut sent_funds = sent_funds.to_vec(); // Create a mutable copy
+    let mut mut_sent_funds = sent_funds.to_vec(); // Create a mutable copy
 
     for expected in expected_funds {
-        if let Some(sent_index) = sent_funds
+        if let Some(sent_index) = mut_sent_funds
             .iter()
             .position(|sent| expected.denom == sent.denom)
         {
-            let sent = &mut sent_funds[sent_index];
+            let sent = &mut mut_sent_funds[sent_index];
             if expected.amount > sent.amount {
                 return Err(ContractError::IncorrectFunds {
                     expected: expected_funds.to_vec(),

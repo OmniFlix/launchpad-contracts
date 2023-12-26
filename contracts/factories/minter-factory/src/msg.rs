@@ -16,12 +16,20 @@ pub enum ExecuteMsg {
     CreateMinter {
         msg: MinterInstantiateMsg,
     },
-    UpdateParams {
-        admin: Option<String>,
-        allowed_mint_denoms: Option<Vec<String>>,
-        fee_collector_address: Option<String>,
-        minter_code_id: Option<u64>,
-        minter_creation_fee: Option<Coin>,
+    UpdateAdmin {
+        admin: String,
+    },
+    UpdateFeeCollectorAddress {
+        fee_collector_address: String,
+    },
+    UpdateMinterCreationFee {
+        minter_creation_fee: Coin,
+    },
+    UpdateAllowedMinterMintDenoms {
+        allowed_minter_mint_denoms: Vec<String>,
+    },
+    UpdateMinterCodeId {
+        minter_code_id: u64,
     },
 }
 
