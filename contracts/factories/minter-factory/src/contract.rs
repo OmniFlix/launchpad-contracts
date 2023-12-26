@@ -7,10 +7,10 @@ use crate::utils::check_payment;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_binary, to_json_binary, BankMsg, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env,
-    MessageInfo, Order, Response, StdResult, Timestamp, Uint128, WasmMsg,
+    to_json_binary, BankMsg, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo,
+    Order, Response, StdResult, Timestamp, Uint128, WasmMsg,
 };
-use cw_utils::{may_pay, maybe_addr, must_pay, nonpayable};
+use cw_utils::maybe_addr;
 use minter_types::InstantiateMsg as MinterInstantiateMsg;
 use omniflix_std::types::omniflix::onft::v1beta1::OnftQuerier;
 #[cfg(not(test))]
@@ -464,7 +464,7 @@ mod tests {
             CosmosMsg::Wasm(WasmMsg::Instantiate {
                 admin: Some("creator".to_string()),
                 code_id: 1,
-                msg: to_binary(&MinterInstantiateMsg {
+                msg: to_json_binary(&MinterInstantiateMsg {
                     admin: None,
                     whitelist_address: None,
                     mint_denom: "uusd".to_string(),

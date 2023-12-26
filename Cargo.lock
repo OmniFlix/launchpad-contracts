@@ -673,6 +673,7 @@ dependencies = [
  "cw-utils 1.0.2",
  "cw2 1.1.1",
  "minter-types",
+ "omniflix-minter-factory",
  "omniflix-std 0.0.2",
  "rand_core 0.6.4",
  "rand_xoshiro",

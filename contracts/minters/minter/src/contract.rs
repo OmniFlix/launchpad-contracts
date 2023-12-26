@@ -9,6 +9,8 @@ use cosmwasm_std::{
 };
 use cw_utils::{maybe_addr, must_pay, nonpayable};
 use minter_types::{CollectionDetails, InstantiateMsg};
+use omniflix_minter_factory::msg::ParamsResponse;
+use omniflix_minter_factory::msg::QueryMsg::Params as QueryFactoryParams;
 use round_whitelist::msg::ExecuteMsg::PrivateMint;
 use whitelist_types::{MintPriceResponse, RoundWhitelistQueryMsgs};
 
@@ -47,6 +49,12 @@ pub fn instantiate(
 ) -> Result<Response, ContractError> {
     // Query denom creation fee
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+    // Query factory params of instantiator
+    // If the instantiator is not a our factory then we wont be able to parse the response
+    let _factory_params: ParamsResponse = deps
+        .querier
+        .query_wasm_smart(info.sender.clone().into_string(), &QueryFactoryParams {})?;
+
     // This field is implemented only for testing purposes
     let creation_fee_amount = if CREATION_FEE == Uint128::new(0) {
         let onft_querier = OnftQuerier::new(&deps.querier);
