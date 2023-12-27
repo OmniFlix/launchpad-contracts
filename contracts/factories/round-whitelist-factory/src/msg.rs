@@ -27,6 +27,8 @@ pub struct ParamsResponse {
 }
 
 #[cw_serde]
+#[derive(QueryResponses)]
 pub enum QueryMsg {
+    #[returns(ParamsResponse)]
     Params {},
 }

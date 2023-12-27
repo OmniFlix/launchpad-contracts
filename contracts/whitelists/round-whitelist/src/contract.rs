@@ -164,20 +164,20 @@ pub fn execute_private_mint(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: RoundWhitelistQueryMsgs) -> StdResult<Binary> {
     match msg {
-        RoundWhitelistQueryMsgs::ActiveRound {} => to_binary(&query_active_round(deps, env)?),
-        RoundWhitelistQueryMsgs::IsActive {} => to_binary(&query_is_active(deps, env)?),
+        RoundWhitelistQueryMsgs::ActiveRound {} => to_json_binary(&query_active_round(deps, env)?),
+        RoundWhitelistQueryMsgs::IsActive {} => to_json_binary(&query_is_active(deps, env)?),
         RoundWhitelistQueryMsgs::Members {
             round_index,
             start_after,
             limit,
-        } => to_binary(&query_members(deps, env, round_index, start_after, limit)?),
-        RoundWhitelistQueryMsgs::Price {} => to_binary(&query_price(deps, env)?),
-        RoundWhitelistQueryMsgs::Rounds {} => to_binary(&query_rounds(deps, env)?),
+        } => to_json_binary(&query_members(deps, env, round_index, start_after, limit)?),
+        RoundWhitelistQueryMsgs::Price {} => to_json_binary(&query_price(deps, env)?),
+        RoundWhitelistQueryMsgs::Rounds {} => to_json_binary(&query_rounds(deps, env)?),
         RoundWhitelistQueryMsgs::Round { round_index } => {
-            to_binary(&query_round(deps, round_index)?)
+            to_json_binary(&query_round(deps, round_index)?)
         }
         RoundWhitelistQueryMsgs::IsMember { address } => {
-            to_binary(&query_is_member(deps, env, address)?)
+            to_json_binary(&query_is_member(deps, env, address)?)
         }
     }
 }

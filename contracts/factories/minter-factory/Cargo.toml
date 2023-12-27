@@ -18,6 +18,11 @@ exclude = [
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+[[bin]]
+name = "schema"
+path = "src/bin/schema.rs"
+doc  = false
+
 [profile.release]
 codegen-units = 1
 debug = false
