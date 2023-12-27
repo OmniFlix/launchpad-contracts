@@ -704,6 +704,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "omniflix-round-whitelist-factory"
+version = "0.0.1"
+dependencies = [
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "cw-controllers",
+ "cw-storage-plus 1.1.0",
+ "cw-utils 1.0.2",
+ "cw2 1.1.1",
+ "omniflix-std 0.0.1",
+ "serde",
+ "thiserror",
+ "whitelist-types",
+]
+
+[[package]]
 name = "omniflix-std"
 version = "0.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

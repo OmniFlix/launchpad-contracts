@@ -2,7 +2,8 @@
 members = [
     "contracts/minters/*",
     "contracts/whitelists/*",
-    "contracts/factories/minter-factory",
+    "contracts/factories/*",
+
     "packages/*"
 ]
 resolver = "2"

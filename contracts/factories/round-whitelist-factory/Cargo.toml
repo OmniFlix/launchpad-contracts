@@ -45,5 +45,4 @@ cw2                  = { workspace = true }
 cw-storage-plus      = { workspace = true }
 cw-utils             = { workspace = true }
 serde = { workspace = true }
-types = { workspace = true }
-whitelist-types ={ workspace = true }
+whitelist-types={ workspace = true }
