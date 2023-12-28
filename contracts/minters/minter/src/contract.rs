@@ -87,9 +87,16 @@ pub fn instantiate(
     if msg.collection_details.num_tokens == 0 {
         return Err(ContractError::InvalidNumTokens {});
     }
+
     // Check start time
     if msg.start_time < env.block.time {
         return Err(ContractError::InvalidStartTime {});
+    }
+    // Check end time
+    if let Some(end_time) = msg.end_time {
+        if end_time < msg.start_time {
+            return Err(ContractError::InvalidStartTime {});
+        }
     }
 
     // Check royalty ratio we expect decimal number

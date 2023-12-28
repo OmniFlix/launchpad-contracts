@@ -16,6 +16,7 @@ export interface InstantiateMsg {
   per_address_limit: number;
   royalty_ratio: string;
   start_time: Timestamp;
+  end_time?: Timestamp | null;
   whitelist_address?: string | null;
 }
 export interface CollectionDetails {
