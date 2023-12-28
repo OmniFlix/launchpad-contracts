@@ -40,6 +40,7 @@ mod tests {
             royalty_ratio: "0.1".to_string(),
             payment_collector: Some("payment_collector".to_string()),
             whitelist_address: None,
+            end_time: None,
         };
         instantiate_msg
     }

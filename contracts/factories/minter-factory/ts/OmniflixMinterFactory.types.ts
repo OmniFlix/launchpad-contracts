@@ -6,15 +6,11 @@
 
 export type Uint128 = string;
 export interface InstantiateMsg {
-  admin?: string | null;
-  collection_details: CollectionDetails;
-  mint_denom: string;
-  mint_price: Uint128;
-  payment_collector?: string | null;
-  per_address_limit: number;
-  royalty_ratio: string;
-  start_time: Timestamp;
-  whitelist_address?: string | null;
+  admin?: string;
+  allowed_minter_mint_denoms: string[];
+  fee_collector_address: string;
+  minter_code_id: number;
+  minter_creation_fee: Coin;
 }
 export interface Coin {
   amount: Uint128;

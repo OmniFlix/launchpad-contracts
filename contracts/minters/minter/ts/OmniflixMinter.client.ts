@@ -5,8 +5,8 @@
 */
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
-import { Coin, StdFee } from "@cosmjs/amino";
-import { Uint128, Round, Addr, Timestamp, Uint64, InstantiateMsg, CollectionDetails, ExecuteMsg, QueryMsg, Decimal, Config, ArrayOfToken, Token, UserDetails, MintCountInRound, ArrayOfTupleOfUint32AndRound, Uint32 } from "./OmniflixMinter.types";
+import { StdFee } from "@cosmjs/amino";
+import { Uint128, Timestamp, Uint64, InstantiateMsg, CollectionDetails, ExecuteMsg, QueryMsg, Addr, Decimal, Config, Coin, ArrayOfToken, Token, UserDetails, Uint32 } from "./OmniflixMinter.types";
 export interface OmniflixMinterReadOnlyInterface {
   contractAddress: string;
   collection: () => Promise<CollectionDetails>;
@@ -18,7 +18,6 @@ export interface OmniflixMinterReadOnlyInterface {
     address: string;
   }) => Promise<UserDetails>;
   totalTokens: () => Promise<Uint32>;
-  rounds: () => Promise<ArrayOfTupleOfUint32AndRound>;
 }
 export class OmniflixMinterQueryClient implements OmniflixMinterReadOnlyInterface {
   client: CosmWasmClient;
@@ -32,7 +31,6 @@ export class OmniflixMinterQueryClient implements OmniflixMinterReadOnlyInterfac
     this.mintableTokens = this.mintableTokens.bind(this);
     this.mintedTokens = this.mintedTokens.bind(this);
     this.totalTokens = this.totalTokens.bind(this);
-    this.rounds = this.rounds.bind(this);
   }
 
   collection = async (): Promise<CollectionDetails> => {
@@ -66,11 +64,6 @@ export class OmniflixMinterQueryClient implements OmniflixMinterReadOnlyInterfac
       total_tokens: {}
     });
   };
-  rounds = async (): Promise<ArrayOfTupleOfUint32AndRound> => {
-    return this.client.queryContractSmart(this.contractAddress, {
-      rounds: {}
-    });
-  };
 }
 export interface OmniflixMinterInterface extends OmniflixMinterReadOnlyInterface {
   contractAddress: string;
@@ -82,34 +75,6 @@ export interface OmniflixMinterInterface extends OmniflixMinterReadOnlyInterface
   }: {
     denomId?: string;
     recipient: string;
-  }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
-  removeRound: ({
-    roundIndex
-  }: {
-    roundIndex: number;
-  }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
-  addRound: ({
-    round
-  }: {
-    round: Round;
-  }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
-  updateCollectionRound: ({
-    round,
-    roundIndex
-  }: {
-    round: Round;
-    roundIndex: number;
-  }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
-  updateWhitelistRound: ({
-    endTime,
-    mintPrice,
-    roundLimit,
-    startTime
-  }: {
-    endTime?: Timestamp;
-    mintPrice?: Uint128;
-    roundLimit?: number;
-    startTime?: Timestamp;
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   burnRemainingTokens: (fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   updateRoyaltyRatio: ({
@@ -136,10 +101,6 @@ export class OmniflixMinterClient extends OmniflixMinterQueryClient implements O
     this.contractAddress = contractAddress;
     this.mint = this.mint.bind(this);
     this.mintAdmin = this.mintAdmin.bind(this);
-    this.removeRound = this.removeRound.bind(this);
-    this.addRound = this.addRound.bind(this);
-    this.updateCollectionRound = this.updateCollectionRound.bind(this);
-    this.updateWhitelistRound = this.updateWhitelistRound.bind(this);
     this.burnRemainingTokens = this.burnRemainingTokens.bind(this);
     this.updateRoyaltyRatio = this.updateRoyaltyRatio.bind(this);
     this.updateMintPrice = this.updateMintPrice.bind(this);
@@ -162,62 +123,6 @@ export class OmniflixMinterClient extends OmniflixMinterQueryClient implements O
       mint_admin: {
         denom_id: denomId,
         recipient
-      }
-    }, fee, memo, _funds);
-  };
-  removeRound = async ({
-    roundIndex
-  }: {
-    roundIndex: number;
-  }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
-    return await this.client.execute(this.sender, this.contractAddress, {
-      remove_round: {
-        round_index: roundIndex
-      }
-    }, fee, memo, _funds);
-  };
-  addRound = async ({
-    round
-  }: {
-    round: Round;
-  }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
-    return await this.client.execute(this.sender, this.contractAddress, {
-      add_round: {
-        round
-      }
-    }, fee, memo, _funds);
-  };
-  updateCollectionRound = async ({
-    round,
-    roundIndex
-  }: {
-    round: Round;
-    roundIndex: number;
-  }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
-    return await this.client.execute(this.sender, this.contractAddress, {
-      update_collection_round: {
-        round,
-        round_index: roundIndex
-      }
-    }, fee, memo, _funds);
-  };
-  updateWhitelistRound = async ({
-    endTime,
-    mintPrice,
-    roundLimit,
-    startTime
-  }: {
-    endTime?: Timestamp;
-    mintPrice?: Uint128;
-    roundLimit?: number;
-    startTime?: Timestamp;
-  }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
-    return await this.client.execute(this.sender, this.contractAddress, {
-      update_whitelist_round: {
-        end_time: endTime,
-        mint_price: mintPrice,
-        round_limit: roundLimit,
-        start_time: startTime
       }
     }, fee, memo, _funds);
   };

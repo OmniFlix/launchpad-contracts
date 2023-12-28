@@ -304,6 +304,7 @@ mod tests {
                 payment_collector: None,
                 per_address_limit: 3,
                 collection_details: collection_details.clone(),
+                end_time: None,
             },
         };
 
@@ -334,6 +335,7 @@ mod tests {
                 payment_collector: None,
                 per_address_limit: 3,
                 collection_details: collection_details.clone(),
+                end_time: None,
             },
         };
 
@@ -397,6 +399,7 @@ mod tests {
                 payment_collector: None,
                 per_address_limit: 3,
                 collection_details: collection_details.clone(),
+                end_time: None,
             },
         };
 
@@ -440,6 +443,7 @@ mod tests {
                 payment_collector: None,
                 per_address_limit: 3,
                 collection_details: collection_details.clone(),
+                end_time: None,
             },
         };
 
@@ -474,6 +478,7 @@ mod tests {
                     payment_collector: None,
                     per_address_limit: 3,
                     collection_details: collection_details.clone(),
+                    end_time: None,
                 })
                 .unwrap(),
                 funds: vec![Coin {

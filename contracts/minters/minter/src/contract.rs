@@ -118,6 +118,7 @@ pub fn instantiate(
             amount: msg.mint_price,
         },
         whitelist_address: maybe_addr(deps.api, msg.whitelist_address.clone())?,
+        end_time: msg.end_time,
     };
     CONFIG.save(deps.storage, &config)?;
 
@@ -244,6 +245,13 @@ pub fn execute_mint(
         let (key, value) = item?;
         mintable_tokens.push((key, value));
     }
+    // Check if public end time is determined and if it is passed
+    if let Some(end_time) = config.end_time {
+        if env.block.time > end_time {
+            return Err(ContractError::PublicMintingEnded {});
+        }
+    }
+
     // Get a random token id
     let random_token = return_random_token_id(&mintable_tokens, env.clone())?;
     // Add the minted token to the user details

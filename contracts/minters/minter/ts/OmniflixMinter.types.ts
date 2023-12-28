@@ -5,39 +5,22 @@
 */
 
 export type Uint128 = string;
-export type Round = {
-  whitelist_address: {
-    address: Addr;
-    end_time?: Timestamp | null;
-    mint_price: Uint128;
-    round_limit: number;
-    start_time?: Timestamp | null;
-  };
-} | {
-  whitelist_collection: {
-    collection_id: string;
-    end_time: Timestamp;
-    mint_price: Uint128;
-    round_limit: number;
-    start_time: Timestamp;
-  };
-};
-export type Addr = string;
 export type Timestamp = Uint64;
 export type Uint64 = string;
 export interface InstantiateMsg {
+  admin?: string | null;
   collection_details: CollectionDetails;
-  creator?: string | null;
   mint_denom: string;
   mint_price: Uint128;
   payment_collector?: string | null;
   per_address_limit: number;
-  rounds?: Round[] | null;
   royalty_ratio: string;
   start_time: Timestamp;
+  whitelist_address?: string | null;
 }
 export interface CollectionDetails {
   base_uri: string;
+  data: string;
   description: string;
   extensible: boolean;
   id: string;
@@ -47,6 +30,8 @@ export interface CollectionDetails {
   preview_uri: string;
   schema: string;
   symbol: string;
+  uri: string;
+  uri_hash: string;
 }
 export type ExecuteMsg = {
   mint: {};
@@ -54,26 +39,6 @@ export type ExecuteMsg = {
   mint_admin: {
     denom_id?: string | null;
     recipient: string;
-  };
-} | {
-  remove_round: {
-    round_index: number;
-  };
-} | {
-  add_round: {
-    round: Round;
-  };
-} | {
-  update_collection_round: {
-    round: Round;
-    round_index: number;
-  };
-} | {
-  update_whitelist_round: {
-    end_time?: Timestamp | null;
-    mint_price?: Uint128 | null;
-    round_limit?: number | null;
-    start_time?: Timestamp | null;
   };
 } | {
   burn_remaining_tokens: {};
@@ -100,18 +65,22 @@ export type QueryMsg = {
   };
 } | {
   total_tokens: {};
-} | {
-  rounds: {};
 };
+export type Addr = string;
 export type Decimal = string;
 export interface Config {
-  creator: Addr;
-  mint_denom: string;
-  mint_price: Uint128;
+  admin: Addr;
+  mint_price: Coin;
   payment_collector: Addr;
   per_address_limit: number;
   royalty_ratio: Decimal;
   start_time: Timestamp;
+  whitelist_address?: Addr | null;
+}
+export interface Coin {
+  amount: Uint128;
+  denom: string;
+  [k: string]: unknown;
 }
 export type ArrayOfToken = Token[];
 export interface Token {
@@ -119,12 +88,6 @@ export interface Token {
 }
 export interface UserDetails {
   minted_tokens: Token[];
-  rounds_mints: MintCountInRound[];
   total_minted_count: number;
 }
-export interface MintCountInRound {
-  count: number;
-  round_index: number;
-}
-export type ArrayOfTupleOfUint32AndRound = [number, Round][];
 export type Uint32 = number;

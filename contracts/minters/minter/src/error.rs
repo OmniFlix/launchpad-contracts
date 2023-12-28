@@ -101,6 +101,9 @@ pub enum ContractError {
 
     #[error("Error saving tokens")]
     ErrorSavingTokens {},
+
+    #[error("Public minting ended")]
+    PublicMintingEnded {},
 }
 
 impl From<ContractError> for StdError {
