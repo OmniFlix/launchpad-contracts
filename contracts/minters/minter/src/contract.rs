@@ -12,7 +12,9 @@ use minter_types::{CollectionDetails, InstantiateMsg};
 use omniflix_minter_factory::msg::ParamsResponse;
 use omniflix_minter_factory::msg::QueryMsg::Params as QueryFactoryParams;
 use round_whitelist::msg::ExecuteMsg::PrivateMint;
-use whitelist_types::{MintPriceResponse, RoundWhitelistQueryMsgs};
+use whitelist_types::{
+    IsActiveResponse, IsMemberResponse, MintPriceResponse, RoundWhitelistQueryMsgs,
+};
 
 use crate::error::ContractError;
 use crate::state::{
@@ -106,11 +108,11 @@ pub fn instantiate(
     }
     // Check if whitelist already active
     if let Some(whitelist_address) = msg.whitelist_address.clone() {
-        let is_active: bool = deps.querier.query_wasm_smart(
+        let is_active: IsActiveResponse = deps.querier.query_wasm_smart(
             whitelist_address.clone(),
             &RoundWhitelistQueryMsgs::IsActive {},
         )?;
-        if is_active {
+        if is_active.is_active {
             return Err(ContractError::WhitelistAlreadyActive {});
         }
     }
@@ -285,11 +287,11 @@ pub fn execute_mint(
     if !is_public {
         // Check if any whitelist is present
         if let Some(whitelist_address) = config.whitelist_address {
-            let is_active: bool = deps.querier.query_wasm_smart(
+            let is_active: IsActiveResponse = deps.querier.query_wasm_smart(
                 whitelist_address.clone().into_string(),
                 &RoundWhitelistQueryMsgs::IsActive {},
             )?;
-            if !is_active {
+            if !is_active.is_active {
                 return Err(ContractError::WhitelistNotActive {});
             }
             // Check whitelist price
@@ -299,13 +301,13 @@ pub fn execute_mint(
             )?;
             mint_price = whitelist_price_response.mint_price;
             // Check if member is whitelisted
-            let is_whitelisted: bool = deps.querier.query_wasm_smart(
+            let is_member_response: IsMemberResponse = deps.querier.query_wasm_smart(
                 whitelist_address.clone().into_string(),
                 &RoundWhitelistQueryMsgs::IsMember {
                     address: info.sender.clone().into_string(),
                 },
             )?;
-            if !is_whitelisted {
+            if !is_member_response.is_member {
                 return Err(ContractError::AddressNotWhitelisted {});
             }
             messages.push(CosmosMsg::Wasm(WasmMsg::Execute {

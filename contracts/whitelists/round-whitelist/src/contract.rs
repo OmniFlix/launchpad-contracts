@@ -192,14 +192,16 @@ pub fn query_active_round(deps: Deps, env: Env) -> Result<Round, ContractError> 
     Ok(active_round)
 }
 
-pub fn query_is_active(deps: Deps, env: Env) -> Result<bool, ContractError> {
+pub fn query_is_active(deps: Deps, env: Env) -> Result<IsActiveResponse, ContractError> {
     let rounds = Rounds::new(ROUNDS_KEY);
     let active_round = rounds.load_active_round(deps.storage, env.block.time);
     let is_active = match active_round {
         Some(_) => true,
         None => false,
     };
-    Ok(is_active)
+    Ok(IsActiveResponse {
+        is_active: is_active,
+    })
 }
 
 pub fn query_members(
