@@ -67,9 +67,6 @@ pub fn create_whitelist(
     msg: WhitelistInstantiateMsg,
 ) -> Result<Response, ContractError> {
     let params = PARAMS.load(deps.storage)?;
-    if info.sender != params.admin {
-        return Err(ContractError::Unauthorized {});
-    }
     let creation_fee = params.whitelist_creation_fee;
     let fee_collector_address = params.fee_collector_address;
     let whitelist_code_id = params.whitelist_code_id;

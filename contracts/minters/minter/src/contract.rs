@@ -188,9 +188,9 @@ pub fn instantiate(
         schema: collection.schema,
         sender: env.contract.address.into_string(),
         symbol: collection.symbol,
-        // data: collection.data,
-        // uri: collection.uri,
-        // uri_hash: collection.uri_hash,
+        data: collection.data,
+        uri: collection.uri,
+        uri_hash: collection.uri_hash,
         creation_fee: Some(
             Coin {
                 denom: creation_fee_denom,
@@ -353,7 +353,7 @@ pub fn execute_mint(
         description: collection.description,
         media_uri: format!("{}/{}", collection.base_uri, token_id),
         preview_uri: collection.preview_uri,
-        //uri_hash: collection.uri_hash,
+        uri_hash: collection.uri_hash,
     };
 
     // Create the mint message
@@ -460,7 +460,7 @@ pub fn execute_mint_admin(
         description: collection.description,
         media_uri: format!("{}/{}", collection.preview_uri, denom_id),
         preview_uri: collection.preview_uri,
-        // uri_hash: collection.uri_hash,
+        uri_hash: collection.uri_hash,
     };
 
     // Create the mint message

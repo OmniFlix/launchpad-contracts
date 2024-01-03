@@ -145,9 +145,9 @@ mod tests {
                     amount: "100000000".to_string(),
                     denom: "uflix".to_string(),
                 }),
-                // uri: "uri".to_string(),
-                // uri_hash: "uri_hash".to_string(),
-                // data: "data".to_string(),
+                uri: "uri".to_string(),
+                uri_hash: "uri_hash".to_string(),
+                data: "data".to_string(),
             }
             .into()
         );
@@ -260,7 +260,7 @@ mod tests {
                     media_uri: "base_uri/309".to_string(),
                     name: "name # 309".to_string(),
                     preview_uri: "preview_uri".to_string(),
-                    // uri_hash: "uri_hash".to_string(),
+                    uri_hash: "uri_hash".to_string(),
                 })
             }
             .into()
