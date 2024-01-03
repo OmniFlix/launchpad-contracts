@@ -19,6 +19,9 @@ pub enum ExecuteMsg {
         mint_price: Uint128,
     },
     RandomizeList {},
+    UpdateWhitelistAddress {
+        address: String,
+    },
 }
 
 #[cw_serde]
