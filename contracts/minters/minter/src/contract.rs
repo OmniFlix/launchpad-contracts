@@ -104,6 +104,17 @@ pub fn instantiate(
     if royalty_ratio < Decimal::zero() || royalty_ratio > Decimal::one() {
         return Err(ContractError::InvalidRoyaltyRatio {});
     }
+    // Check if whitelist already active
+    if let Some(whitelist_address) = msg.whitelist_address.clone() {
+        let is_active: bool = deps.querier.query_wasm_smart(
+            whitelist_address.clone(),
+            &RoundWhitelistQueryMsgs::IsActive {},
+        )?;
+        if is_active {
+            return Err(ContractError::WhitelistAlreadyActive {});
+        }
+    }
+
     // Check mint price
     if msg.mint_price == Uint128::new(0) {
         return Err(ContractError::InvalidMintPrice {});
@@ -177,9 +188,9 @@ pub fn instantiate(
         schema: collection.schema,
         sender: env.contract.address.into_string(),
         symbol: collection.symbol,
-        data: collection.data,
-        uri: collection.uri,
-        uri_hash: collection.uri_hash,
+        // data: collection.data,
+        // uri: collection.uri,
+        // uri_hash: collection.uri_hash,
         creation_fee: Some(
             Coin {
                 denom: creation_fee_denom,
@@ -218,6 +229,9 @@ pub fn execute(
             execute_update_mint_price(deps, env, info, mint_price)
         }
         ExecuteMsg::RandomizeList {} => execute_randomize_list(deps, env, info),
+        ExecuteMsg::UpdateWhitelistAddress { address } => {
+            execute_update_whitelist_address(deps, env, info, address)
+        }
     }
 }
 
@@ -339,7 +353,7 @@ pub fn execute_mint(
         description: collection.description,
         media_uri: format!("{}/{}", collection.base_uri, token_id),
         preview_uri: collection.preview_uri,
-        uri_hash: collection.uri_hash,
+        //uri_hash: collection.uri_hash,
     };
 
     // Create the mint message
@@ -374,7 +388,7 @@ pub fn execute_mint(
         .add_messages(messages)
         .add_attribute("action", "mint")
         .add_attribute("token_id", token_id.to_string())
-        .add_attribute("denom_id", token_id.to_string());
+        .add_attribute("collection_id", collection.id);
 
     Ok(res)
 }
@@ -446,7 +460,7 @@ pub fn execute_mint_admin(
         description: collection.description,
         media_uri: format!("{}/{}", collection.preview_uri, denom_id),
         preview_uri: collection.preview_uri,
-        uri_hash: collection.uri_hash,
+        // uri_hash: collection.uri_hash,
     };
 
     // Create the mint message
@@ -577,6 +591,44 @@ pub fn execute_randomize_list(
     }
 
     let res = Response::new().add_attribute("action", "randomize_list");
+    Ok(res)
+}
+
+pub fn execute_update_whitelist_address(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    address: String,
+) -> Result<Response, ContractError> {
+    // Check if sender is admin
+    let mut config = CONFIG.load(deps.storage)?;
+    if info.sender != config.admin {
+        return Err(ContractError::Unauthorized {});
+    }
+    let whitelist_address = config.whitelist_address.clone();
+    // Check if whitelist already active
+    let is_active: bool = deps.querier.query_wasm_smart(
+        whitelist_address.clone().unwrap().into_string(),
+        &RoundWhitelistQueryMsgs::IsActive {},
+    )?;
+    if is_active {
+        return Err(ContractError::WhitelistAlreadyActive {});
+    }
+    let address = deps.api.addr_validate(&address)?;
+    let is_active: bool = deps.querier.query_wasm_smart(
+        address.clone().into_string(),
+        &RoundWhitelistQueryMsgs::IsActive {},
+    )?;
+    if is_active {
+        return Err(ContractError::WhitelistAlreadyActive {});
+    }
+    config.whitelist_address = Some(address.clone());
+
+    CONFIG.save(deps.storage, &config)?;
+
+    let res = Response::new()
+        .add_attribute("action", "update_whitelist_address")
+        .add_attribute("address", address.to_string());
     Ok(res)
 }
 

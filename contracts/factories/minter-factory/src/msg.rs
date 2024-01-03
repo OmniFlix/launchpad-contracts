@@ -35,7 +35,7 @@ pub enum ExecuteMsg {
 
 #[cw_serde]
 pub struct ParamsResponse {
-    params: Params,
+    pub params: Params,
 }
 
 #[cw_serde]
