@@ -1,8 +1,8 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Timestamp, Uint128};
 
-use crate::state::{Config, Token, UserDetails};
 use minter_types::CollectionDetails;
+use minter_types::{Config, Token, UserDetails};
 
 #[cw_serde]
 pub enum ExecuteMsg {

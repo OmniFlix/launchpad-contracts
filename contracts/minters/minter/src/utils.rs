@@ -1,12 +1,11 @@
 use std::convert::TryInto;
 
 use cosmwasm_std::{Env, StdError};
+use minter_types::Token;
 use rand_core::{RngCore, SeedableRng};
 use rand_xoshiro::Xoshiro128PlusPlus;
 use sha2::{Digest, Sha256};
 use shuffle::{fy::FisherYates, shuffler::Shuffler};
-
-use crate::{error::ContractError, state::Token};
 
 pub fn randomize_token_list(
     tokens: Vec<(u32, Token)>,

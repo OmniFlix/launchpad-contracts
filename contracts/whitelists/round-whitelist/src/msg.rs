@@ -7,7 +7,7 @@ use whitelist_types::Round;
 pub enum ExecuteMsg {
     RemoveRound { round_index: u32 },
     AddRound { round: Round },
-    PrivateMint { minter: String, admin: String },
+    PrivateMint { collector: String },
 }
 
 #[cw_serde]

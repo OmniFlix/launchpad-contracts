@@ -4,39 +4,7 @@ use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Coin, Decimal, Timestamp};
 use cw_storage_plus::{Item, Map};
 
-use minter_types::CollectionDetails;
-
-#[cw_serde]
-pub struct Config {
-    pub per_address_limit: u32,
-    pub payment_collector: Addr,
-    pub start_time: Timestamp,
-    pub end_time: Option<Timestamp>,
-    pub mint_price: Coin,
-    pub royalty_ratio: Decimal,
-    pub admin: Addr,
-    pub whitelist_address: Option<Addr>,
-}
-
-#[cw_serde]
-pub struct Token {
-    pub token_id: String,
-}
-
-#[cw_serde]
-pub struct UserDetails {
-    pub minted_tokens: Vec<Token>,
-    pub total_minted_count: u32,
-}
-
-impl UserDetails {
-    pub fn new() -> Self {
-        UserDetails {
-            minted_tokens: Vec::new(),
-            total_minted_count: 0,
-        }
-    }
-}
+use minter_types::{CollectionDetails, Config, Token, UserDetails};
 
 pub const CONFIG: Item<Config> = Item::new("config");
 pub const COLLECTION: Item<CollectionDetails> = Item::new("collection");

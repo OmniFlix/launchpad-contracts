@@ -13,9 +13,9 @@ use crate::error::ContractError;
 use crate::msg::ExecuteMsg;
 use crate::round::RoundMethods;
 
-use crate::state::{
-    Config, MintDetails, Rounds, UserMintDetails, CONFIG, ROUNDS_KEY, USERMINTDETAILS_KEY,
-};
+use crate::state::{Config, Rounds, UserMintDetails, CONFIG, ROUNDS_KEY, USERMINTDETAILS_KEY};
+use minter_types::Config as MinterConfig;
+use minter_types::QueryMsg as MinterQueryMsg;
 use whitelist_types::{
     InstantiateMsg, IsActiveResponse, IsMemberResponse, MembersResponse, MintPriceResponse, Round,
     RoundWhitelistQueryMsgs,
@@ -68,9 +68,7 @@ pub fn execute(
             execute_remove_round(deps, env, info, round_index)
         }
         ExecuteMsg::AddRound { round } => execute_add_round(deps, env, info, round),
-        ExecuteMsg::PrivateMint { minter, admin } => {
-            execute_private_mint(deps, env, info, minter, admin)
-        }
+        ExecuteMsg::PrivateMint { collector } => execute_private_mint(deps, env, info, collector),
     }
 }
 pub fn execute_remove_round(
@@ -129,19 +127,19 @@ pub fn execute_private_mint(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    minter: String,
-    admin: String,
+    collector: String,
 ) -> Result<Response, ContractError> {
     // Load config
     let config = CONFIG.load(deps.storage)?;
-    // Check if the msg admin is same as the config admin
-    let admin = deps.api.addr_validate(admin.as_str())?;
-    let minter = deps.api.addr_validate(minter.as_str())?;
 
-    if config.admin != admin {
-        return Err(ContractError::Unauthorized {});
-    };
-    // TODO: Query if sender is a minter contract
+    let collector = deps.api.addr_validate(&collector)?;
+
+    // Check if sender is a our minter contract
+    let _minter_config: MinterConfig = deps.querier.query_wasm_smart(
+        info.sender.clone().into_string(),
+        &MinterQueryMsg::Config {},
+    )?;
+
     let rounds = Rounds::new(ROUNDS_KEY);
 
     // Find active round
@@ -153,14 +151,14 @@ pub fn execute_private_mint(
 
     UserMintDetails::new(USERMINTDETAILS_KEY).mint_for_user(
         deps.storage,
-        &minter,
+        &collector,
         &info.sender,
         &active_round,
     )?;
 
     let res = Response::new()
         .add_attribute("action", "privately_mint")
-        .add_attribute("minter", minter.to_string());
+        .add_attribute("minter", collector.to_string());
     Ok(res)
 }
 

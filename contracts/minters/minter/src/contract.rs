@@ -17,11 +17,9 @@ use whitelist_types::{
 };
 
 use crate::error::ContractError;
-use crate::state::{
-    Config, Token, UserDetails, COLLECTION, CONFIG, MINTABLE_TOKENS, MINTED_TOKENS,
-    TOTAL_TOKENS_REMAINING,
-};
+use crate::state::{COLLECTION, CONFIG, MINTABLE_TOKENS, MINTED_TOKENS, TOTAL_TOKENS_REMAINING};
 use crate::utils::{randomize_token_list, return_random_token_id};
+use minter_types::{Config, Token, UserDetails};
 
 use cw2::set_contract_version;
 use omniflix_std::types::omniflix::onft::v1beta1::{
@@ -313,8 +311,7 @@ pub fn execute_mint(
             messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr: whitelist_address.into_string(),
                 msg: to_json_binary(&PrivateMint {
-                    admin: config.admin.into_string(),
-                    minter: info.sender.clone().into_string(),
+                    collector: info.sender.clone().into_string(),
                 })?,
                 funds: vec![],
             }));
