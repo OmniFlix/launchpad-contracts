@@ -361,7 +361,7 @@ pub fn execute_mint(
     // Create the mint message
     let mint_msg: CosmosMsg = MsgMintOnft {
         data: "".to_string(),
-        id: format!("{}{}", collection.id, token_id),
+        id: token_id.clone(),
         metadata: Some(metadata.clone()),
         denom_id: collection.id.clone(),
         transferable: true,
@@ -468,7 +468,7 @@ pub fn execute_mint_admin(
     // Create the mint message
     let mint_msg: CosmosMsg = MsgMintOnft {
         data: "".to_string(),
-        id: format!("{}{}", collection.id, denom_id),
+        id: denom_id.clone(),
         metadata: Some(metadata),
         denom_id: collection.id.clone(),
         transferable: true,
