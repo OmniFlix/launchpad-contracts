@@ -1,5 +1,5 @@
 use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::msg::{ExecuteMsg, InstantiateMsg, ParamsResponse, QueryMsg};
 use crate::state::{Params, PARAMS};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
@@ -157,7 +157,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     }
 }
 
-fn query_params(deps: Deps) -> StdResult<Params> {
+fn query_params(deps: Deps) -> StdResult<ParamsResponse> {
     let params = PARAMS.load(deps.storage)?;
-    Ok(params)
+    Ok(ParamsResponse { params: params })
 }

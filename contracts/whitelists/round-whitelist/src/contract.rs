@@ -6,10 +6,13 @@ use cosmwasm_std::{
 };
 use cw2::set_contract_version;
 use cw_utils::{maybe_addr, must_pay};
+use omniflix_round_whitelist_factory::msg::ParamsResponse;
+use omniflix_round_whitelist_factory::msg::QueryMsg as QueryFactoryParams;
 
 use crate::error::ContractError;
 use crate::msg::ExecuteMsg;
 use crate::round::RoundMethods;
+
 use crate::state::{
     Config, MintDetails, Rounds, UserMintDetails, CONFIG, ROUNDS_KEY, USERMINTDETAILS_KEY,
 };
@@ -27,8 +30,10 @@ pub fn instantiate(
     set_contract_version(deps.storage, "whitelist-round", "1.0.0");
 
     // TODO: Check instantiator is factory contract
-    // After factory is written import params of the contract
-    // Try parsing the response to the params struct
+    let _factory_params: ParamsResponse = deps.querier.query_wasm_smart(
+        info.sender.clone().into_string(),
+        &QueryFactoryParams::Params {},
+    )?;
 
     let admin = maybe_addr(deps.api, msg.admin)?.unwrap_or(info.sender);
     // // Put index from 1 to n for rounds and return the rounds as Vec(index, round)
@@ -39,6 +44,10 @@ pub fn instantiate(
         round.check_integrity(deps.as_ref(), env.block.time)?;
     }
     Rounds::new(ROUNDS_KEY).check_round_overlaps(deps.storage, Some(rounds.clone()))?;
+    // Save the rounds
+    rounds.clone().into_iter().for_each(|round| {
+        Rounds::new(ROUNDS_KEY).save(deps.storage, &round).unwrap();
+    });
 
     let config = Config {
         admin: admin.clone(),
