@@ -9,13 +9,14 @@ use cw_utils::{maybe_addr, must_pay};
 
 use crate::error::ContractError;
 use crate::msg::ExecuteMsg;
-use crate::state::{Config, RoundMethods, RoundMints, Rounds, CONFIG, ROUNDS_KEY, ROUND_MINTS};
-use crate::utils::check_round_overlaps;
+use crate::round::RoundMethods;
+use crate::state::{
+    Config, MintDetails, Rounds, UserMintDetails, CONFIG, ROUNDS_KEY, USERMINTDETAILS_KEY,
+};
 use whitelist_types::{
     InstantiateMsg, IsActiveResponse, IsMemberResponse, MembersResponse, MintPriceResponse, Round,
     RoundWhitelistQueryMsgs,
 };
-
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
     deps: DepsMut,
@@ -37,13 +38,7 @@ pub fn instantiate(
     for round in rounds.clone() {
         round.check_integrity(deps.as_ref(), env.block.time)?;
     }
-    // Check if rounds overlap
-    check_round_overlaps(rounds.clone())?;
-
-    // Save rounds
-    for round in rounds {
-        Rounds::new(ROUNDS_KEY).save(deps.storage, &round)?;
-    }
+    Rounds::new(ROUNDS_KEY).check_round_overlaps(deps.storage, Some(rounds.clone()))?;
 
     let config = Config {
         admin: admin.clone(),
@@ -84,7 +79,7 @@ pub fn execute_remove_round(
     // Check if the round exists
     let round = rounds.load(deps.storage, round_index)?;
     // Check if the round has started
-    if round.start_time() < env.block.time {
+    if round.start_time < env.block.time {
         return Err(ContractError::RoundAlreadyStarted {});
     }
     // Remove the round
@@ -110,7 +105,7 @@ pub fn execute_add_round(
     round.check_integrity(deps.as_ref(), env.block.time)?;
     let rounds = Rounds::new(ROUNDS_KEY);
     // Check overlaps
-    rounds.check_round_overlaps(deps.storage, Some(round.clone()))?;
+    rounds.check_round_overlaps(deps.storage, Some([round.clone()].to_vec()))?;
     // Save the round
     let new_round_index = rounds.save(deps.storage, &round)?;
 
@@ -146,14 +141,13 @@ pub fn execute_private_mint(
         return Err(ContractError::NoActiveRound {});
     };
     let active_round = active_round.unwrap();
-    // Load round mints for the address
-    let mut round_mints = ROUND_MINTS
-        .load(deps.storage, minter.clone())
-        .unwrap_or(RoundMints::new());
-    // Check if address has already reached the limit for the round. If not reached mint count will be incremented
-    round_mints.try_mint(active_round.clone())?;
-    // Save the round mints
-    ROUND_MINTS.save(deps.storage, minter.clone(), &round_mints)?;
+
+    UserMintDetails::new(USERMINTDETAILS_KEY).mint_for_user(
+        deps.storage,
+        &minter,
+        &info.sender,
+        &active_round,
+    )?;
 
     let res = Response::new()
         .add_attribute("action", "privately_mint")
