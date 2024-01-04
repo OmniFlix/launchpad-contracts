@@ -80,8 +80,8 @@ pub enum ContractError {
     #[error("Invalid round time")]
     InvalidRoundTime { round: Round },
 
-    #[error("Rounds overlaped")]
-    RoundsOverlaped {},
+    #[error("Rounds overlapped")]
+    RoundsOverlapped {},
 
     #[error("Empty address list")]
     EmptyAddressList {},

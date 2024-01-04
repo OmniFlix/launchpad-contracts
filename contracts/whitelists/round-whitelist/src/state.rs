@@ -1,3 +1,4 @@
+use crate::round::RoundMethods;
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Coin, Deps, Order, StdError, StdResult, Storage, Timestamp};
 use cw_storage_plus::{Item, Map};
@@ -9,124 +10,60 @@ use whitelist_types::Round;
 pub struct Config {
     pub admin: Addr,
 }
-pub trait RoundMethods {
-    fn is_active(&self, current_time: Timestamp) -> bool;
-    fn is_member(&self, address: &Addr) -> bool;
-    fn has_started(&self, current_time: Timestamp) -> bool;
-    fn has_ended(&self, current_time: Timestamp) -> bool;
-    fn start_time(&self) -> Timestamp;
-    fn end_time(&self) -> Timestamp;
-    fn round_per_address_limit(&self) -> u32;
-    fn members(
-        &self,
-        start_after: Option<String>,
-        limit: Option<u32>,
-    ) -> Result<Vec<String>, ContractError>;
-    fn mint_price(&self) -> Coin;
-    fn check_integrity(&self, deps: Deps, now: Timestamp) -> Result<(), ContractError>;
-}
-impl RoundMethods for Round {
-    fn is_active(&self, current_time: Timestamp) -> bool {
-        current_time >= self.start_time && current_time <= self.end_time
-    }
-
-    fn is_member(&self, address: &Addr) -> bool {
-        self.addresses.contains(address)
-    }
-
-    fn has_started(&self, current_time: Timestamp) -> bool {
-        current_time >= self.start_time
-    }
-
-    fn has_ended(&self, current_time: Timestamp) -> bool {
-        current_time > self.end_time
-    }
-
-    fn start_time(&self) -> Timestamp {
-        self.start_time
-    }
-
-    fn end_time(&self) -> Timestamp {
-        self.end_time
-    }
-
-    fn round_per_address_limit(&self) -> u32 {
-        self.round_per_address_limit
-    }
-
-    fn members(
-        &self,
-        start_after: Option<String>,
-        limit: Option<u32>,
-    ) -> Result<Vec<String>, ContractError> {
-        let mut members: Vec<String> = self.addresses.iter().map(|x| x.to_string()).collect();
-        let start_after = start_after.unwrap_or_default();
-        let start_index = members
-            .iter()
-            .position(|x| x.as_str() == start_after.as_str())
-            .unwrap_or_default();
-        let end_index = match limit {
-            Some(limit) => start_index + limit as usize,
-            None => members.len(),
-        };
-        Ok(members[start_index..end_index].to_vec())
-    }
-
-    fn mint_price(&self) -> Coin {
-        self.mint_price.clone()
-    }
-    fn check_integrity(&self, deps: Deps, now: Timestamp) -> Result<(), ContractError> {
-        if self.start_time > self.end_time {
-            return Err(ContractError::InvalidStartTime {});
-        }
-        if self.start_time < now {
-            return Err(ContractError::RoundAlreadyStarted {});
-        }
-        if self.round_per_address_limit == 0 {
-            return Err(ContractError::InvalidPerAddressLimit {});
-        }
-        if self.addresses.is_empty() {
-            return Err(ContractError::EmptyAddressList {});
-        }
-        self.addresses
-            .iter()
-            .try_for_each(|address| deps.api.addr_validate(address.as_str()).map(|_| ()))?;
-
-        Ok(())
-    }
-}
 
 pub type MintCount = u32;
 
-// Refactor RoundMints to use a map instead of a vector
 #[cw_serde]
-pub struct RoundMints {
+pub struct MintDetails {
     pub rounds: Vec<(Round, MintCount)>,
 }
-
-impl RoundMints {
-    pub fn new() -> Self {
-        RoundMints { rounds: Vec::new() }
+pub type MinterAddress = Addr;
+pub type UserAddress = Addr;
+pub struct UserMintDetails<'a>(Map<'a, (UserAddress, MinterAddress), MintDetails>);
+impl<'a> UserMintDetails<'a> {
+    pub const fn new(storage_key: &'a str) -> Self {
+        UserMintDetails(Map::new(storage_key))
     }
-    pub fn try_mint(&mut self, active_round: Round) -> Result<(), ContractError> {
-        let mut mint_round = self
+
+    pub fn mint_for_user(
+        &self,
+        store: &mut dyn Storage,
+        user_address: &UserAddress,
+        minter_address: &MinterAddress,
+        round: &Round,
+    ) -> Result<(), ContractError> {
+        // Check if user exist
+        let mut user_mint_details = self
+            .0
+            .may_load(store, (user_address.clone(), minter_address.clone()))?
+            .unwrap_or(MintDetails { rounds: Vec::new() });
+
+        // Find the index of the round inside the user_mint_details
+        let user_mint_index = user_mint_details
             .rounds
-            .iter_mut()
-            .find(|(round, _)| round == &active_round);
-        if mint_round.is_none() {
-            let mut mint_round = (active_round, 0);
-            mint_round.1 += 1;
-            if mint_round.0.round_per_address_limit() < mint_round.1 {
+            .iter()
+            .position(|(found_round, _)| found_round == round);
+
+        if let Some(index) = user_mint_index {
+            // Increment the mint count for the existing round
+            user_mint_details.rounds[index].1 += 1;
+
+            // Check if the updated mint count exceeds the round_per_address_limit
+            if user_mint_details.rounds[index].1 > round.round_per_address_limit {
                 return Err(ContractError::RoundReachedMintLimit {});
-            };
-            self.rounds.push(mint_round);
+            }
         } else {
-            let mint_round = mint_round.unwrap();
-            mint_round.1 += 1;
-            if active_round.round_per_address_limit() < mint_round.1 {
-                return Err(ContractError::RoundReachedMintLimit {});
-            };
+            // Round not found, add a new entry for the round
+            user_mint_details.rounds.push((round.clone(), 1));
         }
+
+        // Save the updated user_mint_details
+        self.0.save(
+            store,
+            (user_address.clone(), minter_address.clone()),
+            &user_mint_details,
+        )?;
+
         Ok(())
     }
 }
@@ -176,29 +113,33 @@ impl<'a> Rounds<'a> {
     pub fn check_round_overlaps(
         &self,
         store: &dyn Storage,
-        round: Option<Round>,
+        round: Option<Vec<Round>>,
     ) -> Result<(), ContractError> {
         let mut rounds = self.load_all_rounds(store)?;
-        if let Some(round) = round {
-            rounds.push(round);
+
+        // Combine the rounds from storage with the provided rounds if it exists
+        if let Some(provided_round) = round {
+            rounds.extend(provided_round);
         }
-        rounds.sort_by_key(|round| round.start_time());
+
+        rounds.sort_by_key(|round| round.start_time);
 
         for i in 0..rounds.len() - 1 {
             let current_round = &rounds[i];
             let next_round = &rounds[i + 1];
 
-            if current_round.end_time() > next_round.start_time() {
-                return Err(ContractError::RoundsOverlaped {});
+            if current_round.end_time > next_round.start_time {
+                return Err(ContractError::RoundsOverlapped {});
             }
         }
+
         Ok(())
     }
 }
 
 pub const CONFIG: Item<Config> = Item::new("config");
-pub const ROUND_MINTS: Map<Addr, RoundMints> = Map::new("round_mints");
 pub const ROUNDS_KEY: &str = "rounds";
+pub const USERMINTDETAILS_KEY: &str = "user_mint_details";
 
 #[cfg(test)]
 mod tests {
@@ -356,13 +297,15 @@ mod tests {
         // No overlap so unwrap should not fail
         rounds.check_round_overlaps(&deps.storage, None).unwrap();
         let error = rounds
-            .check_round_overlaps(&deps.storage, Some(round3.clone()))
+            .check_round_overlaps(&deps.storage, Some([round3.clone()].to_vec()))
             .unwrap_err();
-        assert_eq!(error, ContractError::RoundsOverlaped {});
+        assert_eq!(error, ContractError::RoundsOverlapped {});
     }
     #[test]
     fn test_try_mint() {
         let mut deps = mock_dependencies();
+        let user_details = UserMintDetails::new("user_mint_details");
+
         let round = Round {
             addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
             start_time: Timestamp::from_seconds(1000),
@@ -370,6 +313,7 @@ mod tests {
             mint_price: coin(100, "flix"),
             round_per_address_limit: 1,
         };
+
         let round2 = Round {
             addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
             start_time: Timestamp::from_seconds(3000),
@@ -377,16 +321,34 @@ mod tests {
             mint_price: coin(100, "atom"),
             round_per_address_limit: 1,
         };
-        let mut round_mints = RoundMints::new();
-        // First mint should pass
-        round_mints.try_mint(round.clone()).unwrap();
-        // Second mint should fail
-        let error = round_mints.try_mint(round.clone()).unwrap_err();
-        assert_eq!(error, ContractError::RoundReachedMintLimit {});
-        // First mint of round2 should pass
-        round_mints.try_mint(round2.clone()).unwrap();
-        // Second mint of round2 should fail
-        let error = round_mints.try_mint(round2.clone()).unwrap_err();
-        assert_eq!(error, ContractError::RoundReachedMintLimit {});
+
+        // Create a new user
+        let user_address = Addr::unchecked("user1");
+        let minter_address = Addr::unchecked("minter1");
+
+        // Try to mint for a user
+        user_details
+            .mint_for_user(&mut deps.storage, &user_address, &minter_address, &round)
+            .unwrap();
+        // Check if the user_mint_details is saved
+        let user_mint_details = user_details
+            .0
+            .load(
+                &deps.storage,
+                (user_address.clone(), minter_address.clone()),
+            )
+            .unwrap();
+        assert_eq!(
+            user_mint_details,
+            MintDetails {
+                rounds: vec![(round.clone(), 1)]
+            }
+        );
+
+        // Try to mint for a user again
+        let res = user_details
+            .mint_for_user(&mut deps.storage, &user_address, &minter_address, &round)
+            .unwrap_err();
+        assert_eq!(res, ContractError::RoundReachedMintLimit {});
     }
 }
