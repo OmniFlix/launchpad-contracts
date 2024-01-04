@@ -4,7 +4,6 @@
   "type": "object",
   "required": [
     "minted_tokens",
-    "rounds_mints",
     "total_minted_count"
   ],
   "properties": {
@@ -12,12 +11,6 @@
       "type": "array",
       "items": {
         "$ref": "#/definitions/Token"
-      }
-    },
-    "rounds_mints": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/MintCountInRound"
       }
     },
     "total_minted_count": {
@@ -28,26 +21,6 @@
   },
   "additionalProperties": false,
   "definitions": {
-    "MintCountInRound": {
-      "type": "object",
-      "required": [
-        "count",
-        "round_index"
-      ],
-      "properties": {
-        "count": {
-          "type": "integer",
-          "format": "uint32",
-          "minimum": 0.0
-        },
-        "round_index": {
-          "type": "integer",
-          "format": "uint32",
-          "minimum": 0.0
-        }
-      },
-      "additionalProperties": false
-    },
     "Token": {
       "type": "object",
       "required": [

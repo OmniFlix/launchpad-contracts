@@ -4,6 +4,7 @@
   "type": "object",
   "required": [
     "base_uri",
+    "data",
     "description",
     "extensible",
     "id",
@@ -12,10 +13,15 @@
     "num_tokens",
     "preview_uri",
     "schema",
-    "symbol"
+    "symbol",
+    "uri",
+    "uri_hash"
   ],
   "properties": {
     "base_uri": {
+      "type": "string"
+    },
+    "data": {
       "type": "string"
     },
     "description": {
@@ -45,6 +51,12 @@
       "type": "string"
     },
     "symbol": {
+      "type": "string"
+    },
+    "uri": {
+      "type": "string"
+    },
+    "uri_hash": {
       "type": "string"
     }
   },

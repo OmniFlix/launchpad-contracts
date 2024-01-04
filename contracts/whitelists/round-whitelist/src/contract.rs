@@ -8,11 +8,11 @@ use cw2::set_contract_version;
 use cw_utils::{maybe_addr, must_pay};
 
 use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg};
+use crate::msg::ExecuteMsg;
 use crate::state::{Config, RoundMethods, RoundMints, Rounds, CONFIG, ROUNDS_KEY, ROUND_MINTS};
 use crate::utils::check_round_overlaps;
-use types::{
-    IsActiveResponse, IsMemberResponse, MembersResponse, MintPriceResponse, Round,
+use whitelist_types::{
+    InstantiateMsg, IsActiveResponse, IsMemberResponse, MembersResponse, MintPriceResponse, Round,
     RoundWhitelistQueryMsgs,
 };
 
@@ -164,20 +164,20 @@ pub fn execute_private_mint(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: RoundWhitelistQueryMsgs) -> StdResult<Binary> {
     match msg {
-        RoundWhitelistQueryMsgs::ActiveRound {} => to_binary(&query_active_round(deps, env)?),
-        RoundWhitelistQueryMsgs::IsActive {} => to_binary(&query_is_active(deps, env)?),
+        RoundWhitelistQueryMsgs::ActiveRound {} => to_json_binary(&query_active_round(deps, env)?),
+        RoundWhitelistQueryMsgs::IsActive {} => to_json_binary(&query_is_active(deps, env)?),
         RoundWhitelistQueryMsgs::Members {
             round_index,
             start_after,
             limit,
-        } => to_binary(&query_members(deps, env, round_index, start_after, limit)?),
-        RoundWhitelistQueryMsgs::Price {} => to_binary(&query_price(deps, env)?),
-        RoundWhitelistQueryMsgs::Rounds {} => to_binary(&query_rounds(deps, env)?),
+        } => to_json_binary(&query_members(deps, env, round_index, start_after, limit)?),
+        RoundWhitelistQueryMsgs::Price {} => to_json_binary(&query_price(deps, env)?),
+        RoundWhitelistQueryMsgs::Rounds {} => to_json_binary(&query_rounds(deps, env)?),
         RoundWhitelistQueryMsgs::Round { round_index } => {
-            to_binary(&query_round(deps, round_index)?)
+            to_json_binary(&query_round(deps, round_index)?)
         }
         RoundWhitelistQueryMsgs::IsMember { address } => {
-            to_binary(&query_is_member(deps, env, address)?)
+            to_json_binary(&query_is_member(deps, env, address)?)
         }
     }
 }
@@ -192,14 +192,16 @@ pub fn query_active_round(deps: Deps, env: Env) -> Result<Round, ContractError> 
     Ok(active_round)
 }
 
-pub fn query_is_active(deps: Deps, env: Env) -> Result<bool, ContractError> {
+pub fn query_is_active(deps: Deps, env: Env) -> Result<IsActiveResponse, ContractError> {
     let rounds = Rounds::new(ROUNDS_KEY);
     let active_round = rounds.load_active_round(deps.storage, env.block.time);
     let is_active = match active_round {
         Some(_) => true,
         None => false,
     };
-    Ok(is_active)
+    Ok(IsActiveResponse {
+        is_active: is_active,
+    })
 }
 
 pub fn query_members(

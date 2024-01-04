@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use crate::msg::{CollectionDetails, ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::msg::{ExecuteMsg, QueryMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
@@ -8,8 +8,13 @@ use cosmwasm_std::{
     Response, StdResult, Timestamp, Uint128, WasmMsg,
 };
 use cw_utils::{maybe_addr, must_pay, nonpayable};
+use minter_types::{CollectionDetails, InstantiateMsg};
+use omniflix_minter_factory::msg::ParamsResponse;
+use omniflix_minter_factory::msg::QueryMsg::Params as QueryFactoryParams;
 use round_whitelist::msg::ExecuteMsg::PrivateMint;
-use types::{MintPriceResponse, RoundWhitelistQueryMsgs};
+use whitelist_types::{
+    IsActiveResponse, IsMemberResponse, MintPriceResponse, RoundWhitelistQueryMsgs,
+};
 
 use crate::error::ContractError;
 use crate::state::{
@@ -46,6 +51,12 @@ pub fn instantiate(
 ) -> Result<Response, ContractError> {
     // Query denom creation fee
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+    // Query factory params of instantiator
+    // If the instantiator is not a our factory then we wont be able to parse the response
+    let _factory_params: ParamsResponse = deps
+        .querier
+        .query_wasm_smart(info.sender.clone().into_string(), &QueryFactoryParams {})?;
+
     // This field is implemented only for testing purposes
     let creation_fee_amount = if CREATION_FEE == Uint128::new(0) {
         let onft_querier = OnftQuerier::new(&deps.querier);
@@ -78,9 +89,16 @@ pub fn instantiate(
     if msg.collection_details.num_tokens == 0 {
         return Err(ContractError::InvalidNumTokens {});
     }
+
     // Check start time
     if msg.start_time < env.block.time {
         return Err(ContractError::InvalidStartTime {});
+    }
+    // Check end time
+    if let Some(end_time) = msg.end_time {
+        if end_time < msg.start_time {
+            return Err(ContractError::InvalidStartTime {});
+        }
     }
 
     // Check royalty ratio we expect decimal number
@@ -88,6 +106,17 @@ pub fn instantiate(
     if royalty_ratio < Decimal::zero() || royalty_ratio > Decimal::one() {
         return Err(ContractError::InvalidRoyaltyRatio {});
     }
+    // Check if whitelist already active
+    if let Some(whitelist_address) = msg.whitelist_address.clone() {
+        let is_active: IsActiveResponse = deps.querier.query_wasm_smart(
+            whitelist_address.clone(),
+            &RoundWhitelistQueryMsgs::IsActive {},
+        )?;
+        if is_active.is_active {
+            return Err(ContractError::WhitelistAlreadyActive {});
+        }
+    }
+
     // Check mint price
     if msg.mint_price == Uint128::new(0) {
         return Err(ContractError::InvalidMintPrice {});
@@ -109,6 +138,7 @@ pub fn instantiate(
             amount: msg.mint_price,
         },
         whitelist_address: maybe_addr(deps.api, msg.whitelist_address.clone())?,
+        end_time: msg.end_time,
     };
     CONFIG.save(deps.storage, &config)?;
 
@@ -201,6 +231,9 @@ pub fn execute(
             execute_update_mint_price(deps, env, info, mint_price)
         }
         ExecuteMsg::RandomizeList {} => execute_randomize_list(deps, env, info),
+        ExecuteMsg::UpdateWhitelistAddress { address } => {
+            execute_update_whitelist_address(deps, env, info, address)
+        }
     }
 }
 
@@ -235,6 +268,13 @@ pub fn execute_mint(
         let (key, value) = item?;
         mintable_tokens.push((key, value));
     }
+    // Check if public end time is determined and if it is passed
+    if let Some(end_time) = config.end_time {
+        if env.block.time > end_time {
+            return Err(ContractError::PublicMintingEnded {});
+        }
+    }
+
     // Get a random token id
     let random_token = return_random_token_id(&mintable_tokens, env.clone())?;
     // Add the minted token to the user details
@@ -247,11 +287,11 @@ pub fn execute_mint(
     if !is_public {
         // Check if any whitelist is present
         if let Some(whitelist_address) = config.whitelist_address {
-            let is_active: bool = deps.querier.query_wasm_smart(
+            let is_active: IsActiveResponse = deps.querier.query_wasm_smart(
                 whitelist_address.clone().into_string(),
                 &RoundWhitelistQueryMsgs::IsActive {},
             )?;
-            if !is_active {
+            if !is_active.is_active {
                 return Err(ContractError::WhitelistNotActive {});
             }
             // Check whitelist price
@@ -261,13 +301,13 @@ pub fn execute_mint(
             )?;
             mint_price = whitelist_price_response.mint_price;
             // Check if member is whitelisted
-            let is_whitelisted: bool = deps.querier.query_wasm_smart(
+            let is_member_response: IsMemberResponse = deps.querier.query_wasm_smart(
                 whitelist_address.clone().into_string(),
                 &RoundWhitelistQueryMsgs::IsMember {
                     address: info.sender.clone().into_string(),
                 },
             )?;
-            if !is_whitelisted {
+            if !is_member_response.is_member {
                 return Err(ContractError::AddressNotWhitelisted {});
             }
             messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
@@ -350,7 +390,7 @@ pub fn execute_mint(
         .add_messages(messages)
         .add_attribute("action", "mint")
         .add_attribute("token_id", token_id.to_string())
-        .add_attribute("denom_id", token_id.to_string());
+        .add_attribute("collection_id", collection.id);
 
     Ok(res)
 }
@@ -553,6 +593,44 @@ pub fn execute_randomize_list(
     }
 
     let res = Response::new().add_attribute("action", "randomize_list");
+    Ok(res)
+}
+
+pub fn execute_update_whitelist_address(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    address: String,
+) -> Result<Response, ContractError> {
+    // Check if sender is admin
+    let mut config = CONFIG.load(deps.storage)?;
+    if info.sender != config.admin {
+        return Err(ContractError::Unauthorized {});
+    }
+    let whitelist_address = config.whitelist_address.clone();
+    // Check if whitelist already active
+    let is_active: bool = deps.querier.query_wasm_smart(
+        whitelist_address.clone().unwrap().into_string(),
+        &RoundWhitelistQueryMsgs::IsActive {},
+    )?;
+    if is_active {
+        return Err(ContractError::WhitelistAlreadyActive {});
+    }
+    let address = deps.api.addr_validate(&address)?;
+    let is_active: bool = deps.querier.query_wasm_smart(
+        address.clone().into_string(),
+        &RoundWhitelistQueryMsgs::IsActive {},
+    )?;
+    if is_active {
+        return Err(ContractError::WhitelistAlreadyActive {});
+    }
+    config.whitelist_address = Some(address.clone());
+
+    CONFIG.save(deps.storage, &config)?;
+
+    let res = Response::new()
+        .add_attribute("action", "update_whitelist_address")
+        .add_attribute("address", address.to_string());
     Ok(res)
 }
 

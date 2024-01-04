@@ -1,13 +1,7 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Coin, Timestamp, Uint128};
 
-use types::Round;
-
-#[cw_serde]
-pub struct InstantiateMsg {
-    pub admin: Option<String>,
-    pub rounds: Vec<Round>,
-}
+use whitelist_types::Round;
 
 #[cw_serde]
 pub enum ExecuteMsg {

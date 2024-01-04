@@ -3,7 +3,7 @@ use cosmwasm_std::{Addr, Coin, Deps, Order, StdError, StdResult, Storage, Timest
 use cw_storage_plus::{Item, Map};
 
 use crate::error::ContractError;
-use types::Round;
+use whitelist_types::Round;
 
 #[cw_serde]
 pub struct Config {

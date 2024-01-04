@@ -3,7 +3,7 @@ use std::convert::Infallible;
 use cosmwasm_std::StdError;
 use cw_utils::PaymentError;
 use thiserror::Error;
-use types::Round;
+use whitelist_types::Round;
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ContractError {

@@ -2,6 +2,12 @@ use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Addr, Coin, Timestamp};
 
 #[cw_serde]
+pub struct InstantiateMsg {
+    pub admin: Option<String>,
+    pub rounds: Vec<Round>,
+}
+
+#[cw_serde]
 #[derive(QueryResponses)]
 pub enum RoundWhitelistQueryMsgs {
     #[returns(Vec<Round>)]

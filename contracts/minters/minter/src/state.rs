@@ -4,13 +4,14 @@ use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Coin, Decimal, Timestamp};
 use cw_storage_plus::{Item, Map};
 
-use crate::msg::CollectionDetails;
+use minter_types::CollectionDetails;
 
 #[cw_serde]
 pub struct Config {
     pub per_address_limit: u32,
     pub payment_collector: Addr,
     pub start_time: Timestamp,
+    pub end_time: Option<Timestamp>,
     pub mint_price: Coin,
     pub royalty_ratio: Decimal,
     pub admin: Addr,
