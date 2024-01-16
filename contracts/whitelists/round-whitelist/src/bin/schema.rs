@@ -1,6 +1,6 @@
 use cosmwasm_schema::write_api;
 
-use round_whitelist::msg::ExecuteMsg;
+use omniflix_round_whitelist::msg::ExecuteMsg;
 
 use whitelist_types::{InstantiateMsg, RoundWhitelistQueryMsgs};
 

@@ -1,12 +1,11 @@
 use std::convert::TryInto;
 
 use cosmwasm_std::{Env, StdError};
+use minter_types::Token;
 use rand_core::{RngCore, SeedableRng};
 use rand_xoshiro::Xoshiro128PlusPlus;
 use sha2::{Digest, Sha256};
 use shuffle::{fy::FisherYates, shuffler::Shuffler};
-
-use crate::{error::ContractError, state::Token};
 
 pub fn randomize_token_list(
     tokens: Vec<(u32, Token)>,
@@ -85,7 +84,7 @@ pub fn return_random_token_id(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cosmwasm_std::{testing::mock_env, Timestamp, TransactionInfo, Uint128};
+    use cosmwasm_std::{testing::mock_env, Timestamp, TransactionInfo};
 
     #[test]
     fn test_randomize_token_list() {
@@ -145,7 +144,7 @@ mod tests {
         env.block.time = Timestamp::from_nanos(200_000);
         env.transaction = Some(TransactionInfo { index: 400_000 });
 
-        let mut randomized_list =
+        let randomized_list =
             randomize_token_list(tokens.clone(), total_tokens, env.clone()).unwrap();
 
         // Pick a token from the list let's say it's 5

@@ -60,8 +60,8 @@ pub enum ContractError {
     #[error("Invalid start time")]
     InvalidStartTime {},
 
-    #[error("Whitelist address limit is reached")]
-    WhitelistAddressLimitReached {},
+    #[error("Invalid end time")]
+    InvalidEndTime {},
 
     #[error("Address is not whitelisted")]
     AddressNotWhitelisted {},
@@ -72,32 +72,11 @@ pub enum ContractError {
     #[error("Whitelist is already active")]
     WhitelistAlreadyActive {},
 
-    #[error("Not a whitelist contract")]
-    NotWhitelistContract {},
-
-    #[error("Round limit is reached")]
-    RoundReachedMintLimit {},
-
-    #[error("Round is not active")]
-    RoundEnded {},
-
-    #[error("Round has already started")]
-    RoundAlreadyStarted {},
-
     #[error("Round start time is invalid")]
     RoundStartTimeInvalid {},
 
     #[error("Collection not found")]
     CollectionNotFound {},
-
-    #[error("Round does not exist")]
-    RoundNotFound {},
-
-    #[error("Round already exists")]
-    RoundAlreadyExists {},
-
-    #[error("Invalid roud type")]
-    InvalidRoundType { expected: String, actual: String },
 
     #[error("Error saving tokens")]
     ErrorSavingTokens {},

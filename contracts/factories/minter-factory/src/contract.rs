@@ -7,8 +7,8 @@ use crate::utils::check_payment;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_json_binary, BankMsg, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo,
-    Order, Response, StdResult, Timestamp, Uint128, WasmMsg,
+    to_json_binary, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response,
+    StdResult, Uint128, WasmMsg,
 };
 use cw_utils::maybe_addr;
 use minter_types::InstantiateMsg as MinterInstantiateMsg;
@@ -26,7 +26,7 @@ const CREATION_FEE_DENOM: &str = "uflix";
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
@@ -38,7 +38,7 @@ pub fn instantiate(
     let params = Params {
         admin: admin.clone(),
         allowed_minter_mint_denoms: msg.allowed_minter_mint_denoms,
-        fee_collector_address: fee_collector_address,
+        fee_collector_address,
         minter_code_id: msg.minter_code_id,
         minter_creation_fee: msg.minter_creation_fee,
     };
@@ -73,7 +73,7 @@ pub fn execute(
 
 fn create_minter(
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     info: MessageInfo,
     msg: MinterInstantiateMsg,
 ) -> Result<Response, ContractError> {
@@ -122,7 +122,7 @@ fn create_minter(
 
 fn update_params_admin(
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     info: MessageInfo,
     admin: String,
 ) -> Result<Response, ContractError> {
@@ -139,7 +139,7 @@ fn update_params_admin(
 
 fn update_params_allowed_mint_denoms(
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     info: MessageInfo,
     allowed_mint_denoms: Vec<String>,
 ) -> Result<Response, ContractError> {
@@ -156,7 +156,7 @@ fn update_params_allowed_mint_denoms(
 
 fn update_params_fee_collector_address(
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     info: MessageInfo,
     fee_collector_address: String,
 ) -> Result<Response, ContractError> {
@@ -176,7 +176,7 @@ fn update_params_fee_collector_address(
 
 fn update_params_minter_code_id(
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     info: MessageInfo,
     minter_code_id: u64,
 ) -> Result<Response, ContractError> {
@@ -193,7 +193,7 @@ fn update_params_minter_code_id(
 
 fn update_params_minter_creation_fee(
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     info: MessageInfo,
     minter_creation_fee: Coin,
 ) -> Result<Response, ContractError> {
@@ -209,7 +209,7 @@ fn update_params_minter_creation_fee(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
+pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::Params {} => to_json_binary(&query_params(deps)?),
     }
@@ -225,7 +225,7 @@ mod tests {
     use super::*;
     use cosmwasm_std::{
         testing::{mock_dependencies, mock_env, mock_info},
-        Addr,
+        Addr, Decimal, Timestamp,
     };
     use minter_types::CollectionDetails;
 
@@ -243,7 +243,7 @@ mod tests {
             },
         };
         let info = mock_info("creator", &[]);
-        let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+        let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
 
         // query params
         let params = query_params(deps.as_ref()).unwrap();

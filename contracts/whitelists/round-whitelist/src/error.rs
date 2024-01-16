@@ -28,29 +28,9 @@ pub enum ContractError {
     #[error("{0}")]
     PaymentError(#[from] PaymentError),
 
-    #[error("White list already started")]
-    WhiteListAlreadyStarted {},
-
     #[error("Invalid end time")]
     InvalidEndTime {},
 
-    #[error("Whitelist ended")]
-    WhitelistEnded {},
-
-    #[error("Whitelist not started")]
-    WhitelistNotStarted {},
-
-    #[error("Member already exists")]
-    MemberAlreadyExists { member: String },
-
-    #[error("Member does not exist")]
-    MemberDoesNotExist { member: String },
-
-    #[error("Member limit reached")]
-    MemberLimitReached {
-        member_limit: u32,
-        current_member_count: u32,
-    },
     #[error("Whitelist frozen")]
     WhitelistFrozen {},
 
@@ -75,13 +55,11 @@ pub enum ContractError {
     #[error("Round already exists")]
     RoundAlreadyExists {},
 
-    #[error("Invalid roud type")]
-    InvalidRoundType { expected: String, actual: String },
     #[error("Invalid round time")]
     InvalidRoundTime { round: Round },
 
-    #[error("Rounds overlaped")]
-    RoundsOverlaped {},
+    #[error("Rounds overlapped")]
+    RoundsOverlapped {},
 
     #[error("Empty address list")]
     EmptyAddressList {},

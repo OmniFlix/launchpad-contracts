@@ -1,5 +1,5 @@
-use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Coin, Timestamp, Uint128};
+use cosmwasm_schema::{cw_serde};
+use cosmwasm_std::{Coin, Timestamp};
 
 use whitelist_types::Round;
 
@@ -7,7 +7,7 @@ use whitelist_types::Round;
 pub enum ExecuteMsg {
     RemoveRound { round_index: u32 },
     AddRound { round: Round },
-    PrivateMint { minter: String, admin: String },
+    PrivateMint { collector: String },
 }
 
 #[cw_serde]
