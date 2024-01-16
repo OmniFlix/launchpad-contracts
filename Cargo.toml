@@ -1,6 +1,10 @@
 [workspace]
 members = [
-    "contracts/*"
+    "contracts/minters/*",
+    "contracts/whitelists/*",
+    "contracts/factories/*",
+    "integration-tests",
+    "packages/*"
 ]
 resolver = "2"
 
@@ -14,7 +18,7 @@ license    = "Apache-2.0"
 [workspace.dependencies]
 cosmwasm-schema      = "1.5.0"
 cosmwasm-std         = "1.2.1"
-omniflix-std         = "0.0.1"
+omniflix-std         = "0.0.2"
 cw-controllers       = "1.1.0"
 cw2                  = "1.1.0"
 cw4                  = "1.1.0"
@@ -29,4 +33,5 @@ semver               = "1"
 cw-ownable           = "0.5.1"
 cosmwasm-storage     = "1.5.0"
 serde                = { version = "1.0.145", default-features = false, features = ["derive"] }
-types = { version = "0.0.1", path = "packages/types" }
+whitelist-types = { version = "0.0.1", path = "packages/whitelist-types" }
+minter-types = { version = "0.0.1", path = "packages/minter-types" }

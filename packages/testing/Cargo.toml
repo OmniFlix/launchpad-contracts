@@ -1,0 +1,47 @@
+[package]
+name        = "omniflix-testing"
+authors     = ["Adnan Deniz Corlu <adenizcorlu@gmail.com>"]
+description = "Common types used by round whitelist contract"
+version     = { workspace = true }
+edition     = { workspace = true }
+homepage    = { workspace = true }
+repository  = { workspace = true }
+license     = { workspace = true }
+
+exclude = [
+  # Those files are rust-optimizer artifacts. You might want to commit them for convenience but they should not be part of the source code publication.
+  "contract.wasm",
+  "hash.txt",
+]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+# for more explicit tests, cargo test --features=backtraces
+backtraces = ["cosmwasm-std/backtraces"]
+# use library feature to disable all instantiate/execute/query exports
+library = []
+
+[dependencies]
+cosmwasm-storage = { workspace = true }
+omniflix-std = { workspace=true }
+cosmwasm-schema      = { workspace = true }
+cosmwasm-std = { version = "1.5.0", features = ["iterator", "staking", "stargate"] }
+cw-controllers       = { workspace = true }
+cw2                  = { workspace = true }
+cw-storage-plus = "1.2.0"
+cw-utils = "1.0.3"
+schemars = "0.8.16"
+cw-multi-test = "0.20.0"
+anyhow = "1.0.79"
+itertools = "0.12.0"
+serde = "1.0.195"
+thiserror = "1.0.56"
+prost              = { version = "0.11.9", default-features = false }
+omniflix-minter-factory = {path = "../../contracts/factories/minter-factory"}
+omniflix-minter = {path = "../../contracts/minters/minter"}
+omniflix-round-whitelist-factory = {path = "../../contracts/factories/round-whitelist-factory"}
+omniflix-round-whitelist = {path = "../../contracts/whitelists/round-whitelist"}
