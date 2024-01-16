@@ -36,7 +36,7 @@ impl RoundMethods for Round {
         start_after: Option<String>,
         limit: Option<u32>,
     ) -> Result<Vec<String>, ContractError> {
-        let mut members: Vec<String> = self.addresses.iter().map(|x| x.to_string()).collect();
+        let members: Vec<String> = self.addresses.iter().map(|x| x.to_string()).collect();
         let start_after = start_after.unwrap_or_default();
         let start_index = members
             .iter()
@@ -54,7 +54,7 @@ impl RoundMethods for Round {
     }
     fn check_integrity(&self, deps: Deps, now: Timestamp) -> Result<(), ContractError> {
         if self.start_time > self.end_time {
-            return Err(ContractError::InvalidStartTime {});
+            return Err(ContractError::InvalidEndTime {});
         }
         if self.start_time < now {
             return Err(ContractError::RoundAlreadyStarted {});

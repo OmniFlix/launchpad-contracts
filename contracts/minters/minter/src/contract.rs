@@ -1,17 +1,17 @@
 use std::str::FromStr;
 
-use crate::msg::{ExecuteMsg, QueryMsg};
+use crate::msg::ExecuteMsg;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     to_json_binary, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo, Order,
-    Response, StdResult, Timestamp, Uint128, WasmMsg,
+    Response, StdResult, Uint128, WasmMsg,
 };
 use cw_utils::{maybe_addr, must_pay, nonpayable};
 use minter_types::{CollectionDetails, InstantiateMsg};
 use omniflix_minter_factory::msg::ParamsResponse;
 use omniflix_minter_factory::msg::QueryMsg::Params as QueryFactoryParams;
-use round_whitelist::msg::ExecuteMsg::PrivateMint;
+use omniflix_round_whitelist::msg::ExecuteMsg::PrivateMint;
 use whitelist_types::{
     IsActiveResponse, IsMemberResponse, MintPriceResponse, RoundWhitelistQueryMsgs,
 };
@@ -19,7 +19,7 @@ use whitelist_types::{
 use crate::error::ContractError;
 use crate::state::{COLLECTION, CONFIG, MINTABLE_TOKENS, MINTED_TOKENS, TOTAL_TOKENS_REMAINING};
 use crate::utils::{randomize_token_list, return_random_token_id};
-use minter_types::{Config, Token, UserDetails};
+use minter_types::{Config, QueryMsg, Token, UserDetails};
 
 use cw2::set_contract_version;
 use omniflix_std::types::omniflix::onft::v1beta1::{
@@ -31,7 +31,9 @@ const CONTRACT_NAME: &str = "crates.io:omniflix-minter";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[cfg(not(test))]
+#[allow(dead_code)]
 const CREATION_FEE: Uint128 = Uint128::new(0);
+#[allow(dead_code)]
 #[cfg(not(test))]
 const CREATION_FEE_DENOM: &str = "";
 
@@ -63,7 +65,7 @@ pub fn instantiate(
     } else {
         CREATION_FEE
     };
-    let creation_fee_denom = if CREATION_FEE_DENOM == "" {
+    let creation_fee_denom = if CREATION_FEE_DENOM.is_empty() {
         let onft_querier = OnftQuerier::new(&deps.querier);
         let params = onft_querier.params()?;
         params.params.unwrap().denom_creation_fee.unwrap().denom
@@ -95,7 +97,7 @@ pub fn instantiate(
     // Check end time
     if let Some(end_time) = msg.end_time {
         if end_time < msg.start_time {
-            return Err(ContractError::InvalidStartTime {});
+            return Err(ContractError::InvalidEndTime {});
         }
     }
 
@@ -127,10 +129,10 @@ pub fn instantiate(
 
     let config = Config {
         per_address_limit: msg.per_address_limit,
-        payment_collector: payment_collector,
+        payment_collector,
         start_time: msg.start_time,
-        royalty_ratio: royalty_ratio,
-        admin: admin,
+        royalty_ratio,
+        admin,
         mint_price: Coin {
             denom: msg.mint_denom.clone(),
             amount: msg.mint_price,
@@ -249,7 +251,7 @@ pub fn execute_mint(
     }
     let mut user_details = MINTED_TOKENS
         .may_load(deps.storage, info.sender.clone())?
-        .unwrap_or(UserDetails::new());
+        .unwrap_or(UserDetails::default());
 
     // Increment total minted count
     user_details.total_minted_count += 1;
@@ -377,8 +379,7 @@ pub fn execute_mint(
             denom: mint_price.denom,
             amount: mint_price.amount,
         }],
-    })
-    .into();
+    });
 
     messages.push(mint_msg.clone());
     messages.push(bank_msg.clone());
@@ -444,7 +445,7 @@ pub fn execute_mint_admin(
     // Increment the minted tokens for the addres
     let mut user_details = MINTED_TOKENS
         .may_load(deps.storage, recipient.clone())?
-        .unwrap_or(UserDetails::new());
+        .unwrap_or(UserDetails::default());
     // We are updating parameter ourself and not using add_minted_token function because we want to override per address limit checks
     user_details.minted_tokens.push(token.1.clone());
     user_details.total_minted_count += 1;
@@ -481,7 +482,7 @@ pub fn execute_mint_admin(
         .add_message(mint_msg)
         .add_attribute("action", "mint")
         .add_attribute("token_id", denom_id.to_string())
-        .add_attribute("denom_id", denom_id.to_string());
+        .add_attribute("denom_id", collection.id);
     Ok(res)
 }
 pub fn execute_burn_remaining_tokens(
