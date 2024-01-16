@@ -84,7 +84,7 @@ pub fn return_random_token_id(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cosmwasm_std::{testing::mock_env, Timestamp, TransactionInfo, Uint128};
+    use cosmwasm_std::{testing::mock_env, Timestamp, TransactionInfo};
 
     #[test]
     fn test_randomize_token_list() {
@@ -144,7 +144,7 @@ mod tests {
         env.block.time = Timestamp::from_nanos(200_000);
         env.transaction = Some(TransactionInfo { index: 400_000 });
 
-        let mut randomized_list =
+        let randomized_list =
             randomize_token_list(tokens.clone(), total_tokens, env.clone()).unwrap();
 
         // Pick a token from the list let's say it's 5

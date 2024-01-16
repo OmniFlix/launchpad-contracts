@@ -29,6 +29,8 @@ pub enum RoundWhitelistQueryMsgs {
     Price {},
     #[returns(IsMemberResponse)]
     IsMember { address: String },
+    #[returns(String)]
+    Admin {},
 }
 #[cw_serde]
 pub struct MembersResponse {

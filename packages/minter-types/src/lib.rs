@@ -43,8 +43,8 @@ pub struct UserDetails {
     pub total_minted_count: u32,
 }
 
-impl UserDetails {
-    pub fn new() -> Self {
+impl Default for UserDetails {
+    fn default() -> Self {
         UserDetails {
             minted_tokens: Vec::new(),
             total_minted_count: 0,

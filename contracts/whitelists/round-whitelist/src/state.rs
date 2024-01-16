@@ -1,6 +1,6 @@
 use crate::round::RoundMethods;
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, Coin, Deps, Order, StdError, StdResult, Storage, Timestamp};
+use cosmwasm_std::{Addr, Order, StdError, StdResult, Storage, Timestamp};
 use cw_storage_plus::{Item, Map};
 
 use crate::error::ContractError;
@@ -88,14 +88,14 @@ impl<'a> Rounds<'a> {
         Ok(last_id + 1)
     }
 
-    pub fn load(&self, store: &dyn Storage, id: u32) -> StdResult<Round> {
-        Ok(self
-            .0
+    pub fn load(&self, store: &dyn Storage, id: u32) -> Result<Round, ContractError> {
+        self.0
             .may_load(store, id)?
-            .ok_or_else(|| StdError::generic_err("Round not found"))?)
+            .ok_or_else(|| ContractError::RoundNotFound {})
     }
     pub fn remove(&self, store: &mut dyn Storage, id: u32) -> StdResult<()> {
-        Ok(self.0.remove(store, id))
+        self.0.remove(store, id);
+        Ok(())
     }
     pub fn load_active_round(&self, store: &dyn Storage, current_time: Timestamp) -> Option<Round> {
         self.0
@@ -143,11 +143,10 @@ pub const USERMINTDETAILS_KEY: &str = "user_mint_details";
 
 #[cfg(test)]
 mod tests {
-    use crate::error;
 
     use super::*;
     use cosmwasm_std::testing::mock_dependencies;
-    use cosmwasm_std::{coin, Addr, CosmosMsg, Empty, MessageInfo, Response, SubMsg, WasmMsg};
+    use cosmwasm_std::{coin, Addr};
 
     #[test]
     fn test_rounds_save() {
@@ -200,7 +199,7 @@ mod tests {
             round_per_address_limit: 1,
         };
         let round1_index = rounds.save(&mut deps.storage, &round).unwrap();
-        let round2_index = rounds.save(&mut deps.storage, &round2).unwrap();
+        let _round2_index = rounds.save(&mut deps.storage, &round2).unwrap();
 
         rounds.remove(&mut deps.storage, round1_index).unwrap();
         let loadled_rounds = rounds.load_all_rounds(&deps.storage).unwrap();
@@ -230,8 +229,8 @@ mod tests {
         let active_round = rounds.load_active_round(&deps.storage, Timestamp::from_seconds(1500));
         assert_eq!(active_round, None);
 
-        let round1_index = rounds.save(&mut deps.storage, &round).unwrap();
-        let round2_index = rounds.save(&mut deps.storage, &round2).unwrap();
+        let _round1_index = rounds.save(&mut deps.storage, &round).unwrap();
+        let _round2_index = rounds.save(&mut deps.storage, &round2).unwrap();
         let loaded_rounds = rounds.load_all_rounds(&deps.storage).unwrap();
         assert_eq!(loaded_rounds.len(), 2);
 
@@ -259,7 +258,7 @@ mod tests {
             round_per_address_limit: 1,
         };
 
-        let round3_index = rounds.save(&mut deps.storage, &round3).unwrap();
+        let _round3_index = rounds.save(&mut deps.storage, &round3).unwrap();
         let active_round = rounds
             .load_active_round(&deps.storage, Timestamp::from_seconds(1600))
             .unwrap();
@@ -292,8 +291,8 @@ mod tests {
             mint_price: coin(100, "atom"),
             round_per_address_limit: 1,
         };
-        let round1_index = rounds.save(&mut deps.storage, &round).unwrap();
-        let round2_index = rounds.save(&mut deps.storage, &round2).unwrap();
+        let _round1_index = rounds.save(&mut deps.storage, &round).unwrap();
+        let _round2_index = rounds.save(&mut deps.storage, &round2).unwrap();
         // No overlap so unwrap should not fail
         rounds.check_round_overlaps(&deps.storage, None).unwrap();
         let error = rounds
@@ -314,7 +313,7 @@ mod tests {
             round_per_address_limit: 1,
         };
 
-        let round2 = Round {
+        let _round2 = Round {
             addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
             start_time: Timestamp::from_seconds(3000),
             end_time: Timestamp::from_seconds(4000),

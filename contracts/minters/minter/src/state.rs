@@ -1,7 +1,7 @@
 use std::u32;
 
-use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, Coin, Decimal, Timestamp};
+
+use cosmwasm_std::{Addr};
 use cw_storage_plus::{Item, Map};
 
 use minter_types::{CollectionDetails, Config, Token, UserDetails};

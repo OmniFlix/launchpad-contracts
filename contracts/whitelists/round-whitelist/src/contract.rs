@@ -1,11 +1,8 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{
-    to_binary, to_json_binary, wasm_execute, Binary, Coin, Deps, DepsMut, Env, MessageInfo, Order,
-    Response, StdResult, Timestamp, Uint128, WasmMsg,
-};
+use cosmwasm_std::{to_json_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
 use cw2::set_contract_version;
-use cw_utils::{maybe_addr, must_pay};
+use cw_utils::maybe_addr;
 use omniflix_round_whitelist_factory::msg::ParamsResponse;
 use omniflix_round_whitelist_factory::msg::QueryMsg as QueryFactoryParams;
 
@@ -27,17 +24,15 @@ pub fn instantiate(
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
-    set_contract_version(deps.storage, "whitelist-round", "1.0.0");
+    set_contract_version(deps.storage, "whitelist-round", "1.0.0")?;
 
-    // TODO: Check instantiator is factory contract
     let _factory_params: ParamsResponse = deps.querier.query_wasm_smart(
         info.sender.clone().into_string(),
         &QueryFactoryParams::Params {},
     )?;
 
     let admin = maybe_addr(deps.api, msg.admin)?.unwrap_or(info.sender);
-    // // Put index from 1 to n for rounds and return the rounds as Vec(index, round)
-    // let rounds: Vec<(usize, Round)> = msg.rounds.into_iter().enumerate().collect::<Vec<_>>();
+
     let rounds = msg.rounds;
     // Check if rounds are valid
     for round in rounds.clone() {
@@ -130,7 +125,7 @@ pub fn execute_private_mint(
     collector: String,
 ) -> Result<Response, ContractError> {
     // Load config
-    let config = CONFIG.load(deps.storage)?;
+    let _config = CONFIG.load(deps.storage)?;
 
     let collector = deps.api.addr_validate(&collector)?;
 
@@ -180,6 +175,7 @@ pub fn query(deps: Deps, env: Env, msg: RoundWhitelistQueryMsgs) -> StdResult<Bi
         RoundWhitelistQueryMsgs::IsMember { address } => {
             to_json_binary(&query_is_member(deps, env, address)?)
         }
+        RoundWhitelistQueryMsgs::Admin {} => to_json_binary(&query_admin(deps, env)?),
     }
 }
 
@@ -196,18 +192,13 @@ pub fn query_active_round(deps: Deps, env: Env) -> Result<Round, ContractError> 
 pub fn query_is_active(deps: Deps, env: Env) -> Result<IsActiveResponse, ContractError> {
     let rounds = Rounds::new(ROUNDS_KEY);
     let active_round = rounds.load_active_round(deps.storage, env.block.time);
-    let is_active = match active_round {
-        Some(_) => true,
-        None => false,
-    };
-    Ok(IsActiveResponse {
-        is_active: is_active,
-    })
+    let is_active = active_round.is_some();
+    Ok(IsActiveResponse { is_active })
 }
 
 pub fn query_members(
     deps: Deps,
-    env: Env,
+    _env: Env,
     round_index: u32,
     start_after: Option<String>,
     limit: Option<u32>,
@@ -230,7 +221,7 @@ pub fn query_price(deps: Deps, env: Env) -> Result<MintPriceResponse, ContractEr
     Ok(MintPriceResponse { mint_price: price })
 }
 
-pub fn query_rounds(deps: Deps, env: Env) -> Result<Vec<Round>, ContractError> {
+pub fn query_rounds(deps: Deps, _env: Env) -> Result<Vec<Round>, ContractError> {
     let rounds = Rounds::new(ROUNDS_KEY);
     let rounds = rounds.load_all_rounds(deps.storage)?;
     Ok(rounds)
@@ -255,7 +246,10 @@ pub fn query_is_member(
     };
     let address = deps.api.addr_validate(&address)?;
     let is_member = active_round.is_member(&address);
-    Ok(IsMemberResponse {
-        is_member: is_member,
-    })
+    Ok(IsMemberResponse { is_member })
+}
+
+pub fn query_admin(deps: Deps, _env: Env) -> Result<String, ContractError> {
+    let config = CONFIG.load(deps.storage)?;
+    Ok(config.admin.to_string())
 }

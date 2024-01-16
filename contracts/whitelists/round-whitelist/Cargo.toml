@@ -1,6 +1,6 @@
 [package]
 authors     = ["Adnan Deniz Corlu <adenizcorlu@gmail.com>"]
-name = "round-whitelist"
+name = "omniflix-round-whitelist"
 version = { workspace = true }
 edition = { workspace = true }
 homepage = { workspace = true }

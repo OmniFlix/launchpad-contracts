@@ -1,8 +1,5 @@
-use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Timestamp, Uint128};
-
-use minter_types::CollectionDetails;
-use minter_types::{Config, Token, UserDetails};
+use cosmwasm_schema::cw_serde;
+use cosmwasm_std::Uint128;
 
 #[cw_serde]
 pub enum ExecuteMsg {
@@ -22,19 +19,4 @@ pub enum ExecuteMsg {
     UpdateWhitelistAddress {
         address: String,
     },
-}
-
-#[cw_serde]
-#[derive(QueryResponses)]
-pub enum QueryMsg {
-    #[returns(CollectionDetails)]
-    Collection {},
-    #[returns(Config)]
-    Config {},
-    #[returns(Vec<Token>)]
-    MintableTokens {},
-    #[returns(UserDetails)]
-    MintedTokens { address: String },
-    #[returns(u32)]
-    TotalTokens {},
 }

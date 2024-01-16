@@ -1,5 +1,5 @@
-use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Coin, Timestamp, Uint128};
+use cosmwasm_schema::{cw_serde};
+use cosmwasm_std::{Coin, Timestamp};
 
 use whitelist_types::Round;
 
