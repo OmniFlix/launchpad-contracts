@@ -59,12 +59,12 @@ pub enum QueryMsg {
     Collection {},
     #[returns(Config)]
     Config {},
-    #[returns(Vec<Token>)]
-    MintableTokens {},
     #[returns(UserDetails)]
     MintedTokens { address: String },
     #[returns(u32)]
-    TotalTokens {},
+    TotalMintedCount {},
+    #[returns(u32)]
+    TokensRemaining {},
 }
 
 #[cw_serde]

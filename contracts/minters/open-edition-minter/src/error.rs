@@ -86,4 +86,12 @@ pub enum ContractError {
 
     #[error("Token limit reached")]
     TokenLimitReached {},
+
+    #[error("Token limit not set")]
+    TokenLimitNotSet {},
+}
+impl From<ContractError> for StdError {
+    fn from(err: ContractError) -> StdError {
+        StdError::generic_err(err.to_string())
+    }
 }

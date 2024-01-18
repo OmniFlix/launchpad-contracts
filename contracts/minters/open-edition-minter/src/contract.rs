@@ -4,11 +4,14 @@ use std::str::FromStr;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_json_binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo, Order, Response,
-    StdResult, Uint128, WasmMsg,
+    to_json_binary, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo, Order,
+    Response, StdResult, Uint128, WasmMsg,
 };
 use cw_utils::{maybe_addr, must_pay, nonpayable};
-use open_edition_minter_types::{CollectionDetails, Config, InstantiateMsg, Token, UserDetails};
+use open_edition_minter_types::{
+    CollectionDetails, Config, InstantiateMsg, QueryMsg, Token, UserDetails,
+};
+use serde::de::value::Error;
 
 use crate::error::ContractError;
 use crate::msg::ExecuteMsg;
@@ -506,52 +509,51 @@ pub fn execute_update_whitelist_address(
     Ok(res)
 }
 
-// // Implement Queries
-// #[cfg_attr(not(feature = "library"), entry_point)]
-// pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
-//     match msg {
-//         QueryMsg::Collection {} => to_json_binary(&query_collection(deps, env)?),
-//         QueryMsg::Config {} => to_json_binary(&query_config(deps, env)?),
-//         QueryMsg::MintableTokens {} => to_json_binary(&query_mintable_tokens(deps, env)?),
-//         QueryMsg::MintedTokens { address } => {
-//             to_json_binary(&query_minted_tokens(deps, env, address)?)
-//         }
-//         QueryMsg::TotalTokens {} => to_json_binary(&query_total_tokens(deps, env)?),
-//     }
-// }
+// Implement Queries
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
+    match msg {
+        QueryMsg::Collection {} => to_json_binary(&query_collection(deps, env)?),
+        QueryMsg::Config {} => to_json_binary(&query_config(deps, env)?),
+        QueryMsg::MintedTokens { address } => {
+            to_json_binary(&query_minted_tokens(deps, env, address)?)
+        }
+        QueryMsg::TotalMintedCount {} => to_json_binary(&query_total_tokens_minted(deps, env)?),
+        QueryMsg::TokensRemaining {} => to_json_binary(&query_tokens_remaining(deps, env)?),
+    }
+}
 
-// fn query_collection(deps: Deps, _env: Env) -> Result<CollectionDetails, ContractError> {
-//     let collection = COLLECTION.load(deps.storage)?;
-//     Ok(collection)
-// }
+fn query_collection(deps: Deps, _env: Env) -> Result<CollectionDetails, ContractError> {
+    let collection = COLLECTION.load(deps.storage)?;
+    Ok(collection)
+}
 
-// fn query_config(deps: Deps, _env: Env) -> Result<Config, ContractError> {
-//     let config = CONFIG.load(deps.storage)?;
-//     Ok(config)
-// }
+fn query_config(deps: Deps, _env: Env) -> Result<Config, ContractError> {
+    let config = CONFIG.load(deps.storage)?;
+    Ok(config)
+}
 
-// fn query_mintable_tokens(deps: Deps, _env: Env) -> Result<Vec<Token>, ContractError> {
-//     let mut mintable_tokens: Vec<Token> = Vec::new();
-//     for item in MINTABLE_TOKENS.range(deps.storage, None, None, Order::Ascending) {
-//         let (_key, value) = item?;
+fn query_minted_tokens(
+    deps: Deps,
+    _env: Env,
+    address: String,
+) -> Result<UserDetails, ContractError> {
+    let address = deps.api.addr_validate(&address)?;
+    let minted_tokens = MINTED_TOKENS.load(deps.storage, address)?;
+    Ok(minted_tokens)
+}
 
-//         // Add the (key, value) tuple to the vector
-//         mintable_tokens.push(value);
-//     }
-//     Ok(mintable_tokens)
-// }
+fn query_total_tokens_minted(deps: Deps, _env: Env) -> Result<u32, ContractError> {
+    let total_tokens = MINTED_COUNT.load(deps.storage)?;
+    Ok(total_tokens)
+}
 
-// fn query_minted_tokens(
-//     deps: Deps,
-//     _env: Env,
-//     address: String,
-// ) -> Result<UserDetails, ContractError> {
-//     let address = deps.api.addr_validate(&address)?;
-//     let minted_tokens = MINTED_TOKENS.load(deps.storage, address)?;
-//     Ok(minted_tokens)
-// }
-
-// fn query_total_tokens(deps: Deps, _env: Env) -> Result<u32, ContractError> {
-//     let total_tokens = TOTAL_TOKENS_REMAINING.load(deps.storage)?;
-//     Ok(total_tokens)
-// }
+fn query_tokens_remaining(deps: Deps, _env: Env) -> Result<u32, ContractError> {
+    let config = CONFIG.load(deps.storage)?;
+    if let Some(token_limit) = config.token_limit {
+        let total_tokens = MINTED_COUNT.load(deps.storage)?;
+        Ok(token_limit - total_tokens)
+    } else {
+        Err(ContractError::TokenLimitNotSet {})
+    }
+}
