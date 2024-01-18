@@ -1,6 +1,6 @@
 use crate::round::RoundMethods;
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, Order, StdError, StdResult, Storage, Timestamp};
+use cosmwasm_std::{Addr, Order, StdResult, Storage, Timestamp};
 use cw_storage_plus::{Item, Map};
 
 use crate::error::ContractError;

@@ -1,6 +1,4 @@
-use std::convert::Infallible;
-
-use cosmwasm_std::{CheckedFromRatioError, ConversionOverflowError, StdError, Timestamp, Uint128};
+use cosmwasm_std::{StdError, Timestamp, Uint128};
 use cw_utils::PaymentError;
 use thiserror::Error;
 

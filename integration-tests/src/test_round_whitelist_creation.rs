@@ -344,7 +344,7 @@ mod test_round_whitelist_creation {
         let error = res.downcast_ref::<RoundWhitelistContractError>().unwrap();
         assert_eq!(error, &RoundWhitelistContractError::RoundAlreadyStarted {});
         // Remove round
-        let res = app
+        let _res = app
             .execute_contract(
                 admin.clone(),
                 Addr::unchecked(round_whitelist_address.clone()),
