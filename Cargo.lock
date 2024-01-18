@@ -785,6 +785,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "omniflix-open-edition-minter-factory"
+version = "0.0.1"
+dependencies = [
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "cw-controllers",
+ "cw-storage-plus 1.2.0",
+ "cw-utils 1.0.3",
+ "cw2 1.1.1",
+ "omniflix-std",
+ "open-edition-minter-types",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "omniflix-round-whitelist"
 version = "0.0.1"
 dependencies = [

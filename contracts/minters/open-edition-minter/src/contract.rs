@@ -11,7 +11,6 @@ use cw_utils::{maybe_addr, must_pay, nonpayable};
 use open_edition_minter_types::{
     CollectionDetails, Config, InstantiateMsg, QueryMsg, Token, UserDetails,
 };
-use serde::de::value::Error;
 
 use crate::error::ContractError;
 use crate::msg::ExecuteMsg;
