@@ -1,33 +1,29 @@
 use std::str::FromStr;
 
-use crate::msg::ExecuteMsg;
+//use crate::msg::ExecuteMsg;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_json_binary, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo, Order,
-    Response, StdResult, Uint128, WasmMsg,
+    to_json_binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo, Order, Response,
+    StdResult, Uint128, WasmMsg,
 };
 use cw_utils::{maybe_addr, must_pay, nonpayable};
-use minter_types::{CollectionDetails, InstantiateMsg};
-use omniflix_minter_factory::msg::ParamsResponse;
-use omniflix_minter_factory::msg::QueryMsg::Params as QueryFactoryParams;
-use omniflix_round_whitelist::msg::ExecuteMsg::PrivateMint;
+use open_edition_minter_types::{CollectionDetails, Config, InstantiateMsg, Token, UserDetails};
+
+use crate::error::ContractError;
+use crate::msg::ExecuteMsg;
+use crate::state::{last_token_id, COLLECTION, CONFIG, MINTED_COUNT, MINTED_TOKENS};
+use cw2::set_contract_version;
+use omniflix_round_whitelist::msg::ExecuteMsg as RoundWhitelistExecuteMsg;
+use omniflix_std::types::omniflix::onft::v1beta1::{
+    Metadata, MsgCreateDenom, MsgMintOnft, OnftQuerier,
+};
 use whitelist_types::{
     IsActiveResponse, IsMemberResponse, MintPriceResponse, RoundWhitelistQueryMsgs,
 };
 
-use crate::error::ContractError;
-use crate::state::{COLLECTION, CONFIG, MINTABLE_TOKENS, MINTED_TOKENS, TOTAL_TOKENS_REMAINING};
-use crate::utils::{randomize_token_list, return_random_token_id};
-use minter_types::{Config, QueryMsg, Token, UserDetails};
-
-use cw2::set_contract_version;
-use omniflix_std::types::omniflix::onft::v1beta1::{
-    Metadata, MsgCreateDenom, MsgMintOnft, OnftQuerier,
-};
-
 // version info for migration info
-const CONTRACT_NAME: &str = "crates.io:omniflix-minter";
+const CONTRACT_NAME: &str = "crates.io:omniflix-minter-open-edition-minter";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[cfg(not(test))]
@@ -53,9 +49,9 @@ pub fn instantiate(
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     // Query factory params of instantiator
     // If the instantiator is not a our factory then we wont be able to parse the response
-    let _factory_params: ParamsResponse = deps
-        .querier
-        .query_wasm_smart(info.sender.clone().into_string(), &QueryFactoryParams {})?;
+    // let _factory_params: ParamsResponse = deps
+    //     .querier
+    //     .query_wasm_smart(info.sender.clone().into_string(), &QueryFactoryParams {})?;
 
     // This field is implemented only for testing purposes
     let creation_fee_amount = if CREATION_FEE == Uint128::new(0) {
@@ -72,6 +68,7 @@ pub fn instantiate(
     } else {
         CREATION_FEE_DENOM.to_string()
     };
+
     let amount = must_pay(&info, &creation_fee_denom)?;
     // Exact amount must be paid
     if amount != creation_fee_amount {
@@ -84,10 +81,11 @@ pub fn instantiate(
     if msg.per_address_limit == 0 {
         return Err(ContractError::PerAddressLimitZero {});
     }
-
-    // Check num_tokens
-    if msg.num_tokens == 0 {
-        return Err(ContractError::InvalidNumTokens {});
+    // Check if token limit is 0
+    if let Some(token_limit) = msg.token_limit {
+        if token_limit == 0 {
+            return Err(ContractError::InvalidNumTokens {});
+        }
     }
 
     // Check start time
@@ -116,16 +114,10 @@ pub fn instantiate(
             return Err(ContractError::WhitelistAlreadyActive {});
         }
     }
-
-    // Check mint price
-    if msg.mint_price == Uint128::new(0) {
-        return Err(ContractError::InvalidMintPrice {});
-    }
     let admin = maybe_addr(deps.api, msg.admin.clone())?.unwrap_or(info.sender.clone());
 
     let payment_collector =
         maybe_addr(deps.api, msg.payment_collector.clone())?.unwrap_or(info.sender.clone());
-    let num_tokens = msg.num_tokens;
 
     let config = Config {
         per_address_limit: msg.per_address_limit,
@@ -139,6 +131,7 @@ pub fn instantiate(
         },
         whitelist_address: maybe_addr(deps.api, msg.whitelist_address.clone())?,
         end_time: msg.end_time,
+        token_limit: msg.token_limit,
     };
     CONFIG.save(deps.storage, &config)?;
 
@@ -157,29 +150,6 @@ pub fn instantiate(
         data: msg.collection_details.data,
     };
     COLLECTION.save(deps.storage, &collection)?;
-
-    // Generate tokens
-    let tokens: Vec<(u32, Token)> = (1..=num_tokens)
-        .map(|x| {
-            (
-                x,
-                Token {
-                    token_id: x.to_string(),
-                },
-            )
-        })
-        .collect();
-
-    // Save mintable tokens
-    for (key, value) in randomize_token_list(tokens, num_tokens, env.clone())? {
-        match MINTABLE_TOKENS.save(deps.storage, key, &value) {
-            Ok(_) => (),
-            Err(_) => return Err(ContractError::ErrorSavingTokens {}),
-        }
-    }
-
-    // Save total tokens
-    TOTAL_TOKENS_REMAINING.save(deps.storage, &num_tokens)?;
 
     let nft_creation_msg: CosmosMsg = MsgCreateDenom {
         description: collection.description,
@@ -218,18 +188,13 @@ pub fn execute(
 ) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::Mint {} => execute_mint(deps, env, info),
-        ExecuteMsg::MintAdmin {
-            recipient,
-            denom_id,
-        } => execute_mint_admin(deps, env, info, recipient, denom_id),
-        ExecuteMsg::BurnRemainingTokens {} => execute_burn_remaining_tokens(deps, env, info),
+        ExecuteMsg::MintAdmin { recipient } => execute_mint_admin(deps, env, info, recipient),
         ExecuteMsg::UpdateRoyaltyRatio { ratio } => {
             execute_update_royalty_ratio(deps, env, info, ratio)
         }
         ExecuteMsg::UpdateMintPrice { mint_price } => {
             execute_update_mint_price(deps, env, info, mint_price)
         }
-        ExecuteMsg::RandomizeList {} => execute_randomize_list(deps, env, info),
         ExecuteMsg::UpdateWhitelistAddress { address } => {
             execute_update_whitelist_address(deps, env, info, address)
         }
@@ -238,11 +203,19 @@ pub fn execute(
 
 pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
-    // Check if any tokens are left
-    let total_tokens_remaining = TOTAL_TOKENS_REMAINING.load(deps.storage)?;
-    if total_tokens_remaining == 0 {
-        return Err(ContractError::NoTokensLeftToMint {});
+    // Check if any token limit set and if it is reached
+    if let Some(token_limit) = config.token_limit {
+        if MINTED_COUNT.load(deps.storage)? >= token_limit {
+            return Err(ContractError::TokenLimitReached {});
+        }
     }
+    // Check if end time is determined and if it is passed
+    if let Some(end_time) = config.end_time {
+        if env.block.time > end_time {
+            return Err(ContractError::PublicMintingEnded {});
+        }
+    }
+
     let mut user_details = MINTED_TOKENS
         .may_load(deps.storage, info.sender.clone())?
         .unwrap_or(UserDetails::default());
@@ -253,27 +226,9 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     if user_details.total_minted_count > config.per_address_limit {
         return Err(ContractError::AddressReachedMintLimit {});
     }
-
     let mut mint_price = config.mint_price;
-
-    // Collect mintable tokens
-    let mut mintable_tokens: Vec<(u32, Token)> = Vec::new();
-    for item in MINTABLE_TOKENS.range(deps.storage, None, None, Order::Ascending) {
-        let (key, value) = item?;
-        mintable_tokens.push((key, value));
-    }
-    // Check if public end time is determined and if it is passed
-    if let Some(end_time) = config.end_time {
-        if env.block.time > end_time {
-            return Err(ContractError::PublicMintingEnded {});
-        }
-    }
-
-    // Get a random token id
-    let random_token = return_random_token_id(&mintable_tokens, env.clone())?;
-    // Add the minted token to the user details
-    user_details.minted_tokens.push(random_token.1.clone());
     // Check if minting is started
+
     let is_public = env.block.time > config.start_time;
 
     let mut messages: Vec<CosmosMsg> = vec![];
@@ -306,7 +261,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
             }
             messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr: whitelist_address.into_string(),
-                msg: to_json_binary(&PrivateMint {
+                msg: to_json_binary(&RoundWhitelistExecuteMsg::PrivateMint {
                     collector: info.sender.clone().into_string(),
                 })?,
                 funds: vec![],
@@ -331,22 +286,21 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     // Get the payment collector address
     let payment_collector = config.payment_collector;
     let collection = COLLECTION.load(deps.storage)?;
-    // Update storage
-    // Remove the token from the mintable tokens
-    MINTABLE_TOKENS.remove(deps.storage, random_token.0);
-    // Decrement the total tokens remaining
-    TOTAL_TOKENS_REMAINING.update(deps.storage, |mut total_tokens| -> StdResult<_> {
-        total_tokens -= 1;
+
+    MINTED_COUNT.update(deps.storage, |mut total_tokens| -> StdResult<_> {
+        total_tokens += 1;
         Ok(total_tokens)
     })?;
+
     // Save the user details
     MINTED_TOKENS.save(deps.storage, info.sender.clone(), &user_details)?;
-    let token_id = random_token.1.token_id;
+
+    let token_id = last_token_id(deps.storage) + 1;
     // Generate the metadata
     let metadata = Metadata {
-        name: format!("{} # {}", collection.name, token_id),
+        name: collection.name,
         description: collection.description,
-        media_uri: format!("{}/{}", collection.base_uri, token_id),
+        media_uri: collection.base_uri,
         preview_uri: collection.preview_uri,
         uri_hash: collection.uri_hash,
     };
@@ -354,7 +308,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     // Create the mint message
     let mint_msg: CosmosMsg = MsgMintOnft {
         data: collection.data,
-        id: token_id.clone(),
+        id: token_id.clone().to_string(),
         metadata: Some(metadata.clone()),
         denom_id: collection.id.clone(),
         transferable: true,
@@ -392,67 +346,27 @@ pub fn execute_mint_admin(
     env: Env,
     info: MessageInfo,
     recipient: String,
-    denom_id: Option<String>,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
     nonpayable(&info)?;
+
     let config = CONFIG.load(deps.storage)?;
+
     let collection = COLLECTION.load(deps.storage)?;
+
     if info.sender != config.admin {
         return Err(ContractError::Unauthorized {});
     }
     let recipient = deps.api.addr_validate(&recipient)?;
+    // We are not checking token limit nor end time here because this is admin minting
 
-    // Collect mintable tokens
-    let mut mintable_tokens: Vec<(u32, Token)> = Vec::new();
-    for item in MINTABLE_TOKENS.range(deps.storage, None, None, Order::Ascending) {
-        let (key, value) = item?;
-        // Add the (key, value) tuple to the vector
-        mintable_tokens.push((key, value));
-    }
-    let token = match denom_id {
-        None => return_random_token_id(&mintable_tokens, env.clone())?,
-        Some(denom_id) => {
-            // Find key for the desired token
-            let token: Option<(u32, Token)> = mintable_tokens
-                .iter()
-                .find(|(_, token)| token.token_id == denom_id)
-                .map(|(key, token)| (*key, token.clone()));
-
-            match token {
-                None => {
-                    return Err(ContractError::TokenIdNotMintable {});
-                }
-                Some(token) => token,
-            }
-        }
-    };
-    // Remove the token from the mintable tokens
-    MINTABLE_TOKENS.remove(deps.storage, token.0);
-
-    // Decrement the total tokens
-    TOTAL_TOKENS_REMAINING.update(deps.storage, |mut total_tokens| -> StdResult<_> {
-        total_tokens -= 1;
-        Ok(total_tokens)
-    })?;
-
-    // Increment the minted tokens for the addres
-    let mut user_details = MINTED_TOKENS
-        .may_load(deps.storage, recipient.clone())?
-        .unwrap_or(UserDetails::default());
-    // We are updating parameter ourself and not using add_minted_token function because we want to override per address limit checks
-    user_details.minted_tokens.push(token.1.clone());
-    user_details.total_minted_count += 1;
-    // Save details
-    MINTED_TOKENS.save(deps.storage, recipient.clone(), &user_details)?;
-
-    let denom_id = token.1.token_id;
-
+    let token_id = last_token_id(deps.storage) + 1;
     // Generate the metadata
+
     let metadata = Metadata {
-        name: format!("{} # {}", collection.name, denom_id),
+        name: collection.name,
         description: collection.description,
-        media_uri: format!("{}/{}", collection.preview_uri, denom_id),
+        media_uri: collection.base_uri,
         preview_uri: collection.preview_uri,
         uri_hash: collection.uri_hash,
     };
@@ -460,7 +374,7 @@ pub fn execute_mint_admin(
     // Create the mint message
     let mint_msg: CosmosMsg = MsgMintOnft {
         data: collection.data,
-        id: denom_id.clone(),
+        id: collection.id.clone(),
         metadata: Some(metadata),
         denom_id: collection.id.clone(),
         transferable: true,
@@ -475,7 +389,7 @@ pub fn execute_mint_admin(
     let res = Response::new()
         .add_message(mint_msg)
         .add_attribute("action", "mint")
-        .add_attribute("token_id", denom_id.to_string())
+        .add_attribute("token_id", token_id.to_string())
         .add_attribute("denom_id", collection.id);
     Ok(res)
 }
@@ -489,14 +403,10 @@ pub fn execute_burn_remaining_tokens(
     if info.sender != config.admin {
         return Err(ContractError::Unauthorized {});
     }
-    // We technicaly cant burn tokens because they are not minted yet
-    // But we can delete the mintable tokens map
-
-    // Delete the mintable tokens map
-    MINTABLE_TOKENS.clear(deps.storage);
-
-    // Decrement the total tokens
-    TOTAL_TOKENS_REMAINING.save(deps.storage, &0)?;
+    // We cannot burn open edition minter but we can set token limit to 0
+    let mut config = CONFIG.load(deps.storage)?;
+    config.token_limit = Some(0);
+    CONFIG.save(deps.storage, &config)?;
 
     let res = Response::new().add_attribute("action", "burn_remaining_tokens");
     Ok(res)
@@ -513,7 +423,9 @@ pub fn execute_update_royalty_ratio(
     if info.sender != config.admin {
         return Err(ContractError::Unauthorized {});
     }
-    let ratio = Decimal::from_str(&ratio)?; // Check if ratio is decimal number
+    // Check if ratio is decimal number
+    let ratio = Decimal::from_str(&ratio)?;
+
     if ratio < Decimal::zero() || ratio > Decimal::one() {
         return Err(ContractError::InvalidRoyaltyRatio {});
     }
@@ -556,38 +468,6 @@ pub fn execute_update_mint_price(
     Ok(res)
 }
 
-pub fn execute_randomize_list(
-    deps: DepsMut,
-    env: Env,
-    info: MessageInfo,
-) -> Result<Response, ContractError> {
-    // Check if sender is admin
-    let collection = COLLECTION.load(deps.storage)?;
-    let config = CONFIG.load(deps.storage)?;
-    // This should be available for everyone but then this could be abused
-    if info.sender != config.admin {
-        return Err(ContractError::Unauthorized {});
-    }
-
-    // Collect mintable tokens
-    let mut mintable_tokens: Vec<(u32, Token)> = Vec::new();
-    for item in MINTABLE_TOKENS.range(deps.storage, None, None, Order::Ascending) {
-        let (key, value) = item?;
-
-        // Add the (key, value) tuple to the vector
-        mintable_tokens.push((key, value));
-    }
-    let tokens_remaining = TOTAL_TOKENS_REMAINING.load(deps.storage)?;
-    let randomized_list = randomize_token_list(mintable_tokens, tokens_remaining, env)?;
-
-    for token in randomized_list {
-        MINTABLE_TOKENS.save(deps.storage, token.0, &token.1)?;
-    }
-
-    let res = Response::new().add_attribute("action", "randomize_list");
-    Ok(res)
-}
-
 pub fn execute_update_whitelist_address(
     deps: DepsMut,
     _env: Env,
@@ -626,52 +506,52 @@ pub fn execute_update_whitelist_address(
     Ok(res)
 }
 
-// Implement Queries
-#[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
-    match msg {
-        QueryMsg::Collection {} => to_json_binary(&query_collection(deps, env)?),
-        QueryMsg::Config {} => to_json_binary(&query_config(deps, env)?),
-        QueryMsg::MintableTokens {} => to_json_binary(&query_mintable_tokens(deps, env)?),
-        QueryMsg::MintedTokens { address } => {
-            to_json_binary(&query_minted_tokens(deps, env, address)?)
-        }
-        QueryMsg::TotalTokens {} => to_json_binary(&query_total_tokens(deps, env)?),
-    }
-}
+// // Implement Queries
+// #[cfg_attr(not(feature = "library"), entry_point)]
+// pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
+//     match msg {
+//         QueryMsg::Collection {} => to_json_binary(&query_collection(deps, env)?),
+//         QueryMsg::Config {} => to_json_binary(&query_config(deps, env)?),
+//         QueryMsg::MintableTokens {} => to_json_binary(&query_mintable_tokens(deps, env)?),
+//         QueryMsg::MintedTokens { address } => {
+//             to_json_binary(&query_minted_tokens(deps, env, address)?)
+//         }
+//         QueryMsg::TotalTokens {} => to_json_binary(&query_total_tokens(deps, env)?),
+//     }
+// }
 
-fn query_collection(deps: Deps, _env: Env) -> Result<CollectionDetails, ContractError> {
-    let collection = COLLECTION.load(deps.storage)?;
-    Ok(collection)
-}
+// fn query_collection(deps: Deps, _env: Env) -> Result<CollectionDetails, ContractError> {
+//     let collection = COLLECTION.load(deps.storage)?;
+//     Ok(collection)
+// }
 
-fn query_config(deps: Deps, _env: Env) -> Result<Config, ContractError> {
-    let config = CONFIG.load(deps.storage)?;
-    Ok(config)
-}
+// fn query_config(deps: Deps, _env: Env) -> Result<Config, ContractError> {
+//     let config = CONFIG.load(deps.storage)?;
+//     Ok(config)
+// }
 
-fn query_mintable_tokens(deps: Deps, _env: Env) -> Result<Vec<Token>, ContractError> {
-    let mut mintable_tokens: Vec<Token> = Vec::new();
-    for item in MINTABLE_TOKENS.range(deps.storage, None, None, Order::Ascending) {
-        let (_key, value) = item?;
+// fn query_mintable_tokens(deps: Deps, _env: Env) -> Result<Vec<Token>, ContractError> {
+//     let mut mintable_tokens: Vec<Token> = Vec::new();
+//     for item in MINTABLE_TOKENS.range(deps.storage, None, None, Order::Ascending) {
+//         let (_key, value) = item?;
 
-        // Add the (key, value) tuple to the vector
-        mintable_tokens.push(value);
-    }
-    Ok(mintable_tokens)
-}
+//         // Add the (key, value) tuple to the vector
+//         mintable_tokens.push(value);
+//     }
+//     Ok(mintable_tokens)
+// }
 
-fn query_minted_tokens(
-    deps: Deps,
-    _env: Env,
-    address: String,
-) -> Result<UserDetails, ContractError> {
-    let address = deps.api.addr_validate(&address)?;
-    let minted_tokens = MINTED_TOKENS.load(deps.storage, address)?;
-    Ok(minted_tokens)
-}
+// fn query_minted_tokens(
+//     deps: Deps,
+//     _env: Env,
+//     address: String,
+// ) -> Result<UserDetails, ContractError> {
+//     let address = deps.api.addr_validate(&address)?;
+//     let minted_tokens = MINTED_TOKENS.load(deps.storage, address)?;
+//     Ok(minted_tokens)
+// }
 
-fn query_total_tokens(deps: Deps, _env: Env) -> Result<u32, ContractError> {
-    let total_tokens = TOTAL_TOKENS_REMAINING.load(deps.storage)?;
-    Ok(total_tokens)
-}
+// fn query_total_tokens(deps: Deps, _env: Env) -> Result<u32, ContractError> {
+//     let total_tokens = TOTAL_TOKENS_REMAINING.load(deps.storage)?;
+//     Ok(total_tokens)
+// }

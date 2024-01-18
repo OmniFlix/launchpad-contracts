@@ -763,6 +763,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "omniflix-open-edition-minter"
+version = "0.0.1"
+dependencies = [
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "cw-controllers",
+ "cw-storage-plus 1.2.0",
+ "cw-utils 1.0.3",
+ "cw2 1.1.1",
+ "minter-types",
+ "omniflix-round-whitelist",
+ "omniflix-std",
+ "open-edition-minter-types",
+ "schemars",
+ "serde",
+ "sha2 0.10.8",
+ "thiserror",
+ "whitelist-types",
+]
+
+[[package]]
 name = "omniflix-round-whitelist"
 version = "0.0.1"
 dependencies = [
@@ -863,6 +885,18 @@ name = "opaque-debug"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
+
+[[package]]
+name = "open-edition-minter-types"
+version = "0.0.1"
+dependencies = [
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cw-utils 1.0.3",
+ "cw721-base 0.18.0",
+ "serde",
+ "thiserror",
+]
 
 [[package]]
 name = "pkcs8"

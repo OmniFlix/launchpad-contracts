@@ -33,14 +33,12 @@ pub fn return_minter_instantiate_msg() -> MinterInstantiateMsg {
         id: "id".to_string(),
         extensible: true,
         nsfw: false,
-        num_tokens: 1000,
         base_uri: "base_uri".to_string(),
         uri: "uri".to_string(),
         uri_hash: "uri_hash".to_string(),
         data: "data".to_string(),
     };
 
-    
     MinterInstantiateMsg {
         per_address_limit: 1,
         admin: Some("creator".to_string()),
@@ -52,6 +50,7 @@ pub fn return_minter_instantiate_msg() -> MinterInstantiateMsg {
         payment_collector: Some("payment_collector".to_string()),
         whitelist_address: None,
         end_time: Some(Timestamp::from_nanos(1_000_000_000 + 1_000_000_000)),
+        num_tokens: 1000,
     }
 }
 

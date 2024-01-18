@@ -121,7 +121,7 @@ mod test_minter_creation {
 
         // Send 0 num tokens
         let mut minter_inst_msg = return_minter_instantiate_msg();
-        minter_inst_msg.collection_details.num_tokens = 0;
+        minter_inst_msg.num_tokens = 0;
         let create_minter_msg = FactoryExecuteMsg::CreateMinter {
             msg: minter_inst_msg,
         };

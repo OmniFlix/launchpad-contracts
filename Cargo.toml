@@ -35,3 +35,4 @@ cosmwasm-storage     = "1.5.0"
 serde                = { version = "1.0.145", default-features = false, features = ["derive"] }
 whitelist-types = { version = "0.0.1", path = "packages/whitelist-types" }
 minter-types = { version = "0.0.1", path = "packages/minter-types" }
+open-edition-minter-types = { version = "0.0.1", path = "packages/open-edition-minter-types" }

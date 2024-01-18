@@ -286,7 +286,6 @@ mod tests {
             id: "collection_id".to_string(),
             extensible: true,
             nsfw: false,
-            num_tokens: 10,
             base_uri: "https://example.com/base".to_string(),
             uri: "https://example.com/collection".to_string(),
             uri_hash: "hash123".to_string(),
@@ -305,6 +304,7 @@ mod tests {
                 per_address_limit: 3,
                 collection_details: collection_details.clone(),
                 end_time: None,
+                num_tokens: 100,
             },
         };
 
@@ -336,6 +336,7 @@ mod tests {
                 per_address_limit: 3,
                 collection_details: collection_details.clone(),
                 end_time: None,
+                num_tokens: 100,
             },
         };
 
@@ -400,6 +401,7 @@ mod tests {
                 per_address_limit: 3,
                 collection_details: collection_details.clone(),
                 end_time: None,
+                num_tokens: 100,
             },
         };
 
@@ -444,6 +446,7 @@ mod tests {
                 per_address_limit: 3,
                 collection_details: collection_details.clone(),
                 end_time: None,
+                num_tokens: 100,
             },
         };
 
@@ -479,6 +482,7 @@ mod tests {
                     per_address_limit: 3,
                     collection_details: collection_details.clone(),
                     end_time: None,
+                    num_tokens: 100,
                 })
                 .unwrap(),
                 funds: vec![Coin {
