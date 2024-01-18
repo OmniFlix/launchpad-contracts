@@ -774,6 +774,7 @@ dependencies = [
  "cw-utils 1.0.3",
  "cw2 1.1.1",
  "minter-types",
+ "omniflix-open-edition-minter-factory",
  "omniflix-round-whitelist",
  "omniflix-std",
  "open-edition-minter-types",

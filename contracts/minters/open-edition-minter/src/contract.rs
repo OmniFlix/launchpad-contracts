@@ -16,6 +16,9 @@ use crate::error::ContractError;
 use crate::msg::ExecuteMsg;
 use crate::state::{last_token_id, COLLECTION, CONFIG, MINTED_COUNT, MINTED_TOKENS};
 use cw2::set_contract_version;
+use omniflix_open_edition_minter_factory::msg::{
+    ParamsResponse, QueryMsg as OpenEditionMinterFactoryQueryMsg,
+};
 use omniflix_round_whitelist::msg::ExecuteMsg as RoundWhitelistExecuteMsg;
 use omniflix_std::types::omniflix::onft::v1beta1::{
     Metadata, MsgCreateDenom, MsgMintOnft, OnftQuerier,
@@ -51,9 +54,10 @@ pub fn instantiate(
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     // Query factory params of instantiator
     // If the instantiator is not a our factory then we wont be able to parse the response
-    // let _factory_params: ParamsResponse = deps
-    //     .querier
-    //     .query_wasm_smart(info.sender.clone().into_string(), &QueryFactoryParams {})?;
+    let _factory_params: ParamsResponse = deps.querier.query_wasm_smart(
+        info.sender.clone().into_string(),
+        &OpenEditionMinterFactoryQueryMsg::Params {},
+    )?;
 
     // This field is implemented only for testing purposes
     let creation_fee_amount = if CREATION_FEE == Uint128::new(0) {
