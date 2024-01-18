@@ -4,8 +4,8 @@ use std::str::FromStr;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_json_binary, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo, Order,
-    Response, StdResult, Uint128, WasmMsg,
+    to_json_binary, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo, Response,
+    StdResult, Uint128, WasmMsg,
 };
 use cw_utils::{maybe_addr, must_pay, nonpayable};
 use open_edition_minter_types::{
@@ -228,6 +228,11 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     if user_details.total_minted_count > config.per_address_limit {
         return Err(ContractError::AddressReachedMintLimit {});
     }
+    let token_id = last_token_id(deps.storage) + 1;
+    user_details.minted_tokens.push(Token {
+        token_id: token_id.to_string(),
+    });
+    MINTED_TOKENS.save(deps.storage, info.sender.clone(), &user_details)?;
     let mut mint_price = config.mint_price;
     // Check if minting is started
 
@@ -297,7 +302,6 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     // Save the user details
     MINTED_TOKENS.save(deps.storage, info.sender.clone(), &user_details)?;
 
-    let token_id = last_token_id(deps.storage) + 1;
     // Generate the metadata
     let metadata = Metadata {
         name: collection.name,
@@ -361,9 +365,16 @@ pub fn execute_mint_admin(
     }
     let recipient = deps.api.addr_validate(&recipient)?;
     // We are not checking token limit nor end time here because this is admin minting
-
     let token_id = last_token_id(deps.storage) + 1;
     // Generate the metadata
+    let mut user_details = MINTED_TOKENS
+        .may_load(deps.storage, recipient.clone())?
+        .unwrap_or(UserDetails::default());
+    user_details.total_minted_count += 1;
+    user_details.minted_tokens.push(Token {
+        token_id: token_id.to_string(),
+    });
+    MINTED_TOKENS.save(deps.storage, recipient.clone(), &user_details)?;
 
     let metadata = Metadata {
         name: collection.name,

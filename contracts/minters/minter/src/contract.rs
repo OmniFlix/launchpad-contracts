@@ -84,12 +84,10 @@ pub fn instantiate(
     if msg.per_address_limit == 0 {
         return Err(ContractError::PerAddressLimitZero {});
     }
-
     // Check num_tokens
     if msg.num_tokens == 0 {
         return Err(ContractError::InvalidNumTokens {});
     }
-
     // Check start time
     if msg.start_time < env.block.time {
         return Err(ContractError::InvalidStartTime {});
@@ -562,7 +560,6 @@ pub fn execute_randomize_list(
     info: MessageInfo,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
-    let collection = COLLECTION.load(deps.storage)?;
     let config = CONFIG.load(deps.storage)?;
     // This should be available for everyone but then this could be abused
     if info.sender != config.admin {
