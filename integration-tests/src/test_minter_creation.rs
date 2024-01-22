@@ -34,6 +34,8 @@ mod test_minter_creation {
             minter_code_id,
             _round_whitelist_factory_code_id,
             _round_whitelist_code_id,
+            _open_edition_minter_factory_code_id,
+            _open_edition_minter_code_id,
         ) = setup();
         let admin = test_addresses.admin;
         let creator = test_addresses.creator;
@@ -121,7 +123,7 @@ mod test_minter_creation {
 
         // Send 0 num tokens
         let mut minter_inst_msg = return_minter_instantiate_msg();
-        minter_inst_msg.collection_details.num_tokens = 0;
+        minter_inst_msg.init.num_tokens = 0;
         let create_minter_msg = FactoryExecuteMsg::CreateMinter {
             msg: minter_inst_msg,
         };
@@ -139,7 +141,7 @@ mod test_minter_creation {
 
         // Send royalty ratio more than 100%
         let mut minter_inst_msg = return_minter_instantiate_msg();
-        minter_inst_msg.royalty_ratio = "1.1".to_string();
+        minter_inst_msg.init.royalty_ratio = "1.1".to_string();
         let create_minter_msg = FactoryExecuteMsg::CreateMinter {
             msg: minter_inst_msg,
         };
@@ -157,7 +159,7 @@ mod test_minter_creation {
 
         // Send mint price 0
         let mut minter_inst_msg = return_minter_instantiate_msg();
-        minter_inst_msg.mint_price = Uint128::zero();
+        minter_inst_msg.init.mint_price = Uint128::zero();
         let create_minter_msg = FactoryExecuteMsg::CreateMinter {
             msg: minter_inst_msg,
         };
@@ -175,7 +177,7 @@ mod test_minter_creation {
 
         // Incorrect start time
         let mut minter_inst_msg = return_minter_instantiate_msg();
-        minter_inst_msg.start_time = Timestamp::from_nanos(1_000 - 1);
+        minter_inst_msg.init.start_time = Timestamp::from_nanos(1_000 - 1);
         let create_minter_msg = FactoryExecuteMsg::CreateMinter {
             msg: minter_inst_msg,
         };
@@ -193,7 +195,7 @@ mod test_minter_creation {
 
         // Incorrect end time
         let mut minter_inst_msg = return_minter_instantiate_msg();
-        minter_inst_msg.end_time = Some(minter_inst_msg.start_time.minus_nanos(1));
+        minter_inst_msg.init.end_time = Some(minter_inst_msg.init.start_time.minus_nanos(1));
         let create_minter_msg = FactoryExecuteMsg::CreateMinter {
             msg: minter_inst_msg,
         };
@@ -260,10 +262,7 @@ mod test_minter_creation {
             Decimal::from_ratio(1u128, 10u128)
         );
         assert_eq!(config_data.admin, Addr::unchecked("creator"));
-        assert_eq!(
-            config_data.payment_collector,
-            Addr::unchecked("payment_collector")
-        );
+        assert_eq!(config_data.payment_collector, Addr::unchecked("creator"));
 
         // Query mintable tokens
         let mintable_tokens_data: Vec<Token> = app
@@ -297,6 +296,8 @@ mod test_minter_creation {
             _minter_code_id,
             round_whitelist_factory_code_id,
             round_whitelist_code_id,
+            _open_edition_minter_factory_code_id,
+            _open_edition_minter_code_id,
         ) = setup();
         let admin = test_addresses.admin;
         let creator = test_addresses.creator;

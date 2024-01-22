@@ -8,35 +8,30 @@ pub struct InstantiateMsg {
     pub admin: Option<String>,
     pub allowed_minter_mint_denoms: Vec<String>,
     pub fee_collector_address: String,
-    pub minter_code_id: u64,
+    pub open_edition_minter_code_id: u64,
     pub minter_creation_fee: Coin,
 }
 
 #[cw_serde]
-pub struct MinterInitExtention {
+pub struct OpenEditionMinterInitExtention {
     pub admin: Option<String>,
     pub mint_price: Uint128,
-    // Factory sould check denom against the params if denoms is valid and whitelisted.
     pub mint_denom: String,
-    // Public minting start time
     pub start_time: Timestamp,
     pub end_time: Option<Timestamp>,
+    pub token_limit: Option<u32>,
     pub per_address_limit: u32,
-    // We expect user to send a string between 0 and 1
-    // FE "0.1"
     pub royalty_ratio: String,
     pub payment_collector: Option<String>,
-    // Whitelist address if any
     pub whitelist_address: Option<String>,
-    pub num_tokens: u32,
 }
 
-pub type CreateMinterMsg = MinterInstantiateMsg<MinterInitExtention>;
+pub type OpenEditionMinterCreateMsg = MinterInstantiateMsg<OpenEditionMinterInitExtention>;
 
 #[cw_serde]
 pub enum ExecuteMsg {
     CreateMinter {
-        msg: CreateMinterMsg,
+        msg: OpenEditionMinterCreateMsg,
     },
     UpdateAdmin {
         admin: String,

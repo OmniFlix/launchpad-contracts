@@ -30,6 +30,8 @@ mod test_minting {
             minter_code_id,
             _round_whitelist_factory_code_id,
             _round_whitelist_code_id,
+            _open_edition_minter_code_id,
+            _open_edition_minter_factory_code_id,
         ) = setup();
         let admin = test_addresses.admin;
         let creator = test_addresses.creator;
@@ -152,6 +154,12 @@ mod test_minting {
             time: Timestamp::from_nanos(1_000_000_000 + 1),
         });
 
+        // Query uflix balance of creator before mint
+        let creator_balance_before_mint: Uint128 = app
+            .wrap()
+            .query_balance(creator.to_string(), "uflix".to_string())
+            .unwrap()
+            .amount;
         // Mint
         let res = app
             .execute_contract(
@@ -161,6 +169,17 @@ mod test_minting {
                 &[coin(1000000, "uflix")],
             )
             .unwrap();
+        // Query uflix balance of creator after mint
+        let creator_balance_after_mint: Uint128 = app
+            .wrap()
+            .query_balance(creator.to_string(), "uflix".to_string())
+            .unwrap()
+            .amount;
+        // Check if creator got paid
+        assert_eq!(
+            creator_balance_after_mint,
+            creator_balance_before_mint + Uint128::from(1000000u128)
+        );
         let token_id: String = res.events[1].attributes[2].value.clone();
         let collection_id: String = res.events[1].attributes[3].value.clone();
         // We are quering collection to check if it is minted from our mocked onft keeper
@@ -304,6 +323,8 @@ mod test_minting {
             minter_code_id,
             _round_whitelist_factory_code_id,
             _round_whitelist_code_id,
+            _open_edition_minter_code_id,
+            _open_edition_minter_factory_code_id,
         ) = setup();
         let admin = test_addresses.admin;
         let creator = test_addresses.creator;
@@ -499,6 +520,8 @@ mod test_minting {
             minter_code_id,
             round_whitelist_factory_code_id,
             round_whitelist_code_id,
+            _open_edition_minter_code_id,
+            _open_edition_minter_factory_code_id,
         ) = setup();
         let admin = test_addresses.admin;
         let creator = test_addresses.creator;
@@ -570,8 +593,8 @@ mod test_minting {
         let round_whitelist_address = get_minter_address_from_res(res.clone());
 
         let mut minter_inst_msg = return_minter_instantiate_msg();
-        minter_inst_msg.whitelist_address = Some(round_whitelist_address.clone());
-        minter_inst_msg.per_address_limit = 2;
+        minter_inst_msg.init.whitelist_address = Some(round_whitelist_address.clone());
+        minter_inst_msg.init.per_address_limit = 2;
 
         let create_minter_msg = FactoryExecuteMsg::CreateMinter {
             msg: minter_inst_msg,

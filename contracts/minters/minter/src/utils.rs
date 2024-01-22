@@ -32,7 +32,6 @@ pub fn randomize_token_list(
         .map_err(StdError::generic_err)?;
     // Iterate over tokens
     let mut randomized_tokens: Vec<(u32, Token)> = Vec::new();
-    // TODO: is it ok to reset all keys for every randomization?
     let mut key: u32 = 1;
     for token in raw_tokens {
         randomized_tokens.push((key, token));

@@ -1,7 +1,7 @@
-use std::str::FromStr;
-
 use crate::error::ContractError;
-use crate::msg::{CreateMinterMsg, ExecuteMsg, InstantiateMsg, ParamsResponse, QueryMsg};
+use crate::msg::{
+    ExecuteMsg, InstantiateMsg, OpenEditionMinterCreateMsg, ParamsResponse, QueryMsg,
+};
 use crate::state::{Params, PARAMS};
 use crate::utils::check_payment;
 #[cfg(not(feature = "library"))]
@@ -12,6 +12,7 @@ use cosmwasm_std::{
 };
 use cw_utils::maybe_addr;
 use omniflix_std::types::omniflix::onft::v1beta1::OnftQuerier;
+use std::str::FromStr;
 #[cfg(not(test))]
 const CREATION_FEE: Uint128 = Uint128::new(0);
 #[cfg(not(test))]
@@ -31,14 +32,14 @@ pub fn instantiate(
 ) -> Result<Response, ContractError> {
     let admin = maybe_addr(deps.api, msg.admin)?.unwrap_or(info.sender);
     let fee_collector_address = deps.api.addr_validate(&msg.fee_collector_address)?;
-    if msg.minter_code_id == 0 {
+    if msg.open_edition_minter_code_id == 0 {
         return Err(ContractError::InvalidMinterCodeId {});
     }
     let params = Params {
         admin: admin.clone(),
         allowed_minter_mint_denoms: msg.allowed_minter_mint_denoms,
         fee_collector_address,
-        minter_code_id: msg.minter_code_id,
+        open_edition_minter_code_id: msg.open_edition_minter_code_id,
         minter_creation_fee: msg.minter_creation_fee,
     };
     PARAMS.save(deps.storage, &params)?;
@@ -74,7 +75,7 @@ fn create_minter(
     deps: DepsMut,
     _env: Env,
     info: MessageInfo,
-    msg: CreateMinterMsg,
+    msg: OpenEditionMinterCreateMsg,
 ) -> Result<Response, ContractError> {
     let params = PARAMS.load(deps.storage)?;
     let nft_creation_fee: Coin = if CREATION_FEE == Uint128::new(0) {
@@ -106,7 +107,7 @@ fn create_minter(
     let msgs: Vec<CosmosMsg> = vec![
         CosmosMsg::Wasm(WasmMsg::Instantiate {
             admin: Some(params.admin.to_string()),
-            code_id: params.minter_code_id,
+            code_id: params.open_edition_minter_code_id,
             msg: to_json_binary(&msg)?,
             funds: vec![nft_creation_fee],
             label: "omniflix-nft-minter".to_string(),
@@ -186,7 +187,7 @@ fn update_params_minter_code_id(
     if params.admin != info.sender {
         return Err(ContractError::Unauthorized {});
     }
-    params.minter_code_id = minter_code_id;
+    params.open_edition_minter_code_id = minter_code_id;
     PARAMS.save(deps.storage, &params)?;
     Ok(Response::default()
         .add_attribute("action", "update_minter_code_id")
@@ -224,7 +225,7 @@ fn query_params(deps: Deps) -> StdResult<ParamsResponse> {
 
 #[cfg(test)]
 mod tests {
-    use crate::msg::MinterInitExtention;
+    use crate::msg::OpenEditionMinterInitExtention;
 
     use super::*;
     use cosmwasm_std::{
@@ -240,7 +241,7 @@ mod tests {
             admin: None,
             allowed_minter_mint_denoms: vec!["uusd".to_string(), "uflix".to_string()],
             fee_collector_address: "fee_collector_address".to_string(),
-            minter_code_id: 1,
+            open_edition_minter_code_id: 1,
             minter_creation_fee: Coin {
                 amount: Uint128::new(100),
                 denom: "uusd".to_string(),
@@ -257,7 +258,7 @@ mod tests {
                 admin: Addr::unchecked("creator"),
                 allowed_minter_mint_denoms: vec!["uusd".to_string(), "uflix".to_string()],
                 fee_collector_address: Addr::unchecked("fee_collector_address"),
-                minter_code_id: 1,
+                open_edition_minter_code_id: 1,
                 minter_creation_fee: Coin {
                     amount: Uint128::new(100),
                     denom: "uusd".to_string(),
@@ -267,13 +268,13 @@ mod tests {
     }
 
     #[test]
-    fn test_execute_create_minter() {
+    fn test_execute_create_open_edition_minter() {
         let mut deps = mock_dependencies();
         let msg = InstantiateMsg {
             admin: None,
             allowed_minter_mint_denoms: vec!["uusd".to_string(), "uflix".to_string()],
             fee_collector_address: "fee_collector_address".to_string(),
-            minter_code_id: 1,
+            open_edition_minter_code_id: 1,
             minter_creation_fee: Coin {
                 amount: Uint128::new(100),
                 denom: "uusd".to_string(),
@@ -297,19 +298,19 @@ mod tests {
         };
         // Non allowed mint denom
         let msg = ExecuteMsg::CreateMinter {
-            msg: CreateMinterMsg {
+            msg: OpenEditionMinterCreateMsg {
                 collection_details: collection_details.clone(),
-                init: MinterInitExtention {
+                init: OpenEditionMinterInitExtention {
                     admin: None,
                     whitelist_address: None,
-                    mint_denom: "non_allowed".to_string(),
+                    mint_denom: "non_allowed_denom".to_string(),
                     mint_price: Uint128::new(100),
                     start_time: Timestamp::from_seconds(0),
                     royalty_ratio: Decimal::percent(10).to_string(),
                     payment_collector: None,
                     per_address_limit: 3,
                     end_time: None,
-                    num_tokens: 100,
+                    token_limit: None,
                 },
             },
         };
@@ -331,9 +332,9 @@ mod tests {
         assert_eq!(res, ContractError::MintDenomNotAllowed {});
         // Send additional funds
         let msg = ExecuteMsg::CreateMinter {
-            msg: CreateMinterMsg {
+            msg: OpenEditionMinterCreateMsg {
                 collection_details: collection_details.clone(),
-                init: MinterInitExtention {
+                init: OpenEditionMinterInitExtention {
                     admin: None,
                     whitelist_address: None,
                     mint_denom: "uusd".to_string(),
@@ -343,7 +344,7 @@ mod tests {
                     payment_collector: None,
                     per_address_limit: 3,
                     end_time: None,
-                    num_tokens: 100,
+                    token_limit: None,
                 },
             },
         };
@@ -398,9 +399,9 @@ mod tests {
 
         // Missing funds
         let msg = ExecuteMsg::CreateMinter {
-            msg: CreateMinterMsg {
+            msg: OpenEditionMinterCreateMsg {
                 collection_details: collection_details.clone(),
-                init: MinterInitExtention {
+                init: OpenEditionMinterInitExtention {
                     admin: None,
                     whitelist_address: None,
                     mint_denom: "uusd".to_string(),
@@ -410,7 +411,7 @@ mod tests {
                     payment_collector: None,
                     per_address_limit: 3,
                     end_time: None,
-                    num_tokens: 100,
+                    token_limit: None,
                 },
             },
         };
@@ -445,9 +446,9 @@ mod tests {
 
         // Happy path
         let msg = ExecuteMsg::CreateMinter {
-            msg: CreateMinterMsg {
+            msg: OpenEditionMinterCreateMsg {
                 collection_details: collection_details.clone(),
-                init: MinterInitExtention {
+                init: OpenEditionMinterInitExtention {
                     admin: None,
                     whitelist_address: None,
                     mint_denom: "uusd".to_string(),
@@ -457,7 +458,7 @@ mod tests {
                     payment_collector: None,
                     per_address_limit: 3,
                     end_time: None,
-                    num_tokens: 100,
+                    token_limit: None,
                 },
             },
         };
@@ -483,9 +484,9 @@ mod tests {
             CosmosMsg::Wasm(WasmMsg::Instantiate {
                 admin: Some("creator".to_string()),
                 code_id: 1,
-                msg: to_json_binary(&CreateMinterMsg {
+                msg: to_json_binary(&OpenEditionMinterCreateMsg {
                     collection_details: collection_details.clone(),
-                    init: MinterInitExtention {
+                    init: OpenEditionMinterInitExtention {
                         admin: None,
                         whitelist_address: None,
                         mint_denom: "uusd".to_string(),
@@ -495,7 +496,7 @@ mod tests {
                         payment_collector: None,
                         per_address_limit: 3,
                         end_time: None,
-                        num_tokens: 100,
+                        token_limit: None,
                     },
                 })
                 .unwrap(),

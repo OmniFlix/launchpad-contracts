@@ -1,6 +1,10 @@
 use cosmwasm_std::{from_json, Addr, Coin, MemoryStorage, Storage, Timestamp, Uint128};
 use cw_multi_test::AppResponse;
-use minter_types::{CollectionDetails, InstantiateMsg as MinterInstantiateMsg};
+use minter_types::CollectionDetails;
+use omniflix_minter_factory::msg::{CreateMinterMsg, MinterInitExtention};
+use omniflix_open_edition_minter_factory::msg::{
+    OpenEditionMinterCreateMsg, OpenEditionMinterInitExtention,
+};
 use omniflix_std::types::omniflix::onft::v1beta1::Collection;
 
 pub fn get_minter_address_from_res(res: AppResponse) -> String {
@@ -23,7 +27,7 @@ pub fn query_onft_collection(storage: &MemoryStorage, minter_address: String) ->
     collection_details
 }
 
-pub fn return_minter_instantiate_msg() -> MinterInstantiateMsg {
+pub fn return_minter_instantiate_msg() -> CreateMinterMsg {
     let collection_details = CollectionDetails {
         name: "name".to_string(),
         description: "description".to_string(),
@@ -33,26 +37,61 @@ pub fn return_minter_instantiate_msg() -> MinterInstantiateMsg {
         id: "id".to_string(),
         extensible: true,
         nsfw: false,
-        num_tokens: 1000,
         base_uri: "base_uri".to_string(),
         uri: "uri".to_string(),
         uri_hash: "uri_hash".to_string(),
         data: "data".to_string(),
     };
+    let init = CreateMinterMsg {
+        collection_details: collection_details,
+        init: MinterInitExtention {
+            admin: Some("creator".to_string()),
+            mint_denom: "uflix".to_string(),
+            mint_price: Uint128::from(1000000u128),
+            start_time: Timestamp::from_nanos(1_000_000_000),
+            end_time: Some(Timestamp::from_nanos(2_000_000_000)),
+            per_address_limit: 1,
+            royalty_ratio: "0.1".to_string(),
+            payment_collector: Some("creator".to_string()),
+            whitelist_address: None,
+            num_tokens: 1000,
+        },
+    };
+    init
+}
 
-    
-    MinterInstantiateMsg {
-        per_address_limit: 1,
+pub fn return_open_edition_minter_inst_msg() -> OpenEditionMinterCreateMsg {
+    let collection_details = CollectionDetails {
+        name: "name".to_string(),
+        description: "description".to_string(),
+        preview_uri: "preview_uri".to_string(),
+        schema: "schema".to_string(),
+        symbol: "symbol".to_string(),
+        id: "id".to_string(),
+        extensible: true,
+        nsfw: false,
+        base_uri: "base_uri".to_string(),
+        uri: "uri".to_string(),
+        uri_hash: "uri_hash".to_string(),
+        data: "data".to_string(),
+    };
+    let init = OpenEditionMinterInitExtention {
         admin: Some("creator".to_string()),
-        collection_details,
         mint_denom: "uflix".to_string(),
         mint_price: Uint128::from(1000000u128),
         start_time: Timestamp::from_nanos(1_000_000_000),
+        end_time: Some(Timestamp::from_nanos(2_000_000_000)),
+        per_address_limit: 1,
         royalty_ratio: "0.1".to_string(),
-        payment_collector: Some("payment_collector".to_string()),
+        payment_collector: Some("creator".to_string()),
         whitelist_address: None,
-        end_time: Some(Timestamp::from_nanos(1_000_000_000 + 1_000_000_000)),
-    }
+        token_limit: Some(1000),
+    };
+    let open_edition_minter_inst_msg = OpenEditionMinterCreateMsg {
+        collection_details: collection_details,
+        init: init,
+    };
+    open_edition_minter_inst_msg
 }
 
 pub fn return_rounds() -> Vec<whitelist_types::Round> {
