@@ -6,7 +6,7 @@ pub enum ExecuteMsg {
     Mint {},
     MintAdmin {
         recipient: String,
-        denom_id: Option<String>,
+        token_id: Option<String>,
     },
     BurnRemainingTokens {},
     UpdateRoyaltyRatio {

@@ -18,7 +18,7 @@ use whitelist_types::{
 
 use crate::error::ContractError;
 use crate::state::{COLLECTION, CONFIG, MINTABLE_TOKENS, MINTED_TOKENS, TOTAL_TOKENS_REMAINING};
-use crate::utils::{randomize_token_list, return_random_token_id};
+use crate::utils::{randomize_token_list, return_random_token};
 use minter_types::{Config, QueryMsg, Token, UserDetails};
 
 use cw2::set_contract_version;
@@ -219,8 +219,8 @@ pub fn execute(
         ExecuteMsg::Mint {} => execute_mint(deps, env, info),
         ExecuteMsg::MintAdmin {
             recipient,
-            denom_id,
-        } => execute_mint_admin(deps, env, info, recipient, denom_id),
+            token_id,
+        } => execute_mint_admin(deps, env, info, recipient, token_id),
         ExecuteMsg::BurnRemainingTokens {} => execute_burn_remaining_tokens(deps, env, info),
         ExecuteMsg::UpdateRoyaltyRatio { ratio } => {
             execute_update_royalty_ratio(deps, env, info, ratio)
@@ -269,7 +269,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     }
 
     // Get a random token id
-    let random_token = return_random_token_id(&mintable_tokens, env.clone())?;
+    let random_token = return_random_token(&mintable_tokens, env.clone())?;
     // Add the minted token to the user details
     user_details.minted_tokens.push(random_token.1.clone());
     // Check if minting is started
@@ -391,7 +391,7 @@ pub fn execute_mint_admin(
     env: Env,
     info: MessageInfo,
     recipient: String,
-    denom_id: Option<String>,
+    token_id: Option<String>,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
     nonpayable(&info)?;
@@ -409,8 +409,8 @@ pub fn execute_mint_admin(
         // Add the (key, value) tuple to the vector
         mintable_tokens.push((key, value));
     }
-    let token = match denom_id {
-        None => return_random_token_id(&mintable_tokens, env.clone())?,
+    let token = match token_id {
+        None => return_random_token(&mintable_tokens, env.clone())?,
         Some(denom_id) => {
             // Find key for the desired token
             let token: Option<(u32, Token)> = mintable_tokens

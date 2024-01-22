@@ -369,7 +369,7 @@ mod test_minting {
                 Addr::unchecked(minter_address.clone()),
                 &MinterExecuteMsg::MintAdmin {
                     recipient: "gift_recipient".to_string(),
-                    denom_id: Some("334".to_string()),
+                    token_id: Some("334".to_string()),
                 },
                 &[coin(1000000, "uflix")],
             )
@@ -388,7 +388,7 @@ mod test_minting {
                 Addr::unchecked(minter_address.clone()),
                 &MinterExecuteMsg::MintAdmin {
                     recipient: "gift_recipient".to_string(),
-                    denom_id: Some("334".to_string()),
+                    token_id: Some("334".to_string()),
                 },
                 &[],
             )
@@ -409,7 +409,7 @@ mod test_minting {
                 Addr::unchecked(minter_address.clone()),
                 &MinterExecuteMsg::MintAdmin {
                     recipient: "gift_recipient".to_string(),
-                    denom_id: Some("334".to_string()),
+                    token_id: Some("334".to_string()),
                 },
                 &[],
             )
@@ -474,7 +474,7 @@ mod test_minting {
                 Addr::unchecked(minter_address.clone()),
                 &MinterExecuteMsg::MintAdmin {
                     recipient: "gift_recipient".to_string(),
-                    denom_id: Some("334".to_string()),
+                    token_id: Some("334".to_string()),
                 },
                 &[],
             )
@@ -490,7 +490,7 @@ mod test_minting {
                 Addr::unchecked(minter_address.clone()),
                 &MinterExecuteMsg::MintAdmin {
                     recipient: "gift_recipient".to_string(),
-                    denom_id: None,
+                    token_id: None,
                 },
                 &[],
             )
