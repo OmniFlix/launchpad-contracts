@@ -1,10 +1,7 @@
 #[cfg(test)]
 mod test_open_edition_minter_creation {
 
-    use cosmwasm_std::{
-        coin, from_json, to_json_binary, Addr, BlockInfo, Coin, Decimal, QueryRequest, StdError,
-        Timestamp, Uint128, WasmQuery,
-    };
+    use cosmwasm_std::{coin, Addr, Coin, Decimal, Timestamp, Uint128};
 
     use cw_multi_test::Executor;
     use minter_types::{CollectionDetails, Config};
@@ -12,16 +9,10 @@ mod test_open_edition_minter_creation {
         ExecuteMsg as OpenEditionMinterFactoryExecuteMsg,
         InstantiateMsg as OpenEditionMinterFactoryInstantiateMsg,
     };
-    use omniflix_std::types::omniflix::onft::v1beta1::Collection;
 
-    use crate::utils::{
-        get_minter_address_from_res, return_minter_instantiate_msg,
-        return_open_edition_minter_inst_msg, return_rounds,
-    };
+    use crate::utils::{get_minter_address_from_res, return_open_edition_minter_inst_msg};
 
     use crate::{setup::setup, utils::query_onft_collection};
-
-    use omniflix_open_edition_minter::msg::ExecuteMsg as OpenEditionMinterExecuteMsg;
 
     use open_edition_minter_types::QueryMsg as OpenEditionMinterQueryMsg;
 
@@ -43,7 +34,7 @@ mod test_open_edition_minter_creation {
         ) = setup();
         let admin = test_addresses.admin;
         let creator = test_addresses.creator;
-        let collector = test_addresses.collector;
+        let _collector = test_addresses.collector;
 
         // Instantiate the minter factory
         let open_edition_minter_factory_instantiate_msg = OpenEditionMinterFactoryInstantiateMsg {
@@ -223,7 +214,7 @@ mod test_open_edition_minter_creation {
         let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateMinter {
             msg: open_edition_minter_instantiate_msg,
         };
-        let res = app
+        let _res = app
             .execute_contract(
                 creator.clone(),
                 open_edition_minter_factory_address.clone(),
@@ -361,5 +352,4 @@ mod test_open_edition_minter_creation {
             "description".to_string()
         );
     }
-    // Query onft collection
 }

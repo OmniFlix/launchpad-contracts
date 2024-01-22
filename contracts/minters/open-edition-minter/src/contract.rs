@@ -139,6 +139,7 @@ pub fn instantiate(
         token_limit: msg.init.token_limit,
     };
     CONFIG.save(deps.storage, &config)?;
+    MINTED_COUNT.save(deps.storage, &0)?;
 
     let collection = CollectionDetails {
         name: msg.collection_details.name,
@@ -239,7 +240,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     let mut mint_price = config.mint_price;
     // Check if minting is started
 
-    let is_public = env.block.time > config.start_time;
+    let is_public = env.block.time >= config.start_time;
 
     let mut messages: Vec<CosmosMsg> = vec![];
 
