@@ -1,6 +1,7 @@
 use cosmwasm_std::{from_json, Addr, Coin, MemoryStorage, Storage, Timestamp, Uint128};
 use cw_multi_test::AppResponse;
-use minter_types::{CollectionDetails, InstantiateMsg as MinterInstantiateMsg};
+use minter_types::CollectionDetails;
+use omniflix_minter_factory::msg::{CreateMinterMsg, MinterInitExtention};
 use omniflix_std::types::omniflix::onft::v1beta1::Collection;
 
 pub fn get_minter_address_from_res(res: AppResponse) -> String {
@@ -23,7 +24,7 @@ pub fn query_onft_collection(storage: &MemoryStorage, minter_address: String) ->
     collection_details
 }
 
-pub fn return_minter_instantiate_msg() -> MinterInstantiateMsg {
+pub fn return_minter_instantiate_msg() -> CreateMinterMsg {
     let collection_details = CollectionDetails {
         name: "name".to_string(),
         description: "description".to_string(),
@@ -38,20 +39,22 @@ pub fn return_minter_instantiate_msg() -> MinterInstantiateMsg {
         uri_hash: "uri_hash".to_string(),
         data: "data".to_string(),
     };
-
-    MinterInstantiateMsg {
-        per_address_limit: 1,
-        admin: Some("creator".to_string()),
-        collection_details,
-        mint_denom: "uflix".to_string(),
-        mint_price: Uint128::from(1000000u128),
-        start_time: Timestamp::from_nanos(1_000_000_000),
-        royalty_ratio: "0.1".to_string(),
-        payment_collector: Some("payment_collector".to_string()),
-        whitelist_address: None,
-        end_time: Some(Timestamp::from_nanos(1_000_000_000 + 1_000_000_000)),
-        num_tokens: 1000,
-    }
+    let init = CreateMinterMsg {
+        collection_details: collection_details,
+        init: MinterInitExtention {
+            admin: Some("creator".to_string()),
+            mint_denom: "uflix".to_string(),
+            mint_price: Uint128::from(1000000u128),
+            start_time: Timestamp::from_nanos(1_000_000_000),
+            end_time: Some(Timestamp::from_nanos(2_000_000_000)),
+            per_address_limit: 1,
+            royalty_ratio: "0.1".to_string(),
+            payment_collector: Some("payment_collector".to_string()),
+            whitelist_address: None,
+            num_tokens: 1000,
+        },
+    };
+    init
 }
 
 pub fn return_rounds() -> Vec<whitelist_types::Round> {

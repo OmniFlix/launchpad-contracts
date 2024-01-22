@@ -8,16 +8,15 @@ use cosmwasm_std::{
     StdResult, Uint128, WasmMsg,
 };
 use cw_utils::{maybe_addr, must_pay, nonpayable};
-use open_edition_minter_types::{
-    CollectionDetails, Config, InstantiateMsg, QueryMsg, Token, UserDetails,
-};
+use minter_types::{CollectionDetails, Config, Token, UserDetails};
+use open_edition_minter_types::QueryMsg;
 
 use crate::error::ContractError;
 use crate::msg::ExecuteMsg;
 use crate::state::{last_token_id, COLLECTION, CONFIG, MINTED_COUNT, MINTED_TOKENS};
 use cw2::set_contract_version;
 use omniflix_open_edition_minter_factory::msg::{
-    ParamsResponse, QueryMsg as OpenEditionMinterFactoryQueryMsg,
+    OpenEditionMinterCreateMsg, ParamsResponse, QueryMsg as OpenEditionMinterFactoryQueryMsg,
 };
 use omniflix_round_whitelist::msg::ExecuteMsg as RoundWhitelistExecuteMsg;
 use omniflix_std::types::omniflix::onft::v1beta1::{
@@ -48,7 +47,7 @@ pub fn instantiate(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    msg: InstantiateMsg,
+    msg: OpenEditionMinterCreateMsg,
 ) -> Result<Response, ContractError> {
     // Query denom creation fee
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
@@ -84,34 +83,34 @@ pub fn instantiate(
         });
     }
     // Check if per address limit is 0
-    if msg.per_address_limit == 0 {
+    if msg.init.per_address_limit == 0 {
         return Err(ContractError::PerAddressLimitZero {});
     }
     // Check if token limit is 0
-    if let Some(token_limit) = msg.token_limit {
+    if let Some(token_limit) = msg.init.token_limit {
         if token_limit == 0 {
             return Err(ContractError::InvalidNumTokens {});
         }
     }
 
     // Check start time
-    if msg.start_time < env.block.time {
+    if msg.init.start_time < env.block.time {
         return Err(ContractError::InvalidStartTime {});
     }
     // Check end time
-    if let Some(end_time) = msg.end_time {
-        if end_time < msg.start_time {
+    if let Some(end_time) = msg.init.end_time {
+        if end_time < msg.init.start_time {
             return Err(ContractError::InvalidEndTime {});
         }
     }
 
     // Check royalty ratio we expect decimal number
-    let royalty_ratio = Decimal::from_str(&msg.royalty_ratio)?;
+    let royalty_ratio = Decimal::from_str(&msg.init.royalty_ratio)?;
     if royalty_ratio < Decimal::zero() || royalty_ratio > Decimal::one() {
         return Err(ContractError::InvalidRoyaltyRatio {});
     }
     // Check if whitelist already active
-    if let Some(whitelist_address) = msg.whitelist_address.clone() {
+    if let Some(whitelist_address) = msg.init.whitelist_address.clone() {
         let is_active: IsActiveResponse = deps.querier.query_wasm_smart(
             whitelist_address.clone(),
             &RoundWhitelistQueryMsgs::IsActive {},
@@ -120,24 +119,24 @@ pub fn instantiate(
             return Err(ContractError::WhitelistAlreadyActive {});
         }
     }
-    let admin = maybe_addr(deps.api, msg.admin.clone())?.unwrap_or(info.sender.clone());
+    let admin = maybe_addr(deps.api, msg.init.admin.clone())?.unwrap_or(info.sender.clone());
 
     let payment_collector =
-        maybe_addr(deps.api, msg.payment_collector.clone())?.unwrap_or(info.sender.clone());
+        maybe_addr(deps.api, msg.init.payment_collector.clone())?.unwrap_or(info.sender.clone());
 
     let config = Config {
-        per_address_limit: msg.per_address_limit,
+        per_address_limit: msg.init.per_address_limit,
         payment_collector,
-        start_time: msg.start_time,
+        start_time: msg.init.start_time,
         royalty_ratio,
         admin,
         mint_price: Coin {
-            denom: msg.mint_denom.clone(),
-            amount: msg.mint_price,
+            denom: msg.init.mint_denom.clone(),
+            amount: msg.init.mint_price,
         },
-        whitelist_address: maybe_addr(deps.api, msg.whitelist_address.clone())?,
-        end_time: msg.end_time,
-        token_limit: msg.token_limit,
+        whitelist_address: maybe_addr(deps.api, msg.init.whitelist_address.clone())?,
+        end_time: msg.init.end_time,
+        token_limit: msg.init.token_limit,
     };
     CONFIG.save(deps.storage, &config)?;
 

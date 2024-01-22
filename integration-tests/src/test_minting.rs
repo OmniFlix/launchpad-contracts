@@ -570,8 +570,8 @@ mod test_minting {
         let round_whitelist_address = get_minter_address_from_res(res.clone());
 
         let mut minter_inst_msg = return_minter_instantiate_msg();
-        minter_inst_msg.whitelist_address = Some(round_whitelist_address.clone());
-        minter_inst_msg.per_address_limit = 2;
+        minter_inst_msg.init.whitelist_address = Some(round_whitelist_address.clone());
+        minter_inst_msg.init.per_address_limit = 2;
 
         let create_minter_msg = FactoryExecuteMsg::CreateMinter {
             msg: minter_inst_msg,

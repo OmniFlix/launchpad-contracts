@@ -2,26 +2,6 @@ use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Addr, Coin, Decimal, Timestamp, Uint128};
 
 #[cw_serde]
-pub struct InstantiateMsg {
-    pub collection_details: CollectionDetails,
-    pub admin: Option<String>,
-    pub mint_price: Uint128,
-    // Factory sould check denom against the params if denoms is valid and whitelisted.
-    pub mint_denom: String,
-    // Public minting start time
-    pub start_time: Timestamp,
-    pub end_time: Option<Timestamp>,
-    pub per_address_limit: u32,
-    // We expect user to send a string between 0 and 1
-    // FE "0.1"
-    pub royalty_ratio: String,
-    pub payment_collector: Option<String>,
-    // Whitelist address if any
-    pub whitelist_address: Option<String>,
-    pub num_tokens: u32,
-}
-
-#[cw_serde]
 pub struct CollectionDetails {
     pub name: String,
     pub description: String,
@@ -35,6 +15,12 @@ pub struct CollectionDetails {
     pub uri: String,
     pub uri_hash: String,
     pub data: String,
+}
+
+#[cw_serde]
+pub struct MinterInstantiateMsg<T> {
+    pub collection_details: CollectionDetails,
+    pub init: T,
 }
 
 #[cw_serde]
@@ -82,4 +68,5 @@ pub struct Config {
     pub royalty_ratio: Decimal,
     pub admin: Addr,
     pub whitelist_address: Option<Addr>,
+    pub token_limit: Option<u32>,
 }
