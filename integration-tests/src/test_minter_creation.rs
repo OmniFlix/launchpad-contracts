@@ -262,10 +262,7 @@ mod test_minter_creation {
             Decimal::from_ratio(1u128, 10u128)
         );
         assert_eq!(config_data.admin, Addr::unchecked("creator"));
-        assert_eq!(
-            config_data.payment_collector,
-            Addr::unchecked("payment_collector")
-        );
+        assert_eq!(config_data.payment_collector, Addr::unchecked("creator"));
 
         // Query mintable tokens
         let mintable_tokens_data: Vec<Token> = app

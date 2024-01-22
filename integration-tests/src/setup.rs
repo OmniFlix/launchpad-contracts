@@ -16,10 +16,6 @@ use omniflix_open_edition_minter_factory::contract::{
     instantiate as open_edition_minter_factory_instantiate,
     query as open_edition_minter_factory_query,
 };
-use omniflix_open_edition_minter_factory::msg::{
-    ExecuteMsg as OpenEditionMinterFactoryExecuteMsg,
-    InstantiateMsg as OpenEditionMinterFactoryInstantiateMsg,
-};
 use omniflix_round_whitelist::contract::{
     execute as round_whitelist_execute, instantiate as round_whitelist_instantiate,
     query as round_whitelist_query,

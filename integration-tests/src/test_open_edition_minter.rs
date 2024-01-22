@@ -12,8 +12,7 @@ mod test_open_edition_minter_creation {
         ExecuteMsg as OpenEditionMinterFactoryExecuteMsg,
         InstantiateMsg as OpenEditionMinterFactoryInstantiateMsg,
     };
-
-    use whitelist_types::{Round, RoundWhitelistQueryMsgs};
+    use omniflix_std::types::omniflix::onft::v1beta1::Collection;
 
     use crate::utils::{
         get_minter_address_from_res, return_minter_instantiate_msg,
@@ -354,5 +353,13 @@ mod test_open_edition_minter_creation {
                 data: "data".to_string(),
             }
         );
+        let collection = query_onft_collection(app.storage(), open_edition_minter_address.clone());
+
+        assert_eq!(collection.denom.clone().unwrap().name, "name".to_string());
+        assert_eq!(
+            collection.denom.unwrap().description,
+            "description".to_string()
+        );
     }
+    // Query onft collection
 }

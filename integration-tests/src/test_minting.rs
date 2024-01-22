@@ -154,6 +154,12 @@ mod test_minting {
             time: Timestamp::from_nanos(1_000_000_000 + 1),
         });
 
+        // Query uflix balance of creator before mint
+        let creator_balance_before_mint: Uint128 = app
+            .wrap()
+            .query_balance(creator.to_string(), "uflix".to_string())
+            .unwrap()
+            .amount;
         // Mint
         let res = app
             .execute_contract(
@@ -163,6 +169,17 @@ mod test_minting {
                 &[coin(1000000, "uflix")],
             )
             .unwrap();
+        // Query uflix balance of creator after mint
+        let creator_balance_after_mint: Uint128 = app
+            .wrap()
+            .query_balance(creator.to_string(), "uflix".to_string())
+            .unwrap()
+            .amount;
+        // Check if creator got paid
+        assert_eq!(
+            creator_balance_after_mint,
+            creator_balance_before_mint + Uint128::from(1000000u128)
+        );
         let token_id: String = res.events[1].attributes[2].value.clone();
         let collection_id: String = res.events[1].attributes[3].value.clone();
         // We are quering collection to check if it is minted from our mocked onft keeper
