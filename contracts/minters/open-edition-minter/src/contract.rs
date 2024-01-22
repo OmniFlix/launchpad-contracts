@@ -154,6 +154,8 @@ pub fn instantiate(
         uri: msg.collection_details.uri,
         uri_hash: msg.collection_details.uri_hash,
         data: msg.collection_details.data,
+        token_name: msg.collection_details.token_name,
+        transferable: msg.collection_details.transferable,
     };
     COLLECTION.save(deps.storage, &collection)?;
 
@@ -212,7 +214,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     // Check if any token limit set and if it is reached
     if let Some(token_limit) = config.token_limit {
         if MINTED_COUNT.load(deps.storage)? >= token_limit {
-            return Err(ContractError::TokenLimitReached {});
+            return Err(ContractError::NoTokensLeftToMint {});
         }
     }
     // Check if end time is determined and if it is passed
@@ -308,7 +310,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
 
     // Generate the metadata
     let metadata = Metadata {
-        name: collection.name,
+        name: collection.token_name,
         description: collection.description,
         media_uri: collection.base_uri,
         preview_uri: collection.preview_uri,

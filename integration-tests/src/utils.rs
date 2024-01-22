@@ -41,6 +41,8 @@ pub fn return_minter_instantiate_msg() -> CreateMinterMsg {
         uri: "uri".to_string(),
         uri_hash: "uri_hash".to_string(),
         data: "data".to_string(),
+        token_name: "token_name".to_string(),
+        transferable: true,
     };
     let init = CreateMinterMsg {
         collection_details: collection_details,
@@ -74,6 +76,8 @@ pub fn return_open_edition_minter_inst_msg() -> OpenEditionMinterCreateMsg {
         uri: "uri".to_string(),
         uri_hash: "uri_hash".to_string(),
         data: "data".to_string(),
+        token_name: "token_name".to_string(),
+        transferable: true,
     };
     let init = OpenEditionMinterInitExtention {
         admin: Some("creator".to_string()),

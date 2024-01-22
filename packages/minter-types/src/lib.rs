@@ -15,6 +15,8 @@ pub struct CollectionDetails {
     pub uri: String,
     pub uri_hash: String,
     pub data: String,
+    pub transferable: bool,
+    pub token_name: String,
 }
 
 #[cw_serde]

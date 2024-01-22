@@ -154,6 +154,8 @@ pub fn instantiate(
         uri: msg.collection_details.uri,
         uri_hash: msg.collection_details.uri_hash,
         data: msg.collection_details.data,
+        token_name: msg.collection_details.token_name,
+        transferable: msg.collection_details.transferable,
     };
     COLLECTION.save(deps.storage, &collection)?;
 
@@ -343,7 +345,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     let token_id = random_token.1.token_id;
     // Generate the metadata
     let metadata = Metadata {
-        name: format!("{} # {}", collection.name, token_id),
+        name: format!("{} # {}", collection.token_name, token_id),
         description: collection.description,
         media_uri: format!("{}/{}", collection.base_uri, token_id),
         preview_uri: collection.preview_uri,
@@ -356,7 +358,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
         id: token_id.clone(),
         metadata: Some(metadata.clone()),
         denom_id: collection.id.clone(),
-        transferable: true,
+        transferable: collection.transferable,
         sender: env.contract.address.clone().into_string(),
         extensible: collection.extensible,
         nsfw: collection.nsfw,
@@ -449,7 +451,7 @@ pub fn execute_mint_admin(
 
     // Generate the metadata
     let metadata = Metadata {
-        name: format!("{} # {}", collection.name, denom_id),
+        name: format!("{} # {}", collection.token_name, denom_id),
         description: collection.description,
         media_uri: format!("{}/{}", collection.preview_uri, denom_id),
         preview_uri: collection.preview_uri,
@@ -462,7 +464,7 @@ pub fn execute_mint_admin(
         id: denom_id.clone(),
         metadata: Some(metadata),
         denom_id: collection.id.clone(),
-        transferable: true,
+        transferable: collection.transferable,
         sender: env.contract.address.into_string(),
         extensible: collection.extensible,
         nsfw: collection.nsfw,
