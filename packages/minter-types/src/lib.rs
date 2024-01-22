@@ -1,5 +1,5 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Addr, Coin, Decimal, Timestamp, Uint128};
+use cosmwasm_std::{Addr, Coin, Decimal, Timestamp};
 
 #[cw_serde]
 pub struct CollectionDetails {

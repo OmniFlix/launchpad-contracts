@@ -11,7 +11,6 @@ use cosmwasm_std::{
     StdResult, Uint128, WasmMsg,
 };
 use cw_utils::maybe_addr;
-use minter_types::CollectionDetails;
 use omniflix_std::types::omniflix::onft::v1beta1::OnftQuerier;
 use std::str::FromStr;
 #[cfg(not(test))]
@@ -233,6 +232,7 @@ mod tests {
         testing::{mock_dependencies, mock_env, mock_info},
         Addr, Decimal, Timestamp,
     };
+    use minter_types::CollectionDetails;
 
     #[test]
     fn test_instantiate() {

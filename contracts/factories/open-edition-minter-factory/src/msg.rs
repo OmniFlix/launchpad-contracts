@@ -1,6 +1,6 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Coin, Timestamp, Uint128};
-use minter_types::{CollectionDetails, MinterInstantiateMsg};
+use minter_types::MinterInstantiateMsg;
 
 use crate::state::Params;
 #[cw_serde]
