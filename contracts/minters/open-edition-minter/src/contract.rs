@@ -52,7 +52,7 @@ pub fn instantiate(
     // Query denom creation fee
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     // Query factory params of instantiator
-    // If the instantiator is not a our factory then we wont be able to parse the response
+    // If the instantiator is not our factory then we wont be able to parse the response
     let _factory_params: ParamsResponse = deps.querier.query_wasm_smart(
         info.sender.clone().into_string(),
         &OpenEditionMinterFactoryQueryMsg::Params {},
@@ -557,14 +557,14 @@ fn query_minted_tokens(
 }
 
 fn query_total_tokens_minted(deps: Deps, _env: Env) -> Result<u32, ContractError> {
-    let total_tokens = MINTED_COUNT.load(deps.storage)?;
+    let total_tokens = MINTED_COUNT.load(deps.storage).unwrap_or(0);
     Ok(total_tokens)
 }
 
 fn query_tokens_remaining(deps: Deps, _env: Env) -> Result<u32, ContractError> {
     let config = CONFIG.load(deps.storage)?;
     if let Some(token_limit) = config.token_limit {
-        let total_tokens = MINTED_COUNT.load(deps.storage)?;
+        let total_tokens = MINTED_COUNT.load(deps.storage).unwrap_or(0);
         Ok(token_limit - total_tokens)
     } else {
         Err(ContractError::TokenLimitNotSet {})

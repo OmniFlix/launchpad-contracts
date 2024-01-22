@@ -27,8 +27,11 @@ schemars = "0.8.16"
 cw-multi-test = "0.20.0"
 minter-types={ workspace = true }
 whitelist-types ={ workspace = true }
+open-edition-minter-types = { workspace = true }
 omniflix-minter-factory = {path = "../contracts/factories/minter-factory"}
+omniflix-open-edition-minter-factory = {path = "../contracts/factories/open-edition-minter-factory"}
 omniflix-minter = {path = "../contracts/minters/minter"}
+omniflix-open-edition-minter = {path = "../contracts/minters/open-edition-minter"}
 omniflix-round-whitelist-factory = {path = "../contracts/factories/round-whitelist-factory"}
 omniflix-round-whitelist = {path = "../contracts/whitelists/round-whitelist"}
 omniflix-testing = {path = "../packages/testing"}

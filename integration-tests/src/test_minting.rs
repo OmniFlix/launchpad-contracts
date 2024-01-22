@@ -30,6 +30,8 @@ mod test_minting {
             minter_code_id,
             _round_whitelist_factory_code_id,
             _round_whitelist_code_id,
+            _open_edition_minter_code_id,
+            _open_edition_minter_factory_code_id,
         ) = setup();
         let admin = test_addresses.admin;
         let creator = test_addresses.creator;
@@ -304,6 +306,8 @@ mod test_minting {
             minter_code_id,
             _round_whitelist_factory_code_id,
             _round_whitelist_code_id,
+            _open_edition_minter_code_id,
+            _open_edition_minter_factory_code_id,
         ) = setup();
         let admin = test_addresses.admin;
         let creator = test_addresses.creator;
@@ -499,6 +503,8 @@ mod test_minting {
             minter_code_id,
             round_whitelist_factory_code_id,
             round_whitelist_code_id,
+            _open_edition_minter_code_id,
+            _open_edition_minter_factory_code_id,
         ) = setup();
         let admin = test_addresses.admin;
         let creator = test_addresses.creator;
