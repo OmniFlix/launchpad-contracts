@@ -1,4 +1,5 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
+use cosmwasm_std::Addr;
 use minter_types::{CollectionDetails, Config, UserDetails};
 
 #[cw_serde]
@@ -14,4 +15,8 @@ pub enum QueryMsg {
     TotalMintedCount {},
     #[returns(u32)]
     TokensRemaining {},
+    #[returns(bool)]
+    IsPaused {},
+    #[returns(Vec<Addr>)]
+    Pausers {},
 }

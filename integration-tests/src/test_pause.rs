@@ -24,7 +24,7 @@ mod test_pause {
     use omniflix_round_whitelist::error::ContractError as RoundWhitelistContractError;
 
     #[test]
-    fn test_pause() {
+    fn test_pause_minter() {
         let (
             mut app,
             test_addresses,

@@ -8,7 +8,7 @@ pub enum ExecuteMsg {
     UpdateRoyaltyRatio { ratio: String },
     UpdateMintPrice { mint_price: Uint128 },
     UpdateWhitelistAddress { address: String },
+    Pause {},
+    Unpause {},
+    SetPausers { pausers: Vec<String> },
 }
-
-#[cw_serde]
-pub enum QueryMsg {}

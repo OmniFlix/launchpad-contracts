@@ -1,5 +1,6 @@
 use cosmwasm_std::{StdError, Timestamp, Uint128};
 use cw_utils::PaymentError;
+use minter_types::PauseError;
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq)]
@@ -9,6 +10,9 @@ pub enum ContractError {
 
     #[error("Unauthorized")]
     Unauthorized {},
+
+    #[error(transparent)]
+    Pause(#[from] PauseError),
 
     #[error("Payment error")]
     PaymentError(#[from] PaymentError),
