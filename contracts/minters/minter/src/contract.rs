@@ -4,7 +4,7 @@ use crate::msg::ExecuteMsg;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_json_binary, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo, Order,
+    to_json_binary, Addr, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo, Order,
     Response, StdResult, Uint128, WasmMsg,
 };
 use cw_utils::{maybe_addr, must_pay, nonpayable};
@@ -242,6 +242,7 @@ pub fn execute(
         }
         ExecuteMsg::Pause {} => execute_pause(deps, env, info),
         ExecuteMsg::Unpause {} => execute_unpause(deps, env, info),
+        ExecuteMsg::SetPausers { pausers } => execute_set_pausers(deps, env, info, pausers),
     }
 }
 
@@ -670,6 +671,27 @@ pub fn execute_unpause(
     Ok(res)
 }
 
+pub fn execute_set_pausers(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    pausers: Vec<String>,
+) -> Result<Response, ContractError> {
+    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    pause_state.set_pausers(
+        deps.storage,
+        info.sender,
+        pausers
+            .iter()
+            .map(|pauser| deps.api.addr_validate(pauser))
+            .collect::<StdResult<Vec<Addr>>>()?,
+    )?;
+    let res = Response::new()
+        .add_attribute("action", "set_pausers")
+        .add_attribute("pausers", pausers.join(","));
+    Ok(res)
+}
+
 // Implement Queries
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
@@ -681,6 +703,8 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
             to_json_binary(&query_minted_tokens(deps, env, address)?)
         }
         QueryMsg::TotalTokens {} => to_json_binary(&query_total_tokens(deps, env)?),
+        QueryMsg::IsPaused {} => to_json_binary(&query_is_paused(deps, env)?),
+        QueryMsg::Pausers {} => to_json_binary(&query_pausers(deps, env)?),
     }
 }
 
@@ -718,4 +742,16 @@ fn query_minted_tokens(
 fn query_total_tokens(deps: Deps, _env: Env) -> Result<u32, ContractError> {
     let total_tokens = TOTAL_TOKENS_REMAINING.load(deps.storage)?;
     Ok(total_tokens)
+}
+
+fn query_is_paused(deps: Deps, _env: Env) -> Result<bool, ContractError> {
+    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let is_paused = pause_state.is_paused(deps.storage)?;
+    Ok(is_paused)
+}
+
+fn query_pausers(deps: Deps, _env: Env) -> Result<Vec<Addr>, ContractError> {
+    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let pausers = pause_state.pausers.load(deps.storage).unwrap_or(vec![]);
+    Ok(pausers)
 }

@@ -21,4 +21,9 @@ pub enum ExecuteMsg {
     },
     Pause {},
     Unpause {},
+    // This directly updates the pausers list if the sender is one of the pausers
+    // At every update full list of pausers should be sent
+    SetPausers {
+        pausers: Vec<String>,
+    },
 }

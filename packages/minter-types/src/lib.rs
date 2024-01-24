@@ -61,6 +61,10 @@ pub enum QueryMsg {
     MintedTokens { address: String },
     #[returns(u32)]
     TotalTokens {},
+    #[returns(bool)]
+    IsPaused {},
+    #[returns(Vec<Addr>)]
+    Pausers {},
 }
 
 #[cw_serde]
@@ -105,6 +109,7 @@ impl<'a> PauseState<'a> {
     /// Sets a new pauser who may pause the contract.
     /// If no pausers are set, sets pausers to the provided addresses without authorization.
     /// If pausers are already set, sender must be one of the pausers.
+    /// Also unpauses
     pub fn set_pausers(
         &self,
         storage: &mut dyn Storage,
@@ -116,7 +121,7 @@ impl<'a> PauseState<'a> {
             current_pausers = pausers;
         } else {
             self.error_if_unauthorized(storage, &sender)?;
-            current_pausers.extend(pausers);
+            current_pausers = pausers;
         }
         self.pausers.save(storage, &current_pausers)?;
         self.paused.save(storage, &false)?;
@@ -157,6 +162,11 @@ impl<'a> PauseState<'a> {
         self.error_if_unauthorized(storage, sender)?;
         self.paused.save(storage, &false)?;
         Ok(())
+    }
+
+    pub fn is_paused(&self, storage: &dyn Storage) -> Result<bool, PauseError> {
+        let is_paused = self.paused.load(storage).unwrap_or(false);
+        Ok(is_paused)
     }
 }
 
