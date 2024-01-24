@@ -96,23 +96,30 @@ pub struct PauseState<'a> {
 impl<'a> PauseState<'a> {
     /// Creates a new pause orchestrator using the provided storage
     /// keys.
-    pub const fn new(paused_key: &'a str, pausers_key: &'a str) -> Self {
-        Self {
-            paused: Item::new(paused_key),
-            pausers: Item::new(pausers_key),
-        }
+    pub fn new(paused_key: &'a str, pausers_key: &'a str) -> Result<Self, PauseError> {
+        let paused = Item::new(paused_key);
+        let pausers = Item::new(pausers_key);
+        Ok(PauseState { paused, pausers })
     }
 
-    /// Sets a new pauser who may pause the contract. If the contract
-    /// is paused, it is unpaused.
+    /// Sets a new pauser who may pause the contract.
+    /// If no pausers are set, sets pausers to the provided addresses without authorization.
+    /// If pausers are already set, sender must be one of the pausers.
     pub fn set_pausers(
         &self,
         storage: &mut dyn Storage,
         sender: Addr,
         pausers: Vec<Addr>,
     ) -> Result<(), PauseError> {
-        self.error_if_unauthorized(storage, &sender)?;
-        self.pausers.save(storage, &pausers)?;
+        let mut current_pausers = self.pausers.load(storage).unwrap_or(vec![]);
+        if current_pausers.is_empty() {
+            current_pausers = pausers;
+        } else {
+            self.error_if_unauthorized(storage, &sender)?;
+            current_pausers.extend(pausers);
+        }
+        self.pausers.save(storage, &current_pausers)?;
+        self.paused.save(storage, &false)?;
         Ok(())
     }
 
@@ -147,9 +154,88 @@ impl<'a> PauseState<'a> {
     }
 
     pub fn unpause(&self, storage: &mut dyn Storage, sender: &Addr) -> Result<(), PauseError> {
-        self.error_if_paused(storage)?;
         self.error_if_unauthorized(storage, sender)?;
         self.paused.save(storage, &false)?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use cosmwasm_std::testing::mock_dependencies;
+    use cosmwasm_std::{coins, from_binary, Addr, CosmosMsg, Empty, StdError, Uint128};
+
+    #[test]
+    fn test_pause_state() {
+        let mut deps = mock_dependencies();
+
+        let pauser1 = Addr::unchecked("pauser1");
+        let pauser2 = Addr::unchecked("pauser2");
+        let pauser3 = Addr::unchecked("pauser3");
+
+        let state = PauseState::new("paused", "pausers").unwrap();
+
+        // no pausers set
+        assert_eq!(
+            state.set_pausers(&mut deps.storage, pauser1.clone(), vec![]),
+            Ok(())
+        );
+        assert_eq!(
+            state.set_pausers(&mut deps.storage, pauser2.clone(), vec![]),
+            Ok(())
+        );
+        assert_eq!(
+            state.set_pausers(&mut deps.storage, pauser3.clone(), vec![]),
+            Ok(())
+        );
+
+        // pausers set
+        assert_eq!(
+            state.set_pausers(
+                &mut deps.storage,
+                pauser1.clone(),
+                vec![pauser1.clone(), pauser2.clone()]
+            ),
+            Ok(())
+        );
+
+        assert_eq!(
+            state.set_pausers(
+                &mut deps.storage,
+                pauser2.clone(),
+                vec![pauser1.clone(), pauser2.clone()]
+            ),
+            Ok(())
+        );
+        assert_eq!(
+            state.set_pausers(
+                &mut deps.storage,
+                pauser3.clone(),
+                vec![pauser1.clone(), pauser2.clone()]
+            ),
+            Err(PauseError::Unauthorized {
+                sender: pauser3.clone()
+            })
+        );
+
+        // pause
+        assert_eq!(state.pause(&mut deps.storage, &pauser1), Ok(()));
+        assert_eq!(
+            state.pause(&mut deps.storage, &pauser2),
+            Err(PauseError::Paused {})
+        );
+        assert_eq!(
+            state.pause(&mut deps.storage, &pauser3.clone()),
+            Err(PauseError::Paused {})
+        );
+
+        // unpause
+        assert_eq!(state.unpause(&mut deps.storage, &pauser1), Ok(()));
+        assert_eq!(state.unpause(&mut deps.storage, &pauser2), Ok(()));
+        assert_eq!(
+            state.unpause(&mut deps.storage, &pauser3),
+            Err(PauseError::Unauthorized { sender: pauser3 })
+        );
     }
 }
