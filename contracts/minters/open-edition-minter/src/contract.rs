@@ -119,7 +119,7 @@ pub fn instantiate(
             return Err(ContractError::WhitelistAlreadyActive {});
         }
     }
-    let admin = maybe_addr(deps.api, msg.init.admin.clone())?.unwrap_or(info.sender.clone());
+    let admin = deps.api.addr_validate(&msg.init.admin)?;
 
     let payment_collector =
         maybe_addr(deps.api, msg.init.payment_collector.clone())?.unwrap_or(info.sender.clone());

@@ -19,4 +19,6 @@ pub enum ExecuteMsg {
     UpdateWhitelistAddress {
         address: String,
     },
+    Pause {},
+    Unpause {},
 }

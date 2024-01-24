@@ -302,7 +302,7 @@ mod tests {
             msg: CreateMinterMsg {
                 collection_details: collection_details.clone(),
                 init: MinterInitExtention {
-                    admin: None,
+                    admin: "admin".to_string(),
                     whitelist_address: None,
                     mint_denom: "non_allowed".to_string(),
                     mint_price: Uint128::new(100),
@@ -336,7 +336,7 @@ mod tests {
             msg: CreateMinterMsg {
                 collection_details: collection_details.clone(),
                 init: MinterInitExtention {
-                    admin: None,
+                    admin: "admin".to_string(),
                     whitelist_address: None,
                     mint_denom: "uusd".to_string(),
                     mint_price: Uint128::new(100),
@@ -403,7 +403,7 @@ mod tests {
             msg: CreateMinterMsg {
                 collection_details: collection_details.clone(),
                 init: MinterInitExtention {
-                    admin: None,
+                    admin: "admin".to_string(),
                     whitelist_address: None,
                     mint_denom: "uusd".to_string(),
                     mint_price: Uint128::new(100),
@@ -450,7 +450,7 @@ mod tests {
             msg: CreateMinterMsg {
                 collection_details: collection_details.clone(),
                 init: MinterInitExtention {
-                    admin: None,
+                    admin: "admin".to_string(),
                     whitelist_address: None,
                     mint_denom: "uusd".to_string(),
                     mint_price: Uint128::new(100),
@@ -488,7 +488,7 @@ mod tests {
                 msg: to_json_binary(&CreateMinterMsg {
                     collection_details: collection_details.clone(),
                     init: MinterInitExtention {
-                        admin: None,
+                        admin: "admin".to_string(),
                         whitelist_address: None,
                         mint_denom: "uusd".to_string(),
                         mint_price: Uint128::new(100),
