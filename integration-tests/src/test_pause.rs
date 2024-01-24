@@ -2,13 +2,9 @@
 
 mod test_pause {
 
-    use cosmwasm_std::{
-        coin, coins, to_json_binary, Addr, BlockInfo, QueryRequest, Timestamp, Uint128, WasmQuery,
-    };
-    use cw_multi_test::{BankSudo, Executor, SudoMsg};
+    use cosmwasm_std::{coin, to_json_binary, Addr, BlockInfo, QueryRequest, Timestamp, WasmQuery};
+    use cw_multi_test::Executor;
     use minter_types::PauseError;
-    use minter_types::Token;
-    use minter_types::UserDetails;
 
     use minter_types::QueryMsg;
     use omniflix_minter::msg::ExecuteMsg as MinterExecuteMsg;
@@ -16,12 +12,10 @@ mod test_pause {
         ExecuteMsg as FactoryExecuteMsg, InstantiateMsg as FactoryInstantiateMsg,
     };
 
-    use crate::utils::{get_minter_address_from_res, return_minter_instantiate_msg, return_rounds};
+    use crate::utils::{get_minter_address_from_res, return_minter_instantiate_msg};
 
-    use crate::{setup::setup, utils::query_onft_collection};
+    use crate::setup::setup;
     use omniflix_minter::error::ContractError as MinterContractError;
-
-    use omniflix_round_whitelist::error::ContractError as RoundWhitelistContractError;
 
     #[test]
     fn test_pause_minter() {
@@ -113,7 +107,7 @@ mod test_pause {
 
         // Pauser should be able to pause
         let pause_msg = MinterExecuteMsg::Pause {};
-        let res = app
+        let _res = app
             .execute_contract(
                 creator.clone(),
                 Addr::unchecked(minter_address.clone()),
@@ -186,7 +180,7 @@ mod test_pause {
 
         // unpause
         let unpause_msg = MinterExecuteMsg::Unpause {};
-        let res = app
+        let _res = app
             .execute_contract(
                 creator.clone(),
                 Addr::unchecked(minter_address.clone()),
@@ -207,7 +201,7 @@ mod test_pause {
 
         // Try minting
         let mint_msg = MinterExecuteMsg::Mint {};
-        let res = app
+        let _res = app
             .execute_contract(
                 collector.clone(),
                 Addr::unchecked(minter_address.clone()),
@@ -220,7 +214,7 @@ mod test_pause {
         let set_pausers_msg = MinterExecuteMsg::SetPausers {
             pausers: vec![collector.clone().to_string()],
         };
-        let res = app
+        let _res = app
             .execute_contract(
                 creator.clone(),
                 Addr::unchecked(minter_address.clone()),
@@ -261,7 +255,7 @@ mod test_pause {
 
         // Try pausing again with collector
         let pause_msg = MinterExecuteMsg::Pause {};
-        let res = app
+        let _res = app
             .execute_contract(
                 collector.clone(),
                 Addr::unchecked(minter_address.clone()),

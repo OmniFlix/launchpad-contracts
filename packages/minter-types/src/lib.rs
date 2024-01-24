@@ -174,7 +174,6 @@ impl<'a> PauseState<'a> {
 mod tests {
     use super::*;
     use cosmwasm_std::testing::mock_dependencies;
-    use cosmwasm_std::{coins, from_binary, Addr, CosmosMsg, Empty, StdError, Uint128};
 
     #[test]
     fn test_pause_state() {

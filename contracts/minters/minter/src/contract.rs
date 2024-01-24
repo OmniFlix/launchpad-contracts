@@ -651,8 +651,6 @@ pub fn execute_pause(
     _env: Env,
     info: MessageInfo,
 ) -> Result<Response, ContractError> {
-    // Check if sender is admin
-    let config = CONFIG.load(deps.storage)?;
     let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
     pause_state.pause(deps.storage, &info.sender)?;
     let res = Response::new().add_attribute("action", "pause");
