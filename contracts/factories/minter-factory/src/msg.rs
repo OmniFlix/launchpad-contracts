@@ -14,7 +14,7 @@ pub struct InstantiateMsg {
 
 #[cw_serde]
 pub struct MinterInitExtention {
-    pub admin: Option<String>,
+    pub admin: String,
     pub mint_price: Uint128,
     // Factory sould check denom against the params if denoms is valid and whitelisted.
     pub mint_denom: String,

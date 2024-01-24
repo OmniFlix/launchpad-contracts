@@ -4,7 +4,7 @@ use crate::msg::ExecuteMsg;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_json_binary, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo, Order,
+    to_json_binary, Addr, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo, Order,
     Response, StdResult, Uint128, WasmMsg,
 };
 use cw_utils::{maybe_addr, must_pay, nonpayable};
@@ -19,7 +19,7 @@ use whitelist_types::{
 use crate::error::ContractError;
 use crate::state::{COLLECTION, CONFIG, MINTABLE_TOKENS, MINTED_TOKENS, TOTAL_TOKENS_REMAINING};
 use crate::utils::{randomize_token_list, return_random_token};
-use minter_types::{Config, QueryMsg, Token, UserDetails};
+use minter_types::{Config, PauseState, QueryMsg, Token, UserDetails};
 
 use cw2::set_contract_version;
 use omniflix_std::types::omniflix::onft::v1beta1::{
@@ -41,6 +41,9 @@ const CREATION_FEE_DENOM: &str = "";
 const CREATION_FEE: Uint128 = Uint128::new(100_000_000);
 #[cfg(test)]
 const CREATION_FEE_DENOM: &str = "uflix";
+
+const PAUSED_KEY: &str = "paused";
+const PAUSERS_KEY: &str = "pausers";
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -119,7 +122,7 @@ pub fn instantiate(
     if msg.init.mint_price == Uint128::new(0) {
         return Err(ContractError::InvalidMintPrice {});
     }
-    let admin = maybe_addr(deps.api, msg.init.admin.clone())?.unwrap_or(info.sender.clone());
+    let admin = deps.api.addr_validate(&msg.init.admin)?;
 
     let payment_collector =
         maybe_addr(deps.api, msg.init.payment_collector.clone())?.unwrap_or(info.sender.clone());
@@ -130,7 +133,7 @@ pub fn instantiate(
         payment_collector,
         start_time: msg.init.start_time,
         royalty_ratio,
-        admin,
+        admin: admin.clone(),
         mint_price: Coin {
             denom: msg.init.mint_denom.clone(),
             amount: msg.init.mint_price,
@@ -181,6 +184,9 @@ pub fn instantiate(
 
     // Save total tokens
     TOTAL_TOKENS_REMAINING.save(deps.storage, &num_tokens)?;
+    // Initialize pause state and set admin as pauser
+    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    pause_state.set_pausers(deps.storage, info.sender.clone(), [admin.clone()].to_vec())?;
 
     let nft_creation_msg: CosmosMsg = MsgCreateDenom {
         description: collection.description,
@@ -234,10 +240,17 @@ pub fn execute(
         ExecuteMsg::UpdateWhitelistAddress { address } => {
             execute_update_whitelist_address(deps, env, info, address)
         }
+        ExecuteMsg::Pause {} => execute_pause(deps, env, info),
+        ExecuteMsg::Unpause {} => execute_unpause(deps, env, info),
+        ExecuteMsg::SetPausers { pausers } => execute_set_pausers(deps, env, info, pausers),
     }
 }
 
 pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response, ContractError> {
+    // Error if paused
+    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    pause_state.error_if_paused(deps.storage)?;
+
     let config = CONFIG.load(deps.storage)?;
     // Check if any tokens are left
     let total_tokens_remaining = TOTAL_TOKENS_REMAINING.load(deps.storage)?;
@@ -395,6 +408,9 @@ pub fn execute_mint_admin(
     recipient: String,
     token_id: Option<String>,
 ) -> Result<Response, ContractError> {
+    // Error if paused
+    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    pause_state.error_if_paused(deps.storage)?;
     // Check if sender is admin
     nonpayable(&info)?;
     let config = CONFIG.load(deps.storage)?;
@@ -505,7 +521,7 @@ pub fn execute_burn_remaining_tokens(
 
 pub fn execute_update_royalty_ratio(
     deps: DepsMut,
-    _env: Env,
+    env: Env,
     info: MessageInfo,
     ratio: String,
 ) -> Result<Response, ContractError> {
@@ -513,6 +529,10 @@ pub fn execute_update_royalty_ratio(
     let mut config = CONFIG.load(deps.storage)?;
     if info.sender != config.admin {
         return Err(ContractError::Unauthorized {});
+    }
+    // Check if trading has started
+    if env.block.time > config.start_time {
+        return Err(ContractError::MintingAlreadyStarted {});
     }
     let ratio = Decimal::from_str(&ratio)?; // Check if ratio is decimal number
     if ratio < Decimal::zero() || ratio > Decimal::one() {
@@ -626,6 +646,50 @@ pub fn execute_update_whitelist_address(
     Ok(res)
 }
 
+pub fn execute_pause(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+) -> Result<Response, ContractError> {
+    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    pause_state.pause(deps.storage, &info.sender)?;
+    let res = Response::new().add_attribute("action", "pause");
+    Ok(res)
+}
+
+pub fn execute_unpause(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+) -> Result<Response, ContractError> {
+    // Check if sender is admin
+    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    pause_state.unpause(deps.storage, &info.sender)?;
+    let res = Response::new().add_attribute("action", "unpause");
+    Ok(res)
+}
+
+pub fn execute_set_pausers(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    pausers: Vec<String>,
+) -> Result<Response, ContractError> {
+    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    pause_state.set_pausers(
+        deps.storage,
+        info.sender,
+        pausers
+            .iter()
+            .map(|pauser| deps.api.addr_validate(pauser))
+            .collect::<StdResult<Vec<Addr>>>()?,
+    )?;
+    let res = Response::new()
+        .add_attribute("action", "set_pausers")
+        .add_attribute("pausers", pausers.join(","));
+    Ok(res)
+}
+
 // Implement Queries
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
@@ -637,6 +701,8 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
             to_json_binary(&query_minted_tokens(deps, env, address)?)
         }
         QueryMsg::TotalTokens {} => to_json_binary(&query_total_tokens(deps, env)?),
+        QueryMsg::IsPaused {} => to_json_binary(&query_is_paused(deps, env)?),
+        QueryMsg::Pausers {} => to_json_binary(&query_pausers(deps, env)?),
     }
 }
 
@@ -674,4 +740,16 @@ fn query_minted_tokens(
 fn query_total_tokens(deps: Deps, _env: Env) -> Result<u32, ContractError> {
     let total_tokens = TOTAL_TOKENS_REMAINING.load(deps.storage)?;
     Ok(total_tokens)
+}
+
+fn query_is_paused(deps: Deps, _env: Env) -> Result<bool, ContractError> {
+    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let is_paused = pause_state.is_paused(deps.storage)?;
+    Ok(is_paused)
+}
+
+fn query_pausers(deps: Deps, _env: Env) -> Result<Vec<Addr>, ContractError> {
+    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let pausers = pause_state.pausers.load(deps.storage).unwrap_or(vec![]);
+    Ok(pausers)
 }

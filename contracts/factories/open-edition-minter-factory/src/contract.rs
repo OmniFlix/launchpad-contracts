@@ -303,7 +303,7 @@ mod tests {
             msg: OpenEditionMinterCreateMsg {
                 collection_details: collection_details.clone(),
                 init: OpenEditionMinterInitExtention {
-                    admin: None,
+                    admin: "admin".to_string(),
                     whitelist_address: None,
                     mint_denom: "non_allowed_denom".to_string(),
                     mint_price: Uint128::new(100),
@@ -337,7 +337,7 @@ mod tests {
             msg: OpenEditionMinterCreateMsg {
                 collection_details: collection_details.clone(),
                 init: OpenEditionMinterInitExtention {
-                    admin: None,
+                    admin: "admin".to_string(),
                     whitelist_address: None,
                     mint_denom: "uusd".to_string(),
                     mint_price: Uint128::new(100),
@@ -404,7 +404,7 @@ mod tests {
             msg: OpenEditionMinterCreateMsg {
                 collection_details: collection_details.clone(),
                 init: OpenEditionMinterInitExtention {
-                    admin: None,
+                    admin: "admin".to_string(),
                     whitelist_address: None,
                     mint_denom: "uusd".to_string(),
                     mint_price: Uint128::new(100),
@@ -451,7 +451,7 @@ mod tests {
             msg: OpenEditionMinterCreateMsg {
                 collection_details: collection_details.clone(),
                 init: OpenEditionMinterInitExtention {
-                    admin: None,
+                    admin: "admin".to_string(),
                     whitelist_address: None,
                     mint_denom: "uusd".to_string(),
                     mint_price: Uint128::new(100),
@@ -489,7 +489,7 @@ mod tests {
                 msg: to_json_binary(&OpenEditionMinterCreateMsg {
                     collection_details: collection_details.clone(),
                     init: OpenEditionMinterInitExtention {
-                        admin: None,
+                        admin: "admin".to_string(),
                         whitelist_address: None,
                         mint_denom: "uusd".to_string(),
                         mint_price: Uint128::new(100),

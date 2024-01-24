@@ -4,11 +4,11 @@ use std::str::FromStr;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_json_binary, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo, Response,
-    StdResult, Uint128, WasmMsg,
+    to_json_binary, Addr, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo,
+    Response, StdResult, Uint128, WasmMsg,
 };
 use cw_utils::{maybe_addr, must_pay, nonpayable};
-use minter_types::{CollectionDetails, Config, Token, UserDetails};
+use minter_types::{CollectionDetails, Config, PauseState, Token, UserDetails};
 use open_edition_minter_types::QueryMsg;
 
 use crate::error::ContractError;
@@ -41,6 +41,9 @@ const CREATION_FEE_DENOM: &str = "";
 const CREATION_FEE: Uint128 = Uint128::new(100_000_000);
 #[cfg(test)]
 const CREATION_FEE_DENOM: &str = "uflix";
+
+const PAUSED_KEY: &str = "paused";
+const PAUSERS_KEY: &str = "pausers";
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -119,7 +122,7 @@ pub fn instantiate(
             return Err(ContractError::WhitelistAlreadyActive {});
         }
     }
-    let admin = maybe_addr(deps.api, msg.init.admin.clone())?.unwrap_or(info.sender.clone());
+    let admin = deps.api.addr_validate(&msg.init.admin)?;
 
     let payment_collector =
         maybe_addr(deps.api, msg.init.payment_collector.clone())?.unwrap_or(info.sender.clone());
@@ -129,7 +132,7 @@ pub fn instantiate(
         payment_collector,
         start_time: msg.init.start_time,
         royalty_ratio,
-        admin,
+        admin: admin.clone(),
         mint_price: Coin {
             denom: msg.init.mint_denom.clone(),
             amount: msg.init.mint_price,
@@ -140,6 +143,8 @@ pub fn instantiate(
     };
     CONFIG.save(deps.storage, &config)?;
     MINTED_COUNT.save(deps.storage, &0)?;
+    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    pause_state.set_pausers(deps.storage, info.sender.clone(), vec![admin.clone()])?;
 
     let collection = CollectionDetails {
         name: msg.collection_details.name,
@@ -206,10 +211,15 @@ pub fn execute(
         ExecuteMsg::UpdateWhitelistAddress { address } => {
             execute_update_whitelist_address(deps, env, info, address)
         }
+        ExecuteMsg::Pause {} => execute_pause(deps, env, info),
+        ExecuteMsg::Unpause {} => execute_unpause(deps, env, info),
+        ExecuteMsg::SetPausers { pausers } => execute_set_pausers(deps, env, info, pausers),
     }
 }
 
 pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response, ContractError> {
+    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    pause_state.error_if_paused(deps.storage)?;
     let config = CONFIG.load(deps.storage)?;
     // Check if any token limit set and if it is reached
     if let Some(token_limit) = config.token_limit {
@@ -359,13 +369,14 @@ pub fn execute_mint_admin(
     info: MessageInfo,
     recipient: String,
 ) -> Result<Response, ContractError> {
-    // Check if sender is admin
     nonpayable(&info)?;
 
     let config = CONFIG.load(deps.storage)?;
-
+    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    pause_state.error_if_paused(deps.storage)?;
     let collection = COLLECTION.load(deps.storage)?;
 
+    // Check if sender is admin
     if info.sender != config.admin {
         return Err(ContractError::Unauthorized {});
     }
@@ -524,6 +535,49 @@ pub fn execute_update_whitelist_address(
         .add_attribute("address", address.to_string());
     Ok(res)
 }
+pub fn execute_pause(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+) -> Result<Response, ContractError> {
+    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    pause_state.pause(deps.storage, &info.sender)?;
+    let res = Response::new().add_attribute("action", "pause");
+    Ok(res)
+}
+
+pub fn execute_unpause(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+) -> Result<Response, ContractError> {
+    // Check if sender is admin
+    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    pause_state.unpause(deps.storage, &info.sender)?;
+    let res = Response::new().add_attribute("action", "unpause");
+    Ok(res)
+}
+
+pub fn execute_set_pausers(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    pausers: Vec<String>,
+) -> Result<Response, ContractError> {
+    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    pause_state.set_pausers(
+        deps.storage,
+        info.sender,
+        pausers
+            .iter()
+            .map(|pauser| deps.api.addr_validate(pauser))
+            .collect::<StdResult<Vec<Addr>>>()?,
+    )?;
+    let res = Response::new()
+        .add_attribute("action", "set_pausers")
+        .add_attribute("pausers", pausers.join(","));
+    Ok(res)
+}
 
 // Implement Queries
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -536,6 +590,8 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         }
         QueryMsg::TotalMintedCount {} => to_json_binary(&query_total_tokens_minted(deps, env)?),
         QueryMsg::TokensRemaining {} => to_json_binary(&query_tokens_remaining(deps, env)?),
+        QueryMsg::IsPaused {} => to_json_binary(&query_is_paused(deps, env)?),
+        QueryMsg::Pausers {} => to_json_binary(&query_pausers(deps, env)?),
     }
 }
 
@@ -572,4 +628,16 @@ fn query_tokens_remaining(deps: Deps, _env: Env) -> Result<u32, ContractError> {
     } else {
         Err(ContractError::TokenLimitNotSet {})
     }
+}
+
+fn query_is_paused(deps: Deps, _env: Env) -> Result<bool, ContractError> {
+    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let is_paused = pause_state.is_paused(deps.storage)?;
+    Ok(is_paused)
+}
+
+fn query_pausers(deps: Deps, _env: Env) -> Result<Vec<Addr>, ContractError> {
+    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let pausers = pause_state.pausers.load(deps.storage).unwrap_or(vec![]);
+    Ok(pausers)
 }

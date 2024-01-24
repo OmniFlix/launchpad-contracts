@@ -2,12 +2,16 @@ use std::convert::Infallible;
 
 use cosmwasm_std::{CheckedFromRatioError, ConversionOverflowError, StdError, Timestamp, Uint128};
 use cw_utils::PaymentError;
+use minter_types::PauseError;
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ContractError {
     #[error("{0}")]
     Std(#[from] StdError),
+
+    #[error(transparent)]
+    Pause(#[from] PauseError),
 
     #[error("Unauthorized")]
     Unauthorized {},
