@@ -556,10 +556,6 @@ pub fn execute_update_mint_price(
     if info.sender != config.admin {
         return Err(ContractError::Unauthorized {});
     }
-    // Check if trading has started
-    if env.block.time > config.start_time {
-        return Err(ContractError::MintingAlreadyStarted {});
-    }
     // Check if mint price is valid
     if mint_price.amount == Uint128::new(0) {
         return Err(ContractError::InvalidMintPrice {});

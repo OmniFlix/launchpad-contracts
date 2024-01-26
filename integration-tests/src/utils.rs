@@ -1,4 +1,4 @@
-use cosmwasm_std::{from_json, Addr, Coin, MemoryStorage, Storage, Timestamp, Uint128};
+use cosmwasm_std::{from_json, Addr, Coin, MemoryStorage, Storage, Timestamp};
 use cw_multi_test::AppResponse;
 use minter_types::CollectionDetails;
 use omniflix_minter_factory::msg::{CreateMinterMsg, MinterInitExtention};

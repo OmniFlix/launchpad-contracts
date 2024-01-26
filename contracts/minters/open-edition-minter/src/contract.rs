@@ -468,7 +468,7 @@ pub fn execute_update_royalty_ratio(
 
 pub fn execute_update_mint_price(
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     info: MessageInfo,
     mint_price: Coin,
 ) -> Result<Response, ContractError> {
@@ -476,14 +476,6 @@ pub fn execute_update_mint_price(
     let mut config = CONFIG.load(deps.storage)?;
     if info.sender != config.admin {
         return Err(ContractError::Unauthorized {});
-    }
-    // Check if trading has started
-    if env.block.time > config.start_time {
-        return Err(ContractError::MintingAlreadyStarted {});
-    }
-    // Check if mint price is valid
-    if mint_price.amount == Uint128::new(0) {
-        return Err(ContractError::InvalidMintPrice {});
     }
     config.mint_price = mint_price.clone();
 
