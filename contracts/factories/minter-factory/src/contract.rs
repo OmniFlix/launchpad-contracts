@@ -273,8 +273,10 @@ mod tests {
                 init: MinterInitExtention {
                     admin: "admin".to_string(),
                     whitelist_address: None,
-                    mint_denom: "uusd".to_string(),
-                    mint_price: Uint128::new(100),
+                    mint_price: Coin {
+                        amount: Uint128::new(100),
+                        denom: "uusd".to_string(),
+                    },
                     start_time: Timestamp::from_seconds(0),
                     royalty_ratio: Decimal::percent(10).to_string(),
                     payment_collector: None,
@@ -340,8 +342,10 @@ mod tests {
                 init: MinterInitExtention {
                     admin: "admin".to_string(),
                     whitelist_address: None,
-                    mint_denom: "uusd".to_string(),
-                    mint_price: Uint128::new(100),
+                    mint_price: Coin {
+                        amount: Uint128::new(100),
+                        denom: "uusd".to_string(),
+                    },
                     start_time: Timestamp::from_seconds(0),
                     royalty_ratio: Decimal::percent(10).to_string(),
                     payment_collector: None,
@@ -387,8 +391,10 @@ mod tests {
                 init: MinterInitExtention {
                     admin: "admin".to_string(),
                     whitelist_address: None,
-                    mint_denom: "uusd".to_string(),
-                    mint_price: Uint128::new(100),
+                    mint_price: Coin {
+                        amount: Uint128::new(100),
+                        denom: "uusd".to_string(),
+                    },
                     start_time: Timestamp::from_seconds(0),
                     royalty_ratio: Decimal::percent(10).to_string(),
                     payment_collector: None,
@@ -425,8 +431,10 @@ mod tests {
                     init: MinterInitExtention {
                         admin: "admin".to_string(),
                         whitelist_address: None,
-                        mint_denom: "uusd".to_string(),
-                        mint_price: Uint128::new(100),
+                        mint_price: Coin {
+                            amount: Uint128::new(100),
+                            denom: "uusd".to_string(),
+                        },
                         start_time: Timestamp::from_seconds(0),
                         royalty_ratio: Decimal::percent(10).to_string(),
                         payment_collector: None,

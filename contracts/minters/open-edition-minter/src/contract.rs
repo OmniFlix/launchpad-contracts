@@ -12,7 +12,7 @@ use minter_types::{CollectionDetails, Config, PauseState, Token, UserDetails};
 use open_edition_minter_types::QueryMsg;
 
 use crate::error::ContractError;
-use crate::msg::ExecuteMsg;
+use crate::msg::{self, ExecuteMsg};
 use crate::state::{last_token_id, COLLECTION, CONFIG, MINTED_COUNT, MINTED_TOKENS};
 use cw2::set_contract_version;
 use omniflix_open_edition_minter_factory::msg::{
@@ -133,10 +133,7 @@ pub fn instantiate(
         start_time: msg.init.start_time,
         royalty_ratio,
         admin: admin.clone(),
-        mint_price: Coin {
-            denom: msg.init.mint_denom.clone(),
-            amount: msg.init.mint_price,
-        },
+        mint_price: msg.init.mint_price,
         whitelist_address: maybe_addr(deps.api, msg.init.whitelist_address.clone())?,
         end_time: msg.init.end_time,
         token_limit: msg.init.token_limit,
@@ -473,7 +470,7 @@ pub fn execute_update_mint_price(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    mint_price: Uint128,
+    mint_price: Coin,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
     let mut config = CONFIG.load(deps.storage)?;
@@ -485,16 +482,17 @@ pub fn execute_update_mint_price(
         return Err(ContractError::MintingAlreadyStarted {});
     }
     // Check if mint price is valid
-    if mint_price == Uint128::new(0) {
+    if mint_price.amount == Uint128::new(0) {
         return Err(ContractError::InvalidMintPrice {});
     }
-    config.mint_price.amount = mint_price;
+    config.mint_price = mint_price.clone();
 
     CONFIG.save(deps.storage, &config)?;
 
     let res = Response::new()
         .add_attribute("action", "update_mint_price")
-        .add_attribute("mint_price", mint_price.to_string());
+        .add_attribute("mint_price_denom", mint_price.denom.to_string())
+        .add_attribute("mint_price_amount", mint_price.amount.to_string());
     Ok(res)
 }
 

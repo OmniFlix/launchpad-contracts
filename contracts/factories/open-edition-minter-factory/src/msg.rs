@@ -14,8 +14,7 @@ pub struct InstantiateMsg {
 #[cw_serde]
 pub struct OpenEditionMinterInitExtention {
     pub admin: String,
-    pub mint_price: Uint128,
-    pub mint_denom: String,
+    pub mint_price: Coin,
     pub start_time: Timestamp,
     pub end_time: Option<Timestamp>,
     pub token_limit: Option<u32>,

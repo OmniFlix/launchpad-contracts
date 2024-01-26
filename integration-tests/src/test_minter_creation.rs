@@ -158,7 +158,7 @@ mod test_minter_creation {
 
         // Send mint price 0
         let mut minter_inst_msg = return_minter_instantiate_msg();
-        minter_inst_msg.init.mint_price = Uint128::zero();
+        minter_inst_msg.init.mint_price.amount = Uint128::zero();
         let create_minter_msg = FactoryExecuteMsg::CreateMinter {
             msg: minter_inst_msg,
         };

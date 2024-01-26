@@ -48,8 +48,7 @@ pub fn return_minter_instantiate_msg() -> CreateMinterMsg {
         collection_details: collection_details,
         init: MinterInitExtention {
             admin: "creator".to_string(),
-            mint_denom: "uflix".to_string(),
-            mint_price: Uint128::from(1000000u128),
+            mint_price: Coin::new(1000000, "uflix"),
             start_time: Timestamp::from_nanos(1_000_000_000),
             end_time: Some(Timestamp::from_nanos(2_000_000_000)),
             per_address_limit: 1,
@@ -81,8 +80,7 @@ pub fn return_open_edition_minter_inst_msg() -> OpenEditionMinterCreateMsg {
     };
     let init = OpenEditionMinterInitExtention {
         admin: "creator".to_string(),
-        mint_denom: "uflix".to_string(),
-        mint_price: Uint128::from(1000000u128),
+        mint_price: Coin::new(1000000, "uflix"),
         start_time: Timestamp::from_nanos(1_000_000_000),
         end_time: Some(Timestamp::from_nanos(2_000_000_000)),
         per_address_limit: 1,

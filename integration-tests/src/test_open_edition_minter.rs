@@ -209,7 +209,7 @@ mod test_open_edition_minter_creation {
 
         // Send incorrect mint price this should not fail because mint price can be set to zero on open edition minter
         let mut open_edition_minter_instantiate_msg = return_open_edition_minter_inst_msg();
-        open_edition_minter_instantiate_msg.init.mint_price = Uint128::zero();
+        open_edition_minter_instantiate_msg.init.mint_price.amount = Uint128::zero();
         let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateMinter {
             msg: open_edition_minter_instantiate_msg,
         };

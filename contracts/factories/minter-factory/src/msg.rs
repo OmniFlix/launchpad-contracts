@@ -14,9 +14,7 @@ pub struct InstantiateMsg {
 #[cw_serde]
 pub struct MinterInitExtention {
     pub admin: String,
-    pub mint_price: Uint128,
-    // Factory sould check denom against the params if denoms is valid and whitelisted.
-    pub mint_denom: String,
+    pub mint_price: Coin,
     // Public minting start time
     pub start_time: Timestamp,
     pub end_time: Option<Timestamp>,
