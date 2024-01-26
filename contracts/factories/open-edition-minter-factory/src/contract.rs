@@ -37,7 +37,6 @@ pub fn instantiate(
     }
     let params = Params {
         admin: admin.clone(),
-        allowed_minter_mint_denoms: msg.allowed_minter_mint_denoms,
         fee_collector_address,
         open_edition_minter_code_id: msg.open_edition_minter_code_id,
         minter_creation_fee: msg.minter_creation_fee,
@@ -56,9 +55,6 @@ pub fn execute(
     match msg {
         ExecuteMsg::CreateMinter { msg } => create_minter(deps, env, info, msg),
         ExecuteMsg::UpdateAdmin { admin } => update_params_admin(deps, env, info, admin),
-        ExecuteMsg::UpdateAllowedMinterMintDenoms {
-            allowed_minter_mint_denoms,
-        } => update_params_allowed_mint_denoms(deps, env, info, allowed_minter_mint_denoms),
         ExecuteMsg::UpdateFeeCollectorAddress {
             fee_collector_address,
         } => update_params_fee_collector_address(deps, env, info, fee_collector_address),
@@ -96,14 +92,6 @@ fn create_minter(
         &info.funds,
         &[nft_creation_fee.clone(), params.minter_creation_fee.clone()],
     )?;
-
-    if !params
-        .allowed_minter_mint_denoms
-        .contains(&msg.init.mint_denom)
-    {
-        return Err(ContractError::MintDenomNotAllowed {});
-    }
-
     let msgs: Vec<CosmosMsg> = vec![
         CosmosMsg::Wasm(WasmMsg::Instantiate {
             admin: Some(params.admin.to_string()),
@@ -138,23 +126,6 @@ fn update_params_admin(
     Ok(Response::default()
         .add_attribute("action", "update_admin")
         .add_attribute("new_admin", admin))
-}
-
-fn update_params_allowed_mint_denoms(
-    deps: DepsMut,
-    _env: Env,
-    info: MessageInfo,
-    allowed_mint_denoms: Vec<String>,
-) -> Result<Response, ContractError> {
-    let mut params = PARAMS.load(deps.storage)?;
-    if params.admin != info.sender {
-        return Err(ContractError::Unauthorized {});
-    }
-    params.allowed_minter_mint_denoms = allowed_mint_denoms.clone();
-    PARAMS.save(deps.storage, &params)?;
-    Ok(Response::default()
-        .add_attribute("action", "update_allowed_mint_denoms")
-        .add_attribute("new_allowed_mint_denoms", allowed_mint_denoms.join(",")))
 }
 
 fn update_params_fee_collector_address(
@@ -239,7 +210,6 @@ mod tests {
         let mut deps = mock_dependencies();
         let msg = InstantiateMsg {
             admin: None,
-            allowed_minter_mint_denoms: vec!["uusd".to_string(), "uflix".to_string()],
             fee_collector_address: "fee_collector_address".to_string(),
             open_edition_minter_code_id: 1,
             minter_creation_fee: Coin {
@@ -256,7 +226,6 @@ mod tests {
             params.params,
             Params {
                 admin: Addr::unchecked("creator"),
-                allowed_minter_mint_denoms: vec!["uusd".to_string(), "uflix".to_string()],
                 fee_collector_address: Addr::unchecked("fee_collector_address"),
                 open_edition_minter_code_id: 1,
                 minter_creation_fee: Coin {
@@ -272,7 +241,6 @@ mod tests {
         let mut deps = mock_dependencies();
         let msg = InstantiateMsg {
             admin: None,
-            allowed_minter_mint_denoms: vec!["uusd".to_string(), "uflix".to_string()],
             fee_collector_address: "fee_collector_address".to_string(),
             open_edition_minter_code_id: 1,
             minter_creation_fee: Coin {
@@ -298,40 +266,6 @@ mod tests {
             transferable: true,
             token_name: "token_name".to_string(),
         };
-        // Non allowed mint denom
-        let msg = ExecuteMsg::CreateMinter {
-            msg: OpenEditionMinterCreateMsg {
-                collection_details: collection_details.clone(),
-                init: OpenEditionMinterInitExtention {
-                    admin: "admin".to_string(),
-                    whitelist_address: None,
-                    mint_denom: "non_allowed_denom".to_string(),
-                    mint_price: Uint128::new(100),
-                    start_time: Timestamp::from_seconds(0),
-                    royalty_ratio: Decimal::percent(10).to_string(),
-                    payment_collector: None,
-                    per_address_limit: 3,
-                    end_time: None,
-                    token_limit: None,
-                },
-            },
-        };
-
-        let info = mock_info(
-            "creator",
-            &[
-                Coin {
-                    amount: Uint128::new(100_000_000),
-                    denom: "uflix".to_string(),
-                },
-                Coin {
-                    amount: Uint128::new(100),
-                    denom: "uusd".to_string(),
-                },
-            ],
-        );
-        let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
-        assert_eq!(res, ContractError::MintDenomNotAllowed {});
         // Send additional funds
         let msg = ExecuteMsg::CreateMinter {
             msg: OpenEditionMinterCreateMsg {

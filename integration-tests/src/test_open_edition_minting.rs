@@ -39,7 +39,6 @@ mod test_open_edition_minter_minting {
         // Instantiate the minter factory
         let open_edition_minter_factory_instantiate_msg = OpenEditionMinterFactoryInstantiateMsg {
             admin: Some(admin.to_string()),
-            allowed_minter_mint_denoms: vec!["uflix".to_string()],
             open_edition_minter_code_id,
             fee_collector_address: admin.to_string(),
             minter_creation_fee: coin(1000000, "uflix"),

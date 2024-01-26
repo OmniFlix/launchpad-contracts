@@ -38,7 +38,6 @@ mod test_pause {
             minter_creation_fee: coin(1000000, "uflix"),
             minter_code_id,
             fee_collector_address: admin.clone().into_string(),
-            allowed_minter_mint_denoms: vec!["uflix".to_string()],
         };
         let factory_addr = app
             .instantiate_contract(
