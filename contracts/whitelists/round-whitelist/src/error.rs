@@ -1,6 +1,6 @@
 use std::convert::Infallible;
 
-use cosmwasm_std::{CheckedFromRatioError, ConversionOverflowError, StdError};
+use cosmwasm_std::{ConversionOverflowError, StdError};
 use cw_utils::PaymentError;
 use thiserror::Error;
 use whitelist_types::Round;

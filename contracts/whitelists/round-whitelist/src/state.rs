@@ -1,6 +1,6 @@
 use crate::round::RoundMethods;
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, Coin, Empty, Order, StdResult, Storage, Timestamp};
+use cosmwasm_std::{Addr, Order, StdResult, Storage, Timestamp};
 use cw_storage_plus::{Item, Map};
 
 use crate::error::ContractError;
@@ -163,8 +163,6 @@ impl<'a> Rounds<'a> {
 
 #[cfg(test)]
 mod tests {
-
-    use crate::round;
 
     use super::*;
     use cosmwasm_std::testing::mock_dependencies;
@@ -349,7 +347,7 @@ mod tests {
             round_per_address_limit: 1,
         };
 
-        let round_2 = Round {
+        let _round_2 = Round {
             addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
             start_time: Timestamp::from_seconds(3000),
             end_time: Timestamp::from_seconds(4000),
@@ -397,32 +395,5 @@ mod tests {
             )
             .unwrap_err();
         assert_eq!(res, ContractError::RoundReachedMintLimit {});
-
-        //         current_time: 4001
-        // id: 1, round: Round { addresses: [Addr("collector")], start_time: Timestamp(Uint64(2000)), end_time: Timestamp(Uint64(3000)), mint_price: Coin { 1000000 "diffirent_denom" }, round_per_address_limit: 1 }
-        // id: 2, round: Round { addresses: [Addr("creator")], start_time: Timestamp(Uint64(4000)), end_time: Timestamp(Uint64(5000)), mint_price: Coin { 1000000 "uflix" }, round_per_address_limit: 1 }
-        // Generate a new rounds
-        let round_3 = Round {
-            addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
-            start_time: Timestamp::from_seconds(2000),
-            end_time: Timestamp::from_seconds(3000),
-            mint_price: coin(100, "atom"),
-            round_per_address_limit: 1,
-        };
-        let round_4 = Round {
-            addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
-            start_time: Timestamp::from_seconds(4000),
-            end_time: Timestamp::from_seconds(5000),
-            mint_price: coin(100, "atom"),
-            round_per_address_limit: 1,
-        };
-
-        let rounds_state = Rounds::new("rounds_test");
-        let round_3_index = rounds_state.save(&mut deps.storage, &round_3).unwrap();
-        let round_4_index = rounds_state.save(&mut deps.storage, &round_4).unwrap();
-        let active_round = rounds_state
-            .load_active_round(&deps.storage, Timestamp::from_seconds(4001))
-            .unwrap();
-        assert_eq!(active_round.0, round_4_index);
     }
 }

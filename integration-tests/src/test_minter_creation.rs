@@ -2,8 +2,7 @@
 mod test_minter_creation {
 
     use cosmwasm_std::{
-        coin, to_json_binary, Addr, BlockInfo, Decimal, QueryRequest, StdError, Timestamp, Uint128,
-        WasmQuery,
+        coin, to_json_binary, Addr, Decimal, QueryRequest, Timestamp, Uint128, WasmQuery,
     };
     use cw_multi_test::Executor;
     use minter_types::Token;
@@ -15,15 +14,11 @@ mod test_minter_creation {
         ExecuteMsg as FactoryExecuteMsg, InstantiateMsg as FactoryInstantiateMsg,
     };
 
-    use whitelist_types::{Round, RoundWhitelistQueryMsgs};
-
-    use crate::utils::{get_minter_address_from_res, return_minter_instantiate_msg, return_rounds};
+    use crate::utils::{get_minter_address_from_res, return_minter_instantiate_msg};
 
     use crate::{setup::setup, utils::query_onft_collection};
     use omniflix_minter::error::ContractError as MinterContractError;
     use omniflix_minter_factory::error::ContractError as MinterFactoryError;
-    use omniflix_round_whitelist::error::ContractError as RoundWhitelistContractError;
-    use omniflix_round_whitelist_factory::error::ContractError as RoundWhitelistFactoryContractError;
 
     #[test]
     fn test_minter_creation() {
