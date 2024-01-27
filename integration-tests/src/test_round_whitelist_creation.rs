@@ -243,7 +243,7 @@ mod test_round_whitelist_creation {
             .unwrap();
         assert_eq!(config_data, admin.to_string());
         // Query rounds
-        let rounds_data: Vec<Round> = app
+        let rounds_data: Vec<(u32, Round)> = app
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: round_whitelist_address.clone(),
@@ -251,8 +251,8 @@ mod test_round_whitelist_creation {
             }))
             .unwrap();
         assert_eq!(rounds_data.len(), 2);
-        assert_eq!(rounds_data[0].start_time, Timestamp::from_nanos(2000));
-        assert_eq!(rounds_data[0].end_time, Timestamp::from_nanos(3000));
+        assert_eq!(rounds_data[0].1.start_time, Timestamp::from_nanos(2000));
+        assert_eq!(rounds_data[0].1.end_time, Timestamp::from_nanos(3000));
 
         // Query round by id
         let round_data: Round = app
@@ -292,15 +292,15 @@ mod test_round_whitelist_creation {
         });
 
         // Query active round
-        let round_data: Round = app
+        let round_data: (u32, Round) = app
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: round_whitelist_address.clone(),
                 msg: to_json_binary(&RoundWhitelistQueryMsgs::ActiveRound {}).unwrap(),
             }))
             .unwrap();
-        assert_eq!(round_data.start_time, Timestamp::from_nanos(2000));
-        assert_eq!(round_data.end_time, Timestamp::from_nanos(3000));
+        assert_eq!(round_data.1.start_time, Timestamp::from_nanos(2000));
+        assert_eq!(round_data.1.end_time, Timestamp::from_nanos(3000));
 
         // Remove round which out of index
         let error = app
@@ -354,7 +354,7 @@ mod test_round_whitelist_creation {
                 &[],
             )
             .unwrap();
-        let round_data: Vec<Round> = app
+        let round_data: Vec<(u32, Round)> = app
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: round_whitelist_address.clone(),
@@ -362,7 +362,7 @@ mod test_round_whitelist_creation {
             }))
             .unwrap();
         assert_eq!(round_data.len(), 1);
-        assert_eq!(round_data[0].start_time, Timestamp::from_nanos(2000));
+        assert_eq!(round_data[0].1.start_time, Timestamp::from_nanos(2000));
 
         //Add Round Tests//
         // Try adding round which has started

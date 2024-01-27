@@ -1,6 +1,6 @@
 use std::convert::Infallible;
 
-use cosmwasm_std::StdError;
+use cosmwasm_std::{CheckedFromRatioError, ConversionOverflowError, StdError};
 use cw_utils::PaymentError;
 use thiserror::Error;
 use whitelist_types::Round;
@@ -77,6 +77,12 @@ impl From<ContractError> for StdError {
 }
 impl From<Infallible> for ContractError {
     fn from(_err: Infallible) -> Self {
+        ContractError::OverflowError {}
+    }
+}
+
+impl From<ConversionOverflowError> for ContractError {
+    fn from(_err: ConversionOverflowError) -> Self {
         ContractError::OverflowError {}
     }
 }

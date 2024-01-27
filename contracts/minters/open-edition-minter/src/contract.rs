@@ -12,7 +12,7 @@ use minter_types::{CollectionDetails, Config, PauseState, Token, UserDetails};
 use open_edition_minter_types::QueryMsg;
 
 use crate::error::ContractError;
-use crate::msg::{self, ExecuteMsg};
+use crate::msg::ExecuteMsg;
 use crate::state::{last_token_id, COLLECTION, CONFIG, MINTED_COUNT, MINTED_TOKENS};
 use cw2::set_contract_version;
 use omniflix_open_edition_minter_factory::msg::{

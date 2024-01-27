@@ -10,14 +10,18 @@ pub struct InstantiateMsg {
 #[cw_serde]
 #[derive(QueryResponses)]
 pub enum RoundWhitelistQueryMsgs {
-    #[returns(Vec<Round>)]
+    #[returns(Vec<(u32,Round)>)]
     Rounds {},
+
     #[returns(Round)]
     Round { round_index: u32 },
+    // Returns true if any round is active
     #[returns(IsActiveResponse)]
     IsActive {},
-    #[returns(Round)]
+
+    #[returns((u32,Round))]
     ActiveRound {},
+
     #[returns(MembersResponse)]
     Members {
         round_index: u32,
@@ -27,8 +31,10 @@ pub enum RoundWhitelistQueryMsgs {
     // Returns price of the active round
     #[returns(MintPriceResponse)]
     Price {},
+
     #[returns(IsMemberResponse)]
     IsMember { address: String },
+
     #[returns(String)]
     Admin {},
 }

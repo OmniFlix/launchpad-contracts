@@ -547,7 +547,7 @@ pub fn execute_update_royalty_ratio(
 
 pub fn execute_update_mint_price(
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     info: MessageInfo,
     mint_price: Coin,
 ) -> Result<Response, ContractError> {
@@ -582,7 +582,6 @@ pub fn execute_randomize_list(
     if info.sender != config.admin {
         return Err(ContractError::Unauthorized {});
     }
-
     // Collect mintable tokens
     let mut mintable_tokens: Vec<(u32, Token)> = Vec::new();
     for item in MINTABLE_TOKENS.range(deps.storage, None, None, Order::Ascending) {
