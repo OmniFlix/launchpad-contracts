@@ -91,6 +91,11 @@ impl<'a> Rounds<'a> {
         self.0.save(store, last_id + 1, round)?;
         Ok(last_id + 1)
     }
+
+    pub fn update(&self, store: &mut dyn Storage, id: u32, round: &Round) -> StdResult<()> {
+        self.0.save(store, id, round)?;
+        Ok(())
+    }
     pub fn last_id(&self, store: &dyn Storage) -> StdResult<u32> {
         let last_id = self
             .0

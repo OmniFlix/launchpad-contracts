@@ -1,5 +1,6 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
+use cosmwasm_std::Coin;
 use cosmwasm_std::{to_json_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
 use cw2::set_contract_version;
 use cw_utils::maybe_addr;
@@ -65,6 +66,14 @@ pub fn execute(
         }
         ExecuteMsg::AddRound { round } => execute_add_round(deps, env, info, round),
         ExecuteMsg::PrivateMint { collector } => execute_private_mint(deps, env, info, collector),
+        ExecuteMsg::AddMembers {
+            address,
+            round_index,
+        } => execute_add_members(deps, env, info, address, round_index),
+        ExecuteMsg::UpdatePrice {
+            mint_price,
+            round_index,
+        } => execute_update_price(deps, env, info, mint_price, round_index),
     }
 }
 pub fn execute_remove_round(
@@ -158,6 +167,67 @@ pub fn execute_private_mint(
     let res = Response::new()
         .add_attribute("action", "privately_mint")
         .add_attribute("minter", collector.to_string());
+    Ok(res)
+}
+
+pub fn execute_add_members(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    addresses: Vec<String>,
+    round_index: u32,
+) -> Result<Response, ContractError> {
+    // Check if sender is admin
+    let config = CONFIG.load(deps.storage)?;
+    if info.sender != config.admin {
+        return Err(ContractError::Unauthorized {});
+    }
+    // Since we are adding members to a round
+    // We are not checking if the round has started or ended
+    let rounds = Rounds::new(ROUNDS_KEY);
+    // Check if the round exists
+    let mut round = rounds.load(deps.storage, round_index)?;
+    // Add the address to the round
+    round.add_members(deps.as_ref(), addresses.clone())?;
+    // Save the round
+    rounds.update(deps.storage, round_index, &round)?;
+
+    let res = Response::new()
+        .add_attribute("action", "add_members")
+        .add_attribute("round_index", round_index.to_string())
+        .add_attribute("addresses", addresses.join(","));
+    Ok(res)
+}
+
+pub fn execute_update_price(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    mint_price: Coin,
+    round_index: u32,
+) -> Result<Response, ContractError> {
+    // Check if sender is admin
+    let config = CONFIG.load(deps.storage)?;
+    if info.sender != config.admin {
+        return Err(ContractError::Unauthorized {});
+    }
+    let rounds = Rounds::new(ROUNDS_KEY);
+    // Check if the round exists
+    let mut round = rounds.load(deps.storage, round_index)?;
+    // Check if the round has started
+    if round.has_started(env.block.time) {
+        return Err(ContractError::RoundAlreadyStarted {});
+    }
+    // Update the price
+    round.mint_price = mint_price.clone();
+    // Save the round
+    rounds.update(deps.storage, round_index, &round)?;
+
+    let res = Response::new()
+        .add_attribute("action", "update_price")
+        .add_attribute("round_index", round_index.to_string())
+        .add_attribute("mint_price_denom", mint_price.denom.to_string())
+        .add_attribute("mint_price_amount", mint_price.amount.to_string());
     Ok(res)
 }
 
