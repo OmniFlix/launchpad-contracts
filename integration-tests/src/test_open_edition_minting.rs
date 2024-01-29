@@ -10,7 +10,7 @@ mod test_open_edition_minter_minting {
         InstantiateMsg as OpenEditionMinterFactoryInstantiateMsg,
     };
 
-    use crate::utils::{get_minter_address_from_res, return_open_edition_minter_inst_msg};
+    use crate::utils::{get_contract_address_from_res, return_open_edition_minter_inst_msg};
 
     use crate::{setup::setup, utils::query_onft_collection};
 
@@ -69,7 +69,7 @@ mod test_open_edition_minter_minting {
                 &[Coin::new(2000000, "uflix")],
             )
             .unwrap();
-        let minter_address = get_minter_address_from_res(res);
+        let minter_address = get_contract_address_from_res(res);
 
         // Try minting before start time
         let mint_msg = OpenEditionMinterExecuteMsg::Mint {};

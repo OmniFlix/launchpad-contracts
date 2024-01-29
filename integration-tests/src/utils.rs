@@ -7,7 +7,7 @@ use omniflix_open_edition_minter_factory::msg::{
 };
 use omniflix_std::types::omniflix::onft::v1beta1::Collection;
 
-pub fn get_minter_address_from_res(res: AppResponse) -> String {
+pub fn get_contract_address_from_res(res: AppResponse) -> String {
     res.events
         .iter()
         .find(|e| e.ty == "instantiate")

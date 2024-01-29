@@ -9,7 +9,7 @@ mod test_round_whitelist_creation {
 
     use whitelist_types::{Round, RoundWhitelistQueryMsgs};
 
-    use crate::utils::{get_minter_address_from_res, return_rounds};
+    use crate::utils::{get_contract_address_from_res, return_rounds};
 
     use crate::setup::setup;
 
@@ -231,7 +231,7 @@ mod test_round_whitelist_creation {
         let uflix_after = query_res.amount;
         assert_eq!(uflix_after - uflix_before, Uint128::from(1000000u128));
         // Too lazy to create one for whitelist it works
-        let round_whitelist_address = get_minter_address_from_res(res.clone());
+        let round_whitelist_address = get_contract_address_from_res(res.clone());
 
         // Query config
         let config_data: String = app

@@ -12,7 +12,7 @@ mod test_pause {
         ExecuteMsg as FactoryExecuteMsg, InstantiateMsg as FactoryInstantiateMsg,
     };
 
-    use crate::utils::{get_minter_address_from_res, return_minter_instantiate_msg};
+    use crate::utils::{get_contract_address_from_res, return_minter_instantiate_msg};
 
     use crate::setup::setup;
     use omniflix_minter::error::ContractError as MinterContractError;
@@ -62,7 +62,7 @@ mod test_pause {
                 &[coin(2000000, "uflix")],
             )
             .unwrap();
-        let minter_address = get_minter_address_from_res(res.clone());
+        let minter_address = get_contract_address_from_res(res.clone());
 
         // Now query contract
         let is_paused: bool = app

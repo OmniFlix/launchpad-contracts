@@ -14,7 +14,9 @@ mod test_minting {
         ExecuteMsg as FactoryExecuteMsg, InstantiateMsg as FactoryInstantiateMsg,
     };
 
-    use crate::utils::{get_minter_address_from_res, return_minter_instantiate_msg, return_rounds};
+    use crate::utils::{
+        get_contract_address_from_res, return_minter_instantiate_msg, return_rounds,
+    };
 
     use crate::{setup::setup, utils::query_onft_collection};
     use omniflix_minter::error::ContractError as MinterContractError;
@@ -66,7 +68,7 @@ mod test_minting {
                 &[coin(2000000, "uflix")],
             )
             .unwrap();
-        let minter_address = get_minter_address_from_res(res.clone());
+        let minter_address = get_contract_address_from_res(res.clone());
 
         // minting before start time
         let error = app
@@ -358,7 +360,7 @@ mod test_minting {
                 &[coin(2000000, "uflix")],
             )
             .unwrap();
-        let minter_address = get_minter_address_from_res(res.clone());
+        let minter_address = get_contract_address_from_res(res.clone());
 
         // Try minting with money but non payable for admin
         let error = app
@@ -587,7 +589,7 @@ mod test_minting {
             height: 1_000,
             time: Timestamp::from_nanos(2_000 + 1),
         });
-        let round_whitelist_address = get_minter_address_from_res(res.clone());
+        let round_whitelist_address = get_contract_address_from_res(res.clone());
 
         let mut minter_inst_msg = return_minter_instantiate_msg();
         minter_inst_msg.init.whitelist_address = Some(round_whitelist_address.clone());
@@ -624,7 +626,7 @@ mod test_minting {
                 &[coin(2000000, "uflix")],
             )
             .unwrap();
-        let minter_address = get_minter_address_from_res(res.clone());
+        let minter_address = get_contract_address_from_res(res.clone());
         // Try minting when whitelist is not active
         let error = app
             .execute_contract(

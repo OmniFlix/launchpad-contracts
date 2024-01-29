@@ -14,7 +14,7 @@ mod test_minter_creation {
         ExecuteMsg as FactoryExecuteMsg, InstantiateMsg as FactoryInstantiateMsg,
     };
 
-    use crate::utils::{get_minter_address_from_res, return_minter_instantiate_msg};
+    use crate::utils::{get_contract_address_from_res, return_minter_instantiate_msg};
 
     use crate::{setup::setup, utils::query_onft_collection};
     use omniflix_minter::error::ContractError as MinterContractError;
@@ -233,7 +233,7 @@ mod test_minter_creation {
         let uflix_after = query_res.amount;
         assert_eq!(uflix_before - uflix_after, Uint128::from(1000000u128));
 
-        let minter_address = get_minter_address_from_res(res.clone());
+        let minter_address = get_contract_address_from_res(res.clone());
         let storage = app.storage();
         let collection = query_onft_collection(storage, minter_address.clone());
         assert_eq!(collection.denom.clone().unwrap().name, "name".to_string());
