@@ -1,11 +1,12 @@
 use cosmwasm_std::{from_json, Addr, Coin, MemoryStorage, Storage, Timestamp};
-use cw_multi_test::AppResponse;
+use cw_multi_test::{AppResponse, BankSudo, SudoMsg};
 use minter_types::CollectionDetails;
 use omniflix_minter_factory::msg::{CreateMinterMsg, MinterInitExtention};
 use omniflix_open_edition_minter_factory::msg::{
     OpenEditionMinterCreateMsg, OpenEditionMinterInitExtention,
 };
 use omniflix_std::types::omniflix::onft::v1beta1::Collection;
+use omniflix_testing::app::OmniflixApp;
 
 pub fn get_contract_address_from_res(res: AppResponse) -> String {
     res.events
@@ -115,4 +116,8 @@ pub fn return_rounds() -> Vec<whitelist_types::Round> {
     let rounds = vec![round_1.clone(), round_2.clone()];
 
     rounds
+}
+pub fn mint_to_address(app: &mut OmniflixApp, to_address: String, amount: Vec<Coin>) {
+    app.sudo(SudoMsg::Bank(BankSudo::Mint { to_address, amount }))
+        .unwrap();
 }

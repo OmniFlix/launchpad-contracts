@@ -1,3 +1,4 @@
+pub mod scenarios;
 pub mod setup;
 pub mod test_minter_creation;
 pub mod test_minting;
