@@ -258,13 +258,6 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
         .may_load(deps.storage, info.sender.clone())?
         .unwrap_or(UserDetails::default());
 
-    // Increment total minted count
-    user_details.total_minted_count += 1;
-    // Check if address has reached the limit
-    if user_details.total_minted_count > config.per_address_limit {
-        return Err(ContractError::AddressReachedMintLimit {});
-    }
-
     let mut mint_price = config.mint_price;
 
     // Collect mintable tokens
@@ -282,8 +275,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
 
     // Get a random token id
     let random_token = return_random_token(&mintable_tokens, env.clone())?;
-    // Add the minted token to the user details
-    user_details.minted_tokens.push(random_token.1.clone());
+
     // Check if minting is started
     let is_public = env.block.time > config.start_time;
 
@@ -328,7 +320,19 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
                 current_time: env.block.time,
             });
         };
+    } else {
+        user_details.public_mint_count += 1;
+        // Check if address has reached the limit
+        // This check should be done only for public minting
+        if user_details.public_mint_count > config.per_address_limit {
+            return Err(ContractError::AddressReachedMintLimit {});
+        }
     }
+    // Increment total minted count
+    user_details.total_minted_count += 1;
+    // Add the minted token to the user details
+    user_details.minted_tokens.push(random_token.1.clone());
+    MINTED_TOKENS.save(deps.storage, info.sender.clone(), &user_details)?;
 
     // Check the payment
     let amount = must_pay(&info, &mint_price.denom)?;
@@ -351,7 +355,6 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
         Ok(total_tokens)
     })?;
     // Save the user details
-    MINTED_TOKENS.save(deps.storage, info.sender.clone(), &user_details)?;
     let token_id = random_token.1.token_id;
     // Generate the metadata
     let metadata = Metadata {

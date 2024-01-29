@@ -235,17 +235,8 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
         .may_load(deps.storage, info.sender.clone())?
         .unwrap_or(UserDetails::default());
 
-    // Increment total minted count
-    user_details.total_minted_count += 1;
-    // Check if address has reached the limit
-    if user_details.total_minted_count > config.per_address_limit {
-        return Err(ContractError::AddressReachedMintLimit {});
-    }
     let token_id = last_token_id(deps.storage) + 1;
-    user_details.minted_tokens.push(Token {
-        token_id: token_id.to_string(),
-    });
-    MINTED_TOKENS.save(deps.storage, info.sender.clone(), &user_details)?;
+
     let mut mint_price = config.mint_price;
     // Check if minting is started
 
@@ -292,7 +283,21 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
                 current_time: env.block.time,
             });
         };
+    } else {
+        user_details.public_mint_count += 1;
+        // Check if address has reached the limit
+        if user_details.public_mint_count > config.per_address_limit {
+            return Err(ContractError::AddressReachedMintLimit {});
+        }
     }
+    // Increment total minted count
+    user_details.total_minted_count += 1;
+
+    user_details.minted_tokens.push(Token {
+        token_id: token_id.to_string(),
+    });
+    // Save the user details
+    MINTED_TOKENS.save(deps.storage, info.sender.clone(), &user_details)?;
 
     // Check the payment
     let amount = must_pay(&info, &mint_price.denom)?;
@@ -311,9 +316,6 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
         total_tokens += 1;
         Ok(total_tokens)
     })?;
-
-    // Save the user details
-    MINTED_TOKENS.save(deps.storage, info.sender.clone(), &user_details)?;
 
     // Generate the metadata
     let metadata = Metadata {

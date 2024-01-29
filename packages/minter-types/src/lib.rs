@@ -32,6 +32,7 @@ pub struct MinterInstantiateMsg<T> {
 pub struct UserDetails {
     pub minted_tokens: Vec<Token>,
     pub total_minted_count: u32,
+    pub public_mint_count: u32,
 }
 
 impl Default for UserDetails {
@@ -39,6 +40,7 @@ impl Default for UserDetails {
         UserDetails {
             minted_tokens: Vec::new(),
             total_minted_count: 0,
+            public_mint_count: 0,
         }
     }
 }
