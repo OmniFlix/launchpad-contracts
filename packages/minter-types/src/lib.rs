@@ -1,6 +1,9 @@
+use std::fmt::format;
+
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Addr, Coin, Decimal, StdError, Storage, Timestamp};
 use cw_storage_plus::Item;
+use omniflix_std::types::omniflix::onft::v1beta1::{Metadata, MsgMintOnft};
 use thiserror::Error;
 
 #[cw_serde]
@@ -169,6 +172,62 @@ impl<'a> PauseState<'a> {
     pub fn is_paused(&self, storage: &dyn Storage) -> Result<bool, PauseError> {
         let is_paused = self.paused.load(storage).unwrap_or(false);
         Ok(is_paused)
+    }
+}
+
+pub fn generate_mint_message(
+    collection: &CollectionDetails,
+    royalty_ratio: Decimal,
+    recipient: &Addr,
+    contract_address: &Addr,
+    is_edition: bool,
+    token_id: String,
+) -> MsgMintOnft {
+    match is_edition {
+        false => {
+            let metadata = Metadata {
+                name: format!("{} # {}", collection.token_name, token_id),
+                description: collection.description.clone(),
+                media_uri: format!("{}/{}", collection.base_uri, token_id),
+                preview_uri: collection.preview_uri.clone(),
+                uri_hash: collection.uri_hash.clone(),
+            };
+
+            MsgMintOnft {
+                data: collection.data.clone(),
+                id: token_id,
+                metadata: Some(metadata),
+                denom_id: collection.id.clone(),
+                transferable: collection.transferable,
+                sender: contract_address.clone().into_string(),
+                extensible: collection.extensible,
+                nsfw: collection.nsfw,
+                recipient: recipient.clone().into_string(),
+                royalty_share: royalty_ratio.atomics().to_string(),
+            }
+        }
+        true => {
+            let metadata = Metadata {
+                name: format!("{} # {}", collection.token_name, token_id),
+                description: collection.description.clone(),
+                media_uri: collection.base_uri.clone(),
+                preview_uri: collection.preview_uri.clone(),
+                uri_hash: collection.uri_hash.clone(),
+            };
+
+            MsgMintOnft {
+                data: collection.data.clone(),
+                id: token_id,
+                metadata: Some(metadata),
+                denom_id: collection.id.clone(),
+                transferable: collection.transferable,
+                sender: contract_address.clone().into_string(),
+                extensible: collection.extensible,
+                nsfw: collection.nsfw,
+                recipient: recipient.clone().into_string(),
+                royalty_share: royalty_ratio.atomics().to_string(),
+            }
+        }
     }
 }
 

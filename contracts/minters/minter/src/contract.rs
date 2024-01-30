@@ -8,7 +8,7 @@ use cosmwasm_std::{
     Response, StdResult, Uint128, WasmMsg,
 };
 use cw_utils::{maybe_addr, must_pay, nonpayable};
-use minter_types::CollectionDetails;
+use minter_types::{generate_mint_message, CollectionDetails};
 use omniflix_minter_factory::msg::QueryMsg::Params as QueryFactoryParams;
 use omniflix_minter_factory::msg::{CreateMinterMsg, ParamsResponse};
 use omniflix_round_whitelist::msg::ExecuteMsg::PrivateMint;
@@ -356,28 +356,15 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     })?;
     // Save the user details
     let token_id = random_token.1.token_id;
-    // Generate the metadata
-    let metadata = Metadata {
-        name: format!("{} # {}", collection.token_name, token_id),
-        description: collection.description,
-        media_uri: format!("{}/{}", collection.base_uri, token_id),
-        preview_uri: collection.preview_uri,
-        uri_hash: collection.uri_hash,
-    };
 
-    // Create the mint message
-    let mint_msg: CosmosMsg = MsgMintOnft {
-        data: collection.data,
-        id: token_id.clone(),
-        metadata: Some(metadata.clone()),
-        denom_id: collection.id.clone(),
-        transferable: collection.transferable,
-        sender: env.contract.address.clone().into_string(),
-        extensible: collection.extensible,
-        nsfw: collection.nsfw,
-        recipient: info.sender.clone().into_string(),
-        royalty_share: config.royalty_ratio.atomics().to_string(),
-    }
+    let mint_msg: CosmosMsg = generate_mint_message(
+        &collection,
+        config.royalty_ratio,
+        &info.sender,
+        &env.contract.address,
+        false,
+        token_id.clone(),
+    )
     .into();
 
     // Create the Bank send message
@@ -463,36 +450,22 @@ pub fn execute_mint_admin(
     // Save details
     MINTED_TOKENS.save(deps.storage, recipient.clone(), &user_details)?;
 
-    let denom_id = token.1.token_id;
+    let token_id = token.1.token_id;
 
-    // Generate the metadata
-    let metadata = Metadata {
-        name: format!("{} # {}", collection.token_name, denom_id),
-        description: collection.description,
-        media_uri: format!("{}/{}", collection.preview_uri, denom_id),
-        preview_uri: collection.preview_uri,
-        uri_hash: collection.uri_hash,
-    };
-
-    // Create the mint message
-    let mint_msg: CosmosMsg = MsgMintOnft {
-        data: collection.data,
-        id: denom_id.clone(),
-        metadata: Some(metadata),
-        denom_id: collection.id.clone(),
-        transferable: collection.transferable,
-        sender: env.contract.address.into_string(),
-        extensible: collection.extensible,
-        nsfw: collection.nsfw,
-        recipient: recipient.into_string(),
-        royalty_share: config.royalty_ratio.atomics().to_string(),
-    }
+    let mint_msg: CosmosMsg = generate_mint_message(
+        &collection,
+        config.royalty_ratio,
+        &recipient,
+        &env.contract.address,
+        false,
+        token_id.clone(),
+    )
     .into();
 
     let res = Response::new()
         .add_message(mint_msg)
         .add_attribute("action", "mint")
-        .add_attribute("token_id", denom_id.to_string())
+        .add_attribute("token_id", token_id.to_string())
         .add_attribute("denom_id", collection.id);
     Ok(res)
 }
