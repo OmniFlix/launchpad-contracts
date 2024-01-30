@@ -186,7 +186,7 @@ pub fn generate_mint_message(
     match is_edition {
         false => {
             let metadata = Metadata {
-                name: format!("{} # {}", collection.token_name, token_id),
+                name: format!("{} # {}", collection.token_name.clone(), token_id),
                 description: collection.description.clone(),
                 media_uri: format!("{}/{}", collection.base_uri, token_id),
                 preview_uri: collection.preview_uri.clone(),
@@ -208,7 +208,7 @@ pub fn generate_mint_message(
         }
         true => {
             let metadata = Metadata {
-                name: format!("{} # {}", collection.token_name, token_id),
+                name: collection.token_name.to_string(),
                 description: collection.description.clone(),
                 media_uri: collection.base_uri.clone(),
                 preview_uri: collection.preview_uri.clone(),
