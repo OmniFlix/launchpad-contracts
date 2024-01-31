@@ -192,6 +192,7 @@ mod test_open_edition_minter_minting {
         // Query minter
         let query_msg = OpenEditionMinterQueryMsg::MintedTokens {
             address: collector.to_string(),
+            edition: None,
         };
         let res: UserDetails = app
             .wrap()
@@ -208,7 +209,7 @@ mod test_open_edition_minter_minting {
             "token_name".to_string()
         );
         //     Query minter
-        let query_msg = OpenEditionMinterQueryMsg::TokensRemaining {};
+        let query_msg = OpenEditionMinterQueryMsg::TokensRemaining { edition: None };
         let res: u32 = app
             .wrap()
             .query_wasm_smart(Addr::unchecked(minter_address.clone()), &query_msg)
@@ -216,7 +217,7 @@ mod test_open_edition_minter_minting {
         assert_eq!(res, 999);
 
         // Query minter
-        let query_msg = OpenEditionMinterQueryMsg::TotalMintedCount {};
+        let query_msg = OpenEditionMinterQueryMsg::TotalMintedCount { edition: None };
         let res: u32 = app
             .wrap()
             .query_wasm_smart(Addr::unchecked(minter_address.clone()), &query_msg)
@@ -246,6 +247,7 @@ mod test_open_edition_minter_minting {
             // Query minter
             let query_msg = OpenEditionMinterQueryMsg::MintedTokens {
                 address: collector.to_string(),
+                edition: None,
             };
             let res: UserDetails = app
                 .wrap()
@@ -255,7 +257,7 @@ mod test_open_edition_minter_minting {
         }
 
         // Query minter
-        let query_msg = OpenEditionMinterQueryMsg::TokensRemaining {};
+        let query_msg = OpenEditionMinterQueryMsg::TokensRemaining { edition: None };
         let res: u32 = app
             .wrap()
             .query_wasm_smart(Addr::unchecked(minter_address.clone()), &query_msg)
@@ -263,7 +265,7 @@ mod test_open_edition_minter_minting {
         assert_eq!(res, 0);
 
         // Query minter
-        let query_msg = OpenEditionMinterQueryMsg::TotalMintedCount {};
+        let query_msg = OpenEditionMinterQueryMsg::TotalMintedCount { edition: None };
         let res: u32 = app
             .wrap()
             .query_wasm_smart(Addr::unchecked(minter_address.clone()), &query_msg)

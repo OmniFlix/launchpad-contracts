@@ -819,7 +819,6 @@ dependencies = [
  "cw-storage-plus 1.2.0",
  "cw-utils 1.0.3",
  "cw2 1.1.1",
- "minter-types",
  "omniflix-round-whitelist-factory",
  "omniflix-std",
  "serde",
@@ -1304,6 +1303,7 @@ dependencies = [
  "cosmwasm-std",
  "cw-utils 1.0.3",
  "cw721-base 0.18.0",
+ "minter-types",
  "serde",
  "thiserror",
 ]

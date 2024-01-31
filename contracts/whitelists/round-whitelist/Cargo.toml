@@ -47,4 +47,3 @@ cw-utils             = { workspace = true }
 serde = { workspace = true }
 whitelist-types = { workspace = true }
 omniflix-round-whitelist-factory = {path = "../../factories/round-whitelist-factory"}
-minter-types={ workspace = true }

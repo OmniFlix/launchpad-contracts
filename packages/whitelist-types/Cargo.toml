@@ -32,3 +32,4 @@ cw721-base      = { workspace = true, features = ["library"] }
 cw-utils        = { workspace = true }
 thiserror       = { workspace = true }
 serde           = { workspace = true }
+minter-types = { workspace = true }
