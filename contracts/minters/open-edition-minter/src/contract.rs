@@ -4,7 +4,7 @@ use std::str::FromStr;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_json_binary, Addr, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo,
+    to_json_binary, Addr, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo, Order,
     Response, StdResult, Uint128, WasmMsg,
 };
 use cw_utils::{maybe_addr, must_pay, nonpayable};
@@ -15,15 +15,15 @@ use open_edition_minter_types::QueryMsg;
 
 use crate::error::ContractError;
 use crate::msg::ExecuteMsg;
-use crate::state::{last_token_id, COLLECTION, CONFIG, MINTED_COUNT, MINTED_TOKENS};
+use crate::state::{
+    last_token_id, EditionParams, COLLECTION, CONFIG, EDITIONS, MINTED_COUNT, MINTED_TOKENS,
+};
 use cw2::set_contract_version;
 use omniflix_open_edition_minter_factory::msg::{
     OpenEditionMinterCreateMsg, ParamsResponse, QueryMsg as OpenEditionMinterFactoryQueryMsg,
 };
 use omniflix_round_whitelist::msg::ExecuteMsg as RoundWhitelistExecuteMsg;
-use omniflix_std::types::omniflix::onft::v1beta1::{
-    Metadata, MsgCreateDenom, MsgMintOnft, OnftQuerier,
-};
+use omniflix_std::types::omniflix::onft::v1beta1::{MsgCreateDenom, OnftQuerier};
 use whitelist_types::{
     IsActiveResponse, IsMemberResponse, MintPriceResponse, RoundWhitelistQueryMsgs,
 };
@@ -141,7 +141,7 @@ pub fn instantiate(
         end_time: msg.init.end_time,
         token_limit: msg.init.token_limit,
     };
-    CONFIG.save(deps.storage, &config)?;
+    //CONFIG.save(deps.storage, &config)?;
     MINTED_COUNT.save(deps.storage, &0)?;
     let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
     pause_state.set_pausers(deps.storage, info.sender.clone(), vec![admin.clone()])?;
@@ -162,7 +162,15 @@ pub fn instantiate(
         token_name: msg.collection_details.token_name,
         transferable: msg.collection_details.transferable,
     };
-    COLLECTION.save(deps.storage, &collection)?;
+    // COLLECTION.save(deps.storage, &collection)?;
+
+    // Save the collection as edition 1
+    let edition_params = EditionParams {
+        config: config.clone(),
+        collection: collection.clone(),
+    };
+
+    EDITIONS.save(deps.storage, 1, &edition_params)?;
 
     let nft_creation_msg: CosmosMsg = MsgCreateDenom {
         description: collection.description,
@@ -220,7 +228,15 @@ pub fn execute(
 pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response, ContractError> {
     let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
     pause_state.error_if_paused(deps.storage)?;
-    let config = CONFIG.load(deps.storage)?;
+    // Find the latest edition
+    let edition_params = EDITIONS
+        .range(deps.storage, None, None, Order::Ascending)
+        .last()
+        .unwrap()?
+        .1;
+    let config = edition_params.config;
+    let collection = edition_params.collection;
+    //let config = CONFIG.load(deps.storage)?;
     // Check if any token limit set and if it is reached
     if let Some(token_limit) = config.token_limit {
         if MINTED_COUNT.load(deps.storage)? >= token_limit {
@@ -313,7 +329,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     }
     // Get the payment collector address
     let payment_collector = config.payment_collector;
-    let collection = COLLECTION.load(deps.storage)?;
+    //let collection = COLLECTION.load(deps.storage)?;
 
     MINTED_COUNT.update(deps.storage, |mut total_tokens| -> StdResult<_> {
         total_tokens += 1;
@@ -359,10 +375,18 @@ pub fn execute_mint_admin(
 ) -> Result<Response, ContractError> {
     nonpayable(&info)?;
 
-    let config = CONFIG.load(deps.storage)?;
+    // let config = CONFIG.load(deps.storage)?;
+    //let collection = COLLECTION.load(deps.storage)?;
+    let edition_params = EDITIONS
+        .range(deps.storage, None, None, Order::Ascending)
+        .last()
+        .unwrap()?
+        .1;
+    let config = edition_params.config;
+    let collection = edition_params.collection;
+
     let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
     pause_state.error_if_paused(deps.storage)?;
-    let collection = COLLECTION.load(deps.storage)?;
 
     // Check if sender is admin
     if info.sender != config.admin {
@@ -404,15 +428,15 @@ pub fn execute_burn_remaining_tokens(
     info: MessageInfo,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
-    let config = CONFIG.load(deps.storage)?;
-    if info.sender != config.admin {
+    let mut edition_params = EDITIONS
+        .range(deps.storage, None, None, Order::Ascending)
+        .last()
+        .unwrap()?;
+    if info.sender != edition_params.1.clone().config.admin {
         return Err(ContractError::Unauthorized {});
     }
-    // We cannot burn open edition minter but we can set token limit to 0
-    let mut config = CONFIG.load(deps.storage)?;
-    config.token_limit = Some(0);
-    CONFIG.save(deps.storage, &config)?;
-
+    edition_params.1.config.token_limit = Some(0);
+    EDITIONS.save(deps.storage, edition_params.0, &edition_params.1)?;
     let res = Response::new().add_attribute("action", "burn_remaining_tokens");
     Ok(res)
 }
@@ -424,8 +448,12 @@ pub fn execute_update_royalty_ratio(
     ratio: String,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
-    let mut config = CONFIG.load(deps.storage)?;
-    if info.sender != config.admin {
+    let mut edition_params = EDITIONS
+        .range(deps.storage, None, None, Order::Ascending)
+        .last()
+        .unwrap()?;
+
+    if info.sender != edition_params.1.config.admin {
         return Err(ContractError::Unauthorized {});
     }
     // Check if ratio is decimal number
@@ -434,9 +462,9 @@ pub fn execute_update_royalty_ratio(
     if ratio < Decimal::zero() || ratio > Decimal::one() {
         return Err(ContractError::InvalidRoyaltyRatio {});
     }
-    config.royalty_ratio = ratio;
+    edition_params.1.config.royalty_ratio = ratio;
 
-    CONFIG.save(deps.storage, &config)?;
+    EDITIONS.save(deps.storage, edition_params.0, &edition_params.1)?;
 
     let res = Response::new()
         .add_attribute("action", "update_royalty_ratio")
@@ -451,13 +479,17 @@ pub fn execute_update_mint_price(
     mint_price: Coin,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
-    let mut config = CONFIG.load(deps.storage)?;
-    if info.sender != config.admin {
+    let mut edition_params = EDITIONS
+        .range(deps.storage, None, None, Order::Ascending)
+        .last()
+        .unwrap()?;
+
+    if info.sender != edition_params.1.config.admin {
         return Err(ContractError::Unauthorized {});
     }
-    config.mint_price = mint_price.clone();
+    edition_params.1.config.mint_price = mint_price.clone();
 
-    CONFIG.save(deps.storage, &config)?;
+    EDITIONS.save(deps.storage, edition_params.0, &edition_params.1)?;
 
     let res = Response::new()
         .add_attribute("action", "update_mint_price")
@@ -473,11 +505,14 @@ pub fn execute_update_whitelist_address(
     address: String,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
-    let mut config = CONFIG.load(deps.storage)?;
-    if info.sender != config.admin {
+    let mut edition_params = EDITIONS
+        .range(deps.storage, None, None, Order::Ascending)
+        .last()
+        .unwrap()?;
+    if info.sender != edition_params.1.config.admin {
         return Err(ContractError::Unauthorized {});
     }
-    let whitelist_address = config.whitelist_address.clone();
+    let whitelist_address = edition_params.1.config.whitelist_address.clone();
     // Check if whitelist already active
     let is_active: bool = deps.querier.query_wasm_smart(
         whitelist_address.clone().unwrap().into_string(),
