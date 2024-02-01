@@ -15,7 +15,7 @@
           ],
           "properties": {
             "msg": {
-              "$ref": "#/definitions/MinterInstantiateMsg_for_MinterInitExtention"
+              "$ref": "#/definitions/MinterInstantiateMsg_for_OpenEditionMinterInitExtention"
             }
           },
           "additionalProperties": false
@@ -190,12 +190,27 @@
       },
       "additionalProperties": false
     },
-    "MinterInitExtention": {
+    "MinterInstantiateMsg_for_OpenEditionMinterInitExtention": {
+      "type": "object",
+      "required": [
+        "collection_details",
+        "init"
+      ],
+      "properties": {
+        "collection_details": {
+          "$ref": "#/definitions/CollectionDetails"
+        },
+        "init": {
+          "$ref": "#/definitions/OpenEditionMinterInitExtention"
+        }
+      },
+      "additionalProperties": false
+    },
+    "OpenEditionMinterInitExtention": {
       "type": "object",
       "required": [
         "admin",
         "mint_price",
-        "num_tokens",
         "per_address_limit",
         "royalty_ratio",
         "start_time"
@@ -217,11 +232,6 @@
         "mint_price": {
           "$ref": "#/definitions/Coin"
         },
-        "num_tokens": {
-          "type": "integer",
-          "format": "uint32",
-          "minimum": 0.0
-        },
         "payment_collector": {
           "type": [
             "string",
@@ -239,27 +249,19 @@
         "start_time": {
           "$ref": "#/definitions/Timestamp"
         },
+        "token_limit": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0.0
+        },
         "whitelist_address": {
           "type": [
             "string",
             "null"
           ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "MinterInstantiateMsg_for_MinterInitExtention": {
-      "type": "object",
-      "required": [
-        "collection_details",
-        "init"
-      ],
-      "properties": {
-        "collection_details": {
-          "$ref": "#/definitions/CollectionDetails"
-        },
-        "init": {
-          "$ref": "#/definitions/MinterInitExtention"
         }
       },
       "additionalProperties": false

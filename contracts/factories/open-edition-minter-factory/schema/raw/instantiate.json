@@ -4,8 +4,8 @@
   "type": "object",
   "required": [
     "fee_collector_address",
-    "minter_code_id",
-    "minter_creation_fee"
+    "minter_creation_fee",
+    "open_edition_minter_code_id"
   ],
   "properties": {
     "admin": {
@@ -17,13 +17,13 @@
     "fee_collector_address": {
       "type": "string"
     },
-    "minter_code_id": {
+    "minter_creation_fee": {
+      "$ref": "#/definitions/Coin"
+    },
+    "open_edition_minter_code_id": {
       "type": "integer",
       "format": "uint64",
       "minimum": 0.0
-    },
-    "minter_creation_fee": {
-      "$ref": "#/definitions/Coin"
     }
   },
   "additionalProperties": false,

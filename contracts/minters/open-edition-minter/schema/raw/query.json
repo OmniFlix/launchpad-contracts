@@ -10,6 +10,16 @@
       "properties": {
         "collection": {
           "type": "object",
+          "properties": {
+            "edition": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
+              "minimum": 0.0
+            }
+          },
           "additionalProperties": false
         }
       },
@@ -23,19 +33,16 @@
       "properties": {
         "config": {
           "type": "object",
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "required": [
-        "mintable_tokens"
-      ],
-      "properties": {
-        "mintable_tokens": {
-          "type": "object",
+          "properties": {
+            "edition": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
+              "minimum": 0.0
+            }
+          },
           "additionalProperties": false
         }
       },
@@ -55,6 +62,14 @@
           "properties": {
             "address": {
               "type": "string"
+            },
+            "edition": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
+              "minimum": 0.0
             }
           },
           "additionalProperties": false
@@ -65,11 +80,44 @@
     {
       "type": "object",
       "required": [
-        "total_tokens"
+        "total_minted_count"
       ],
       "properties": {
-        "total_tokens": {
+        "total_minted_count": {
           "type": "object",
+          "properties": {
+            "edition": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
+              "minimum": 0.0
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "tokens_remaining"
+      ],
+      "properties": {
+        "tokens_remaining": {
+          "type": "object",
+          "properties": {
+            "edition": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
+              "minimum": 0.0
+            }
+          },
           "additionalProperties": false
         }
       },

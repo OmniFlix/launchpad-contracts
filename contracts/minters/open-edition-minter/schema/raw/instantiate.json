@@ -1,24 +1,21 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Tuple_of_uint32_and_Round",
-  "type": "array",
-  "items": [
-    {
-      "type": "integer",
-      "format": "uint32",
-      "minimum": 0.0
-    },
-    {
-      "$ref": "#/definitions/Round"
-    }
+  "title": "InstantiateMsg",
+  "type": "object",
+  "required": [
+    "collection_details",
+    "init"
   ],
-  "maxItems": 2,
-  "minItems": 2,
-  "definitions": {
-    "Addr": {
-      "description": "A human readable address.\n\nIn Cosmos, this is typically bech32 encoded. But for multi-chain smart contracts no assumptions should be made other than being UTF-8 encoded and of reasonable length.\n\nThis type represents a validated address. It can be created in the following ways 1. Use `Addr::unchecked(input)` 2. Use `let checked: Addr = deps.api.addr_validate(input)?` 3. Use `let checked: Addr = deps.api.addr_humanize(canonical_addr)?` 4. Deserialize from JSON. This must only be done from JSON that was validated before such as a contract's state. `Addr` must not be used in messages sent by the user because this would result in unvalidated instances.\n\nThis type is immutable. If you really need to mutate it (Really? Are you sure?), create a mutable copy using `let mut mutable = Addr::to_string()` and operate on that `String` instance.",
-      "type": "string"
+  "properties": {
+    "collection_details": {
+      "$ref": "#/definitions/CollectionDetails"
     },
+    "init": {
+      "$ref": "#/definitions/OpenEditionMinterInitExtention"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
     "Coin": {
       "type": "object",
       "required": [
@@ -34,35 +31,126 @@
         }
       }
     },
-    "Round": {
+    "CollectionDetails": {
       "type": "object",
       "required": [
-        "addresses",
-        "end_time",
+        "base_uri",
+        "data",
+        "description",
+        "extensible",
+        "id",
+        "name",
+        "nsfw",
+        "preview_uri",
+        "schema",
+        "symbol",
+        "token_name",
+        "transferable",
+        "uri",
+        "uri_hash"
+      ],
+      "properties": {
+        "base_uri": {
+          "type": "string"
+        },
+        "data": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "extensible": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "nsfw": {
+          "type": "boolean"
+        },
+        "preview_uri": {
+          "type": "string"
+        },
+        "schema": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        },
+        "token_name": {
+          "type": "string"
+        },
+        "transferable": {
+          "type": "boolean"
+        },
+        "uri": {
+          "type": "string"
+        },
+        "uri_hash": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "OpenEditionMinterInitExtention": {
+      "type": "object",
+      "required": [
+        "admin",
         "mint_price",
-        "round_per_address_limit",
+        "per_address_limit",
+        "royalty_ratio",
         "start_time"
       ],
       "properties": {
-        "addresses": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Addr"
-          }
+        "admin": {
+          "type": "string"
         },
         "end_time": {
-          "$ref": "#/definitions/Timestamp"
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "mint_price": {
           "$ref": "#/definitions/Coin"
         },
-        "round_per_address_limit": {
+        "payment_collector": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "per_address_limit": {
           "type": "integer",
           "format": "uint32",
           "minimum": 0.0
         },
+        "royalty_ratio": {
+          "type": "string"
+        },
         "start_time": {
           "$ref": "#/definitions/Timestamp"
+        },
+        "token_limit": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "whitelist_address": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "additionalProperties": false

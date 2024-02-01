@@ -55,15 +55,68 @@
         "private_mint": {
           "type": "object",
           "required": [
-            "admin",
-            "minter"
+            "collector"
           ],
           "properties": {
-            "admin": {
+            "collector": {
               "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "add_members"
+      ],
+      "properties": {
+        "add_members": {
+          "type": "object",
+          "required": [
+            "address",
+            "round_index"
+          ],
+          "properties": {
+            "address": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             },
-            "minter": {
-              "type": "string"
+            "round_index": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0.0
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "update_price"
+      ],
+      "properties": {
+        "update_price": {
+          "type": "object",
+          "required": [
+            "mint_price",
+            "round_index"
+          ],
+          "properties": {
+            "mint_price": {
+              "$ref": "#/definitions/Coin"
+            },
+            "round_index": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0.0
             }
           },
           "additionalProperties": false

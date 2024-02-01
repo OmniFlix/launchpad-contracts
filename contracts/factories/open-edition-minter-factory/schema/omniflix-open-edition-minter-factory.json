@@ -1,5 +1,5 @@
 {
-  "contract_name": "omniflix-minter-factory",
+  "contract_name": "omniflix-open-edition-minter-factory",
   "contract_version": "0.0.1",
   "idl_version": "1.0.0",
   "instantiate": {
@@ -8,8 +8,8 @@
     "type": "object",
     "required": [
       "fee_collector_address",
-      "minter_code_id",
-      "minter_creation_fee"
+      "minter_creation_fee",
+      "open_edition_minter_code_id"
     ],
     "properties": {
       "admin": {
@@ -21,13 +21,13 @@
       "fee_collector_address": {
         "type": "string"
       },
-      "minter_code_id": {
+      "minter_creation_fee": {
+        "$ref": "#/definitions/Coin"
+      },
+      "open_edition_minter_code_id": {
         "type": "integer",
         "format": "uint64",
         "minimum": 0.0
-      },
-      "minter_creation_fee": {
-        "$ref": "#/definitions/Coin"
       }
     },
     "additionalProperties": false,
@@ -70,7 +70,7 @@
             ],
             "properties": {
               "msg": {
-                "$ref": "#/definitions/MinterInstantiateMsg_for_MinterInitExtention"
+                "$ref": "#/definitions/MinterInstantiateMsg_for_OpenEditionMinterInitExtention"
               }
             },
             "additionalProperties": false
@@ -245,12 +245,27 @@
         },
         "additionalProperties": false
       },
-      "MinterInitExtention": {
+      "MinterInstantiateMsg_for_OpenEditionMinterInitExtention": {
+        "type": "object",
+        "required": [
+          "collection_details",
+          "init"
+        ],
+        "properties": {
+          "collection_details": {
+            "$ref": "#/definitions/CollectionDetails"
+          },
+          "init": {
+            "$ref": "#/definitions/OpenEditionMinterInitExtention"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OpenEditionMinterInitExtention": {
         "type": "object",
         "required": [
           "admin",
           "mint_price",
-          "num_tokens",
           "per_address_limit",
           "royalty_ratio",
           "start_time"
@@ -272,11 +287,6 @@
           "mint_price": {
             "$ref": "#/definitions/Coin"
           },
-          "num_tokens": {
-            "type": "integer",
-            "format": "uint32",
-            "minimum": 0.0
-          },
           "payment_collector": {
             "type": [
               "string",
@@ -294,27 +304,19 @@
           "start_time": {
             "$ref": "#/definitions/Timestamp"
           },
+          "token_limit": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "uint32",
+            "minimum": 0.0
+          },
           "whitelist_address": {
             "type": [
               "string",
               "null"
             ]
-          }
-        },
-        "additionalProperties": false
-      },
-      "MinterInstantiateMsg_for_MinterInitExtention": {
-        "type": "object",
-        "required": [
-          "collection_details",
-          "init"
-        ],
-        "properties": {
-          "collection_details": {
-            "$ref": "#/definitions/CollectionDetails"
-          },
-          "init": {
-            "$ref": "#/definitions/MinterInitExtention"
           }
         },
         "additionalProperties": false
@@ -397,8 +399,8 @@
           "required": [
             "admin",
             "fee_collector_address",
-            "minter_code_id",
-            "minter_creation_fee"
+            "minter_creation_fee",
+            "open_edition_minter_code_id"
           ],
           "properties": {
             "admin": {
@@ -407,13 +409,13 @@
             "fee_collector_address": {
               "$ref": "#/definitions/Addr"
             },
-            "minter_code_id": {
+            "minter_creation_fee": {
+              "$ref": "#/definitions/Coin"
+            },
+            "open_edition_minter_code_id": {
               "type": "integer",
               "format": "uint64",
               "minimum": 0.0
-            },
-            "minter_creation_fee": {
-              "$ref": "#/definitions/Coin"
             }
           },
           "additionalProperties": false
