@@ -8,6 +8,7 @@ use minter_types::{CollectionDetails, Config, UserDetails};
 pub const MINTED_COUNT: Map<EditionNumber, u32> = Map::new("minted_count");
 pub const CURRENT_EDITION: Item<u32> = Item::new("current_edition");
 pub const MINTED_TOKENS_KEY: &str = "minted_tokens";
+pub const LAST_MINTED_TOKEN_ID: Item<u32> = Item::new("last_minted_token_id");
 pub type EditionNumber = u32;
 #[cw_serde]
 pub struct EditionParams {

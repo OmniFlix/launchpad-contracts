@@ -16,7 +16,7 @@ use open_edition_minter_types::QueryMsg;
 use crate::error::ContractError;
 use crate::msg::ExecuteMsg;
 use crate::state::{
-    last_token_id, EditionParams, MintedTokens, CURRENT_EDITION, EDITIONS, MINTED_COUNT,
+    EditionParams, MintedTokens, CURRENT_EDITION, EDITIONS, LAST_MINTED_TOKEN_ID, MINTED_COUNT,
     MINTED_TOKENS_KEY,
 };
 use cw2::set_contract_version;
@@ -172,6 +172,7 @@ pub fn instantiate(
     EDITIONS.save(deps.storage, 1, &edition_params)?;
     CURRENT_EDITION.save(deps.storage, &1)?;
     MINTED_COUNT.save(deps.storage, 1, &0)?;
+    LAST_MINTED_TOKEN_ID.save(deps.storage, &0)?;
 
     let nft_creation_msg: CosmosMsg = MsgCreateDenom {
         description: collection.description,
@@ -290,7 +291,9 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
         .load(deps.storage, edition_number, info.sender.clone())
         .unwrap_or_default();
 
-    let token_id = last_token_id(deps.storage, edition_number) + 1;
+    let last_token_id = LAST_MINTED_TOKEN_ID.load(deps.storage)?;
+    let token_id = last_token_id + 1;
+    LAST_MINTED_TOKEN_ID.save(deps.storage, &token_id)?;
 
     let mut mint_price = config.mint_price;
     // Check if minting is started
@@ -420,8 +423,9 @@ pub fn execute_mint_admin(
         return Err(ContractError::Unauthorized {});
     }
     let recipient = deps.api.addr_validate(&recipient)?;
-    // We are not checking token limit nor end time here because this is admin minting
-    let token_id = last_token_id(deps.storage, edition_number) + 1;
+    // We are not checking token limit nor end time here because this is the admin minting
+    let last_token_id = LAST_MINTED_TOKEN_ID.load(deps.storage)?;
+    let token_id = last_token_id + 1;
 
     let minted_tokens = MintedTokens::new(MINTED_TOKENS_KEY);
 
@@ -631,7 +635,7 @@ pub fn execute_new_edition(
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
     let current_edition_number = CURRENT_EDITION.load(deps.storage)?;
-    let mut current_edition_params = EDITIONS.load(deps.storage, current_edition_number)?;
+    let current_edition_params = EDITIONS.load(deps.storage, current_edition_number)?;
     if info.sender != current_edition_params.config.admin {
         return Err(ContractError::Unauthorized {});
     }

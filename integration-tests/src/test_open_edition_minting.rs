@@ -545,7 +545,7 @@ mod test_open_edition_minter_minting {
             collection.onfts.clone()[0].metadata.clone().unwrap().name,
             "Omniflix Minter Community Edition 1".to_string()
         );
-        assert_eq!(collection.onfts.clone()[1].id, "1");
+        assert_eq!(collection.onfts.clone()[1].id, "2");
         assert_eq!(
             collection.onfts.clone()[1].metadata.clone().unwrap().name,
             "Omniflix Minter Community Edition 2".to_string()
@@ -556,7 +556,7 @@ mod test_open_edition_minter_minting {
                 .clone()
                 .unwrap()
                 .media_uri,
-            "uri_2".to_string()
+            "base_uri_2".to_string()
         );
     }
 }
