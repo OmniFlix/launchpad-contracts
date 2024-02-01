@@ -5,7 +5,7 @@ use std::str::FromStr;
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     to_json_binary, Addr, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo,
-    Response, StdResult, Uint128, WasmMsg,
+    Response, StdResult, Timestamp, Uint128, WasmMsg,
 };
 use cw_utils::{maybe_addr, must_pay, nonpayable};
 use minter_types::{
@@ -223,6 +223,42 @@ pub fn execute(
         ExecuteMsg::Pause {} => execute_pause(deps, env, info),
         ExecuteMsg::Unpause {} => execute_unpause(deps, env, info),
         ExecuteMsg::SetPausers { pausers } => execute_set_pausers(deps, env, info, pausers),
+        ExecuteMsg::NewEdition {
+            whitelist_address,
+            token_limit,
+            start_time,
+            end_time,
+            mint_price,
+            royalty_ratio,
+            token_name,
+            description,
+            base_uri,
+            preview_uri,
+            uri_hash,
+            transferable,
+            extensible,
+            nsfw,
+            data,
+        } => execute_new_edition(
+            deps,
+            env,
+            info,
+            whitelist_address,
+            token_limit,
+            start_time,
+            end_time,
+            mint_price,
+            royalty_ratio,
+            token_name,
+            description,
+            base_uri,
+            preview_uri,
+            uri_hash,
+            transferable,
+            extensible,
+            nsfw,
+            data,
+        ),
     }
 }
 
@@ -573,6 +609,104 @@ pub fn execute_set_pausers(
     Ok(res)
 }
 
+pub fn execute_new_edition(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    whitelist_address: Option<String>,
+    token_limit: Option<u32>,
+    start_time: Timestamp,
+    end_time: Option<Timestamp>,
+    mint_price: Coin,
+    royalty_ratio: String,
+    token_name: String,
+    description: String,
+    base_uri: String,
+    preview_uri: String,
+    uri_hash: String,
+    transferable: bool,
+    extensible: bool,
+    nsfw: bool,
+    data: String,
+) -> Result<Response, ContractError> {
+    // Check if sender is admin
+    let current_edition_number = CURRENT_EDITION.load(deps.storage)?;
+    let mut current_edition_params = EDITIONS.load(deps.storage, current_edition_number)?;
+    if info.sender != current_edition_params.config.admin {
+        return Err(ContractError::Unauthorized {});
+    }
+    // Check if token limit is 0
+    if let Some(token_limit) = token_limit {
+        if token_limit == 0 {
+            return Err(ContractError::InvalidNumTokens {});
+        }
+    }
+    // Check start time
+    if start_time < env.block.time {
+        return Err(ContractError::InvalidStartTime {});
+    }
+    // Check end time
+    if let Some(end_time) = end_time {
+        if end_time < start_time {
+            return Err(ContractError::InvalidEndTime {});
+        }
+    }
+    // Check royalty ratio we expect decimal number
+    let royalty_ratio = Decimal::from_str(&royalty_ratio)?;
+    if royalty_ratio < Decimal::zero() || royalty_ratio > Decimal::one() {
+        return Err(ContractError::InvalidRoyaltyRatio {});
+    }
+    // Check if whitelist already active
+    if let Some(whitelist_address) = whitelist_address.clone() {
+        let is_active: bool = check_if_whitelist_is_active(
+            &deps.api.addr_validate(&whitelist_address)?,
+            deps.as_ref(),
+        )?;
+        if is_active {
+            return Err(ContractError::WhitelistAlreadyActive {});
+        }
+    }
+
+    let config = Config {
+        per_address_limit: current_edition_params.config.per_address_limit,
+        payment_collector: current_edition_params.config.payment_collector,
+        start_time,
+        royalty_ratio,
+        admin: current_edition_params.config.admin,
+        mint_price,
+        whitelist_address: maybe_addr(deps.api, whitelist_address)?,
+        end_time,
+        token_limit,
+    };
+    let collection = CollectionDetails {
+        name: current_edition_params.collection.name,
+        description,
+        preview_uri,
+        schema: current_edition_params.collection.schema,
+        symbol: current_edition_params.collection.symbol,
+        id: current_edition_params.collection.id,
+        extensible,
+        nsfw,
+        base_uri,
+        uri: current_edition_params.collection.uri,
+        uri_hash,
+        data: data.clone(),
+        token_name,
+        transferable,
+    };
+    let edition_params = EditionParams { config, collection };
+    let new_edition_number = current_edition_number + 1;
+    EDITIONS.save(deps.storage, new_edition_number, &edition_params)?;
+    CURRENT_EDITION.save(deps.storage, &new_edition_number)?;
+    MINTED_COUNT.save(deps.storage, new_edition_number, &0)?;
+
+    let res = Response::new()
+        .add_attribute("action", "new_edition")
+        .add_attribute("edition_number", new_edition_number.to_string());
+
+    Ok(res)
+}
+
 // Implement Queries
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
@@ -620,7 +754,9 @@ fn query_minted_tokens(
     let address = deps.api.addr_validate(&address)?;
     let edition = edition.unwrap_or(CURRENT_EDITION.load(deps.storage)?);
     let minted_tokens = MintedTokens::new(MINTED_TOKENS_KEY);
-    let user_details = minted_tokens.load(deps.storage, edition, address)?;
+    let user_details = minted_tokens
+        .load(deps.storage, edition, address)
+        .unwrap_or_default();
     Ok(user_details)
 }
 
