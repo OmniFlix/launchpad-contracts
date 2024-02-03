@@ -297,6 +297,7 @@ pub fn query_rounds(deps: Deps, _env: Env) -> Result<Vec<(u32, Round)>, Contract
     rounds.iter_mut().for_each(|round| {
         round.1.addresses = vec![];
     });
+    println!("{:?}", rounds);
     Ok(rounds)
 }
 

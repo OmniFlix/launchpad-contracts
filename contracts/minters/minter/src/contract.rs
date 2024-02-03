@@ -13,7 +13,8 @@ use omniflix_minter_factory::msg::QueryMsg::Params as QueryFactoryParams;
 use omniflix_minter_factory::msg::{CreateMinterMsg, ParamsResponse};
 use omniflix_round_whitelist::msg::ExecuteMsg::PrivateMint;
 use whitelist_types::{
-    IsActiveResponse, IsMemberResponse, MintPriceResponse, RoundWhitelistQueryMsgs,
+    check_if_whitelist_is_active, IsActiveResponse, IsMemberResponse, MintPriceResponse,
+    RoundWhitelistQueryMsgs,
 };
 
 use crate::error::ContractError;
@@ -109,11 +110,11 @@ pub fn instantiate(
     }
     // Check if whitelist already active
     if let Some(whitelist_address) = msg.init.whitelist_address.clone() {
-        let is_active: IsActiveResponse = deps.querier.query_wasm_smart(
-            whitelist_address.clone(),
-            &RoundWhitelistQueryMsgs::IsActive {},
+        let is_active = check_if_whitelist_is_active(
+            &deps.api.addr_validate(&whitelist_address)?,
+            deps.as_ref(),
         )?;
-        if is_active.is_active {
+        if is_active {
             return Err(ContractError::WhitelistAlreadyActive {});
         }
     }
@@ -137,7 +138,7 @@ pub fn instantiate(
         mint_price: msg.init.mint_price,
         whitelist_address: maybe_addr(deps.api, msg.init.whitelist_address.clone())?,
         end_time: msg.init.end_time,
-        token_limit: None,
+        token_limit: Some(num_tokens),
     };
     CONFIG.save(deps.storage, &config)?;
 
@@ -284,11 +285,9 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     if !is_public {
         // Check if any whitelist is present
         if let Some(whitelist_address) = config.whitelist_address {
-            let is_active: IsActiveResponse = deps.querier.query_wasm_smart(
-                whitelist_address.clone().into_string(),
-                &RoundWhitelistQueryMsgs::IsActive {},
-            )?;
-            if !is_active.is_active {
+            // Check if whitelist is active
+            let is_active = check_if_whitelist_is_active(&whitelist_address, deps.as_ref())?;
+            if !is_active {
                 return Err(ContractError::WhitelistNotActive {});
             }
             // Check whitelist price
@@ -589,19 +588,19 @@ pub fn execute_update_whitelist_address(
         return Err(ContractError::Unauthorized {});
     }
     let whitelist_address = config.whitelist_address.clone();
-    // Check if whitelist already active
-    let is_active: bool = deps.querier.query_wasm_smart(
-        whitelist_address.clone().unwrap().into_string(),
-        &RoundWhitelistQueryMsgs::IsActive {},
-    )?;
-    if is_active {
-        return Err(ContractError::WhitelistAlreadyActive {});
+    // In order to update whitelist address we first check if currently there is any whitelist address
+    // If there is whitelist address then we check if it is active
+    // If it is active then we throw error because creator can not update active whitelist address
+    // If it is not active then we check if the address that creator wants to update is active
+    // If it is active then we throw error because creator can not set a whitelist address that is already active
+    if whitelist_address.is_some() {
+        let is_active = check_if_whitelist_is_active(&whitelist_address.unwrap(), deps.as_ref())?;
+        if is_active {
+            return Err(ContractError::WhitelistAlreadyActive {});
+        }
     }
     let address = deps.api.addr_validate(&address)?;
-    let is_active: bool = deps.querier.query_wasm_smart(
-        address.clone().into_string(),
-        &RoundWhitelistQueryMsgs::IsActive {},
-    )?;
+    let is_active: bool = check_if_whitelist_is_active(&address, deps.as_ref())?;
     if is_active {
         return Err(ContractError::WhitelistAlreadyActive {});
     }
