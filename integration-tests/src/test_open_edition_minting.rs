@@ -339,6 +339,7 @@ mod test_open_edition_minter_minting {
             data: "data_1".to_string(),
             token_name: "Omniflix Minter Community Edition 1".to_string(),
             transferable: true,
+            royalty_receivers: vec![],
         };
         let init = OpenEditionMinterInitExtention {
             admin: "creator".to_string(),

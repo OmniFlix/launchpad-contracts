@@ -11,7 +11,7 @@ use cosmwasm_std::{
     StdResult, Uint128, WasmMsg,
 };
 use cw_utils::maybe_addr;
-use omniflix_std::types::omniflix::onft::v1beta1::OnftQuerier;
+use omniflix_std::types::OmniFlix::onft::v1beta1::OnftQuerier;
 #[cfg(not(test))]
 const CREATION_FEE: Uint128 = Uint128::new(0);
 #[cfg(not(test))]
@@ -265,6 +265,7 @@ mod tests {
             data: "Additional data for the collection".to_string(),
             transferable: true,
             token_name: "token_name".to_string(),
+            royalty_receivers: vec![],
         };
         // Send additional funds
         let msg = ExecuteMsg::CreateMinter {

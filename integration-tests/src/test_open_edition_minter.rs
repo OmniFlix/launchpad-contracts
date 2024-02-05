@@ -343,6 +343,7 @@ mod test_open_edition_minter_creation {
                 data: "data".to_string(),
                 token_name: "token_name".to_string(),
                 transferable: true,
+                royalty_receivers: vec![],
             }
         );
         let collection = query_onft_collection(app.storage(), open_edition_minter_address.clone());

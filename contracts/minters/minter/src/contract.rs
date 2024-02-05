@@ -23,7 +23,7 @@ use crate::utils::{randomize_token_list, return_random_token};
 use minter_types::{Config, PauseState, QueryMsg, Token, UserDetails};
 
 use cw2::set_contract_version;
-use omniflix_std::types::omniflix::onft::v1beta1::{
+use omniflix_std::types::OmniFlix::onft::v1beta1::{
     Metadata, MsgCreateDenom, MsgMintOnft, OnftQuerier,
 };
 
@@ -157,6 +157,7 @@ pub fn instantiate(
         data: msg.collection_details.data,
         token_name: msg.collection_details.token_name,
         transferable: msg.collection_details.transferable,
+        royalty_receivers: msg.collection_details.royalty_receivers,
     };
     COLLECTION.save(deps.storage, &collection)?;
 
@@ -204,6 +205,7 @@ pub fn instantiate(
             }
             .into(),
         ),
+        royalty_receivers: collection.royalty_receivers,
     }
     .into();
 

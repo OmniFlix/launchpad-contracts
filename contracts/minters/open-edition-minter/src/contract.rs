@@ -24,7 +24,7 @@ use omniflix_open_edition_minter_factory::msg::{
     OpenEditionMinterCreateMsg, ParamsResponse, QueryMsg as OpenEditionMinterFactoryQueryMsg,
 };
 use omniflix_round_whitelist::msg::ExecuteMsg as RoundWhitelistExecuteMsg;
-use omniflix_std::types::omniflix::onft::v1beta1::{MsgCreateDenom, OnftQuerier};
+use omniflix_std::types::OmniFlix::onft::v1beta1::{MsgCreateDenom, OnftQuerier};
 use whitelist_types::{
     check_if_address_is_member, check_if_whitelist_is_active, check_whitelist_price,
     IsActiveResponse, IsMemberResponse, MintPriceResponse, RoundWhitelistQueryMsgs,
@@ -161,6 +161,7 @@ pub fn instantiate(
         data: msg.collection_details.data,
         token_name: msg.collection_details.token_name,
         transferable: msg.collection_details.transferable,
+        royalty_receivers: msg.collection_details.royalty_receivers,
     };
 
     // Save the collection as edition 1
@@ -192,6 +193,7 @@ pub fn instantiate(
             }
             .into(),
         ),
+        royalty_receivers: collection.royalty_receivers,
     }
     .into();
 
@@ -697,6 +699,7 @@ pub fn execute_new_edition(
         data: data.clone(),
         token_name,
         transferable,
+        royalty_receivers: current_edition_params.collection.royalty_receivers,
     };
     let edition_params = EditionParams { config, collection };
     let new_edition_number = current_edition_number + 1;

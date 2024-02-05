@@ -5,7 +5,7 @@ use omniflix_minter_factory::msg::{CreateMinterMsg, MinterInitExtention};
 use omniflix_open_edition_minter_factory::msg::{
     OpenEditionMinterCreateMsg, OpenEditionMinterInitExtention,
 };
-use omniflix_std::types::omniflix::onft::v1beta1::Collection;
+use omniflix_std::types::OmniFlix::onft::v1beta1::Collection;
 use omniflix_testing::app::OmniflixApp;
 
 pub fn get_contract_address_from_res(res: AppResponse) -> String {
@@ -44,6 +44,7 @@ pub fn return_minter_instantiate_msg() -> CreateMinterMsg {
         data: "data".to_string(),
         token_name: "token_name".to_string(),
         transferable: true,
+        royalty_receivers: vec![],
     };
     let init = CreateMinterMsg {
         collection_details: collection_details,
@@ -78,6 +79,7 @@ pub fn return_open_edition_minter_inst_msg() -> OpenEditionMinterCreateMsg {
         data: "data".to_string(),
         token_name: "token_name".to_string(),
         transferable: true,
+        royalty_receivers: vec![],
     };
     let init = OpenEditionMinterInitExtention {
         admin: "creator".to_string(),
