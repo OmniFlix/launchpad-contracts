@@ -24,7 +24,7 @@ use omniflix_open_edition_minter_factory::msg::{
     OpenEditionMinterCreateMsg, ParamsResponse, QueryMsg as OpenEditionMinterFactoryQueryMsg,
 };
 use omniflix_round_whitelist::msg::ExecuteMsg as RoundWhitelistExecuteMsg;
-use omniflix_std::types::OmniFlix::onft::v1beta1::{MsgCreateDenom, OnftQuerier, WeightedAddress};
+use omniflix_std::types::omniflix::onft::v1beta1::{MsgCreateDenom, OnftQuerier, WeightedAddress};
 use whitelist_types::{
     check_if_address_is_member, check_if_whitelist_is_active, check_whitelist_price,
     IsActiveResponse, IsMemberResponse, MintPriceResponse, RoundWhitelistQueryMsgs,
@@ -143,6 +143,7 @@ pub fn instantiate(
         end_time: msg.init.end_time,
         token_limit: msg.init.token_limit,
     };
+    // Set the pause state
     let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
     pause_state.set_pausers(deps.storage, info.sender.clone(), vec![admin.clone()])?;
 

@@ -1,12 +1,12 @@
 use anyhow::Result;
 use cosmwasm_std::{from_json, to_json_binary, Addr, Api, Binary, BlockInfo, Querier, Storage};
 use cw_multi_test::{error::AnyResult, AppResponse, CosmosRouter, Stargate};
-use omniflix_std::types::OmniFlix::onft::v1beta1::{
+use omniflix_std::types::omniflix::onft::v1beta1::{
     Collection, Denom, MsgCreateDenom, MsgMintOnft,
 };
 use omniflix_std::types::{
     cosmos::base::v1beta1::Coin,
-    OmniFlix::onft::v1beta1::{Onft, Params, QueryParamsResponse},
+    omniflix::onft::v1beta1::{Onft, Params, QueryParamsResponse},
 };
 use prost::{DecodeError, Message};
 

@@ -11,7 +11,7 @@ use cosmwasm_std::{
     StdResult, Uint128, WasmMsg,
 };
 use cw_utils::maybe_addr;
-use omniflix_std::types::OmniFlix::onft::v1beta1::OnftQuerier;
+use omniflix_std::types::omniflix::onft::v1beta1::OnftQuerier;
 use std::str::FromStr;
 #[cfg(not(test))]
 const CREATION_FEE: Uint128 = Uint128::new(0);

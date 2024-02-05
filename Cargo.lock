@@ -846,9 +846,9 @@ dependencies = [
 
 [[package]]
 name = "omniflix-std"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b72932b08ace317c52e7922d85f59cd741cfd311f30268b44824e43056f4ce71"
+checksum = "a9bbaa73e8e8b2ec7f88efffbeb49a4ea781255d4e3e91dd0b5cdb9daf9e6191"
 dependencies = [
  "chrono",
  "cosmwasm-std",

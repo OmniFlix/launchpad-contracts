@@ -1,7 +1,7 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Addr, Coin, Decimal, StdError, Storage, Timestamp};
 use cw_storage_plus::Item;
-use omniflix_std::types::OmniFlix::onft::v1beta1::{Metadata, MsgMintOnft, WeightedAddress};
+use omniflix_std::types::omniflix::onft::v1beta1::{Metadata, MsgMintOnft, WeightedAddress};
 use thiserror::Error;
 
 #[cw_serde]

@@ -23,7 +23,7 @@ use crate::utils::{randomize_token_list, return_random_token};
 use minter_types::{Config, PauseState, QueryMsg, Token, UserDetails};
 
 use cw2::set_contract_version;
-use omniflix_std::types::OmniFlix::onft::v1beta1::{
+use omniflix_std::types::omniflix::onft::v1beta1::{
     Metadata, MsgCreateDenom, MsgMintOnft, OnftQuerier, WeightedAddress,
 };
 

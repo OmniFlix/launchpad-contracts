@@ -5,7 +5,7 @@ use omniflix_minter_factory::msg::{CreateMinterMsg, MinterInitExtention};
 use omniflix_open_edition_minter_factory::msg::{
     OpenEditionMinterCreateMsg, OpenEditionMinterInitExtention,
 };
-use omniflix_std::types::OmniFlix::onft::v1beta1::Collection;
+use omniflix_std::types::omniflix::onft::v1beta1::Collection;
 use omniflix_testing::app::OmniflixApp;
 
 pub fn get_contract_address_from_res(res: AppResponse) -> String {
