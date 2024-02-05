@@ -265,7 +265,7 @@ mod tests {
             data: "Additional data for the collection".to_string(),
             transferable: true,
             token_name: "token_name".to_string(),
-            royalty_receivers: vec![],
+            royalty_receivers: None,
         };
         // Send additional funds
         let msg = ExecuteMsg::CreateMinter {

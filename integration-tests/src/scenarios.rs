@@ -220,7 +220,7 @@ mod scenarios {
                 data: "data".to_string(),
                 token_name: "token_name".to_string(),
                 transferable: true,
-                royalty_receivers: vec![],
+                royalty_receivers: None,
             },
             init: MinterInitExtention {
                 admin: creator.to_string(),

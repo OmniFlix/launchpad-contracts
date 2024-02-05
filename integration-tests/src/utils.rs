@@ -44,7 +44,7 @@ pub fn return_minter_instantiate_msg() -> CreateMinterMsg {
         data: "data".to_string(),
         token_name: "token_name".to_string(),
         transferable: true,
-        royalty_receivers: vec![],
+        royalty_receivers: None,
     };
     let init = CreateMinterMsg {
         collection_details: collection_details,
@@ -79,7 +79,7 @@ pub fn return_open_edition_minter_inst_msg() -> OpenEditionMinterCreateMsg {
         data: "data".to_string(),
         token_name: "token_name".to_string(),
         transferable: true,
-        royalty_receivers: vec![],
+        royalty_receivers: None,
     };
     let init = OpenEditionMinterInitExtention {
         admin: "creator".to_string(),

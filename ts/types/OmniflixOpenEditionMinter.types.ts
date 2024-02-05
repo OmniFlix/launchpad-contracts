@@ -20,12 +20,18 @@ export interface CollectionDetails {
   name: string;
   nsfw: boolean;
   preview_uri: string;
+  royalty_receivers?: WeightedAddress[] | null;
   schema: string;
   symbol: string;
   token_name: string;
   transferable: boolean;
   uri: string;
   uri_hash: string;
+}
+export interface WeightedAddress {
+  address: string;
+  weight: string;
+  [k: string]: unknown;
 }
 export interface OpenEditionMinterInitExtention {
   admin: string;

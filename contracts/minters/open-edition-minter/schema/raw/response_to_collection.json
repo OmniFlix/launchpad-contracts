@@ -43,6 +43,15 @@
     "preview_uri": {
       "type": "string"
     },
+    "royalty_receivers": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "#/definitions/WeightedAddress"
+      }
+    },
     "schema": {
       "type": "string"
     },
@@ -62,5 +71,22 @@
       "type": "string"
     }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "definitions": {
+    "WeightedAddress": {
+      "type": "object",
+      "required": [
+        "address",
+        "weight"
+      ],
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "weight": {
+          "type": "string"
+        }
+      }
+    }
+  }
 }

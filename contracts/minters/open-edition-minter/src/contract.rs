@@ -24,7 +24,7 @@ use omniflix_open_edition_minter_factory::msg::{
     OpenEditionMinterCreateMsg, ParamsResponse, QueryMsg as OpenEditionMinterFactoryQueryMsg,
 };
 use omniflix_round_whitelist::msg::ExecuteMsg as RoundWhitelistExecuteMsg;
-use omniflix_std::types::OmniFlix::onft::v1beta1::{MsgCreateDenom, OnftQuerier};
+use omniflix_std::types::OmniFlix::onft::v1beta1::{MsgCreateDenom, OnftQuerier, WeightedAddress};
 use whitelist_types::{
     check_if_address_is_member, check_if_whitelist_is_active, check_whitelist_price,
     IsActiveResponse, IsMemberResponse, MintPriceResponse, RoundWhitelistQueryMsgs,
@@ -193,7 +193,12 @@ pub fn instantiate(
             }
             .into(),
         ),
-        royalty_receivers: collection.royalty_receivers,
+        royalty_receivers: collection
+            .royalty_receivers
+            .unwrap_or(vec![WeightedAddress {
+                address: admin.clone().into_string(),
+                weight: Decimal::one().to_string(),
+            }]),
     }
     .into();
 

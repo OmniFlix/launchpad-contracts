@@ -24,7 +24,7 @@ use minter_types::{Config, PauseState, QueryMsg, Token, UserDetails};
 
 use cw2::set_contract_version;
 use omniflix_std::types::OmniFlix::onft::v1beta1::{
-    Metadata, MsgCreateDenom, MsgMintOnft, OnftQuerier,
+    Metadata, MsgCreateDenom, MsgMintOnft, OnftQuerier, WeightedAddress,
 };
 
 // version info for migration info
@@ -205,7 +205,12 @@ pub fn instantiate(
             }
             .into(),
         ),
-        royalty_receivers: collection.royalty_receivers,
+        royalty_receivers: collection
+            .royalty_receivers
+            .unwrap_or(vec![WeightedAddress {
+                address: admin.clone().into_string(),
+                weight: Decimal::one().to_string(),
+            }]),
     }
     .into();
 

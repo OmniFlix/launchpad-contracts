@@ -21,7 +21,7 @@ pub struct CollectionDetails {
     pub transferable: bool,
     // FE: Collection:"Badkids" each token name "BadKid" #token_id
     pub token_name: String,
-    pub royalty_receivers: Vec<WeightedAddress>,
+    pub royalty_receivers: Option<Vec<WeightedAddress>>,
 }
 
 #[cw_serde]
