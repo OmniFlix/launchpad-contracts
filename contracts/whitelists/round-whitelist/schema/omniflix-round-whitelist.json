@@ -1,5 +1,5 @@
 {
-  "contract_name": "round-whitelist",
+  "contract_name": "omniflix-round-whitelist",
   "contract_version": "0.0.1",
   "idl_version": "1.0.0",
   "instantiate": {
@@ -152,15 +152,68 @@
           "private_mint": {
             "type": "object",
             "required": [
-              "admin",
-              "minter"
+              "collector"
             ],
             "properties": {
-              "admin": {
+              "collector": {
                 "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "required": [
+          "add_members"
+        ],
+        "properties": {
+          "add_members": {
+            "type": "object",
+            "required": [
+              "address",
+              "round_index"
+            ],
+            "properties": {
+              "address": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
               },
-              "minter": {
-                "type": "string"
+              "round_index": {
+                "type": "integer",
+                "format": "uint32",
+                "minimum": 0.0
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "required": [
+          "update_price"
+        ],
+        "properties": {
+          "update_price": {
+            "type": "object",
+            "required": [
+              "mint_price",
+              "round_index"
+            ],
+            "properties": {
+              "mint_price": {
+                "$ref": "#/definitions/Coin"
+              },
+              "round_index": {
+                "type": "integer",
+                "format": "uint32",
+                "minimum": 0.0
               }
             },
             "additionalProperties": false
@@ -376,6 +429,19 @@
           }
         },
         "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "required": [
+          "admin"
+        ],
+        "properties": {
+          "admin": {
+            "type": "object",
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
       }
     ]
   },
@@ -384,38 +450,20 @@
   "responses": {
     "active_round": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Round",
-      "type": "object",
-      "required": [
-        "addresses",
-        "end_time",
-        "mint_price",
-        "round_per_address_limit",
-        "start_time"
-      ],
-      "properties": {
-        "addresses": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Addr"
-          }
-        },
-        "end_time": {
-          "$ref": "#/definitions/Timestamp"
-        },
-        "mint_price": {
-          "$ref": "#/definitions/Coin"
-        },
-        "round_per_address_limit": {
+      "title": "Tuple_of_uint32_and_Round",
+      "type": "array",
+      "items": [
+        {
           "type": "integer",
           "format": "uint32",
           "minimum": 0.0
         },
-        "start_time": {
-          "$ref": "#/definitions/Timestamp"
+        {
+          "$ref": "#/definitions/Round"
         }
-      },
-      "additionalProperties": false,
+      ],
+      "maxItems": 2,
+      "minItems": 2,
       "definitions": {
         "Addr": {
           "description": "A human readable address.\n\nIn Cosmos, this is typically bech32 encoded. But for multi-chain smart contracts no assumptions should be made other than being UTF-8 encoded and of reasonable length.\n\nThis type represents a validated address. It can be created in the following ways 1. Use `Addr::unchecked(input)` 2. Use `let checked: Addr = deps.api.addr_validate(input)?` 3. Use `let checked: Addr = deps.api.addr_humanize(canonical_addr)?` 4. Deserialize from JSON. This must only be done from JSON that was validated before such as a contract's state. `Addr` must not be used in messages sent by the user because this would result in unvalidated instances.\n\nThis type is immutable. If you really need to mutate it (Really? Are you sure?), create a mutable copy using `let mut mutable = Addr::to_string()` and operate on that `String` instance.",
@@ -436,6 +484,39 @@
             }
           }
         },
+        "Round": {
+          "type": "object",
+          "required": [
+            "addresses",
+            "end_time",
+            "mint_price",
+            "round_per_address_limit",
+            "start_time"
+          ],
+          "properties": {
+            "addresses": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Addr"
+              }
+            },
+            "end_time": {
+              "$ref": "#/definitions/Timestamp"
+            },
+            "mint_price": {
+              "$ref": "#/definitions/Coin"
+            },
+            "round_per_address_limit": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0.0
+            },
+            "start_time": {
+              "$ref": "#/definitions/Timestamp"
+            }
+          },
+          "additionalProperties": false
+        },
         "Timestamp": {
           "description": "A point in time in nanosecond precision.\n\nThis type can represent times from 1970-01-01T00:00:00Z to 2554-07-21T23:34:33Z.\n\n## Examples\n\n``` # use cosmwasm_std::Timestamp; let ts = Timestamp::from_nanos(1_000_000_202); assert_eq!(ts.nanos(), 1_000_000_202); assert_eq!(ts.seconds(), 1); assert_eq!(ts.subsec_nanos(), 202);\n\nlet ts = ts.plus_seconds(2); assert_eq!(ts.nanos(), 3_000_000_202); assert_eq!(ts.seconds(), 3); assert_eq!(ts.subsec_nanos(), 202); ```",
           "allOf": [
@@ -453,6 +534,11 @@
           "type": "string"
         }
       }
+    },
+    "admin": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "String",
+      "type": "string"
     },
     "is_active": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -608,10 +694,22 @@
     },
     "rounds": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Array_of_Round",
+      "title": "Array_of_Tuple_of_uint32_and_Round",
       "type": "array",
       "items": {
-        "$ref": "#/definitions/Round"
+        "type": "array",
+        "items": [
+          {
+            "type": "integer",
+            "format": "uint32",
+            "minimum": 0.0
+          },
+          {
+            "$ref": "#/definitions/Round"
+          }
+        ],
+        "maxItems": 2,
+        "minItems": 2
       },
       "definitions": {
         "Addr": {

@@ -12,11 +12,9 @@ use crate::msg::ExecuteMsg;
 use crate::round::RoundMethods;
 
 use crate::state::{Config, Rounds, UserMintDetails, CONFIG, ROUNDS_KEY, USERMINTDETAILS_KEY};
-use minter_types::Config as MinterConfig;
-use minter_types::QueryMsg as MinterQueryMsg;
 use whitelist_types::{
-    InstantiateMsg, IsActiveResponse, IsMemberResponse, MembersResponse, MintPriceResponse, Round,
-    RoundWhitelistQueryMsgs,
+    check_if_minter, InstantiateMsg, IsActiveResponse, IsMemberResponse, MembersResponse,
+    MintPriceResponse, Round, RoundWhitelistQueryMsgs,
 };
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -141,11 +139,7 @@ pub fn execute_private_mint(
 
     let collector = deps.api.addr_validate(&collector)?;
 
-    // Check if sender is a our minter contract
-    let _minter_config: MinterConfig = deps.querier.query_wasm_smart(
-        info.sender.clone().into_string(),
-        &MinterQueryMsg::Config {},
-    )?;
+    check_if_minter(&info.sender.clone(), deps.as_ref())?;
 
     let rounds = Rounds::new(ROUNDS_KEY);
 
@@ -165,7 +159,7 @@ pub fn execute_private_mint(
     )?;
 
     let res = Response::new()
-        .add_attribute("action", "privately_mint")
+        .add_attribute("action", "private_mint")
         .add_attribute("minter", collector.to_string());
     Ok(res)
 }

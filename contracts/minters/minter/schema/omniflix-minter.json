@@ -8,54 +8,33 @@
     "type": "object",
     "required": [
       "collection_details",
-      "mint_denom",
-      "mint_price",
-      "per_address_limit",
-      "royalty_ratio",
-      "start_time"
+      "init"
     ],
     "properties": {
-      "admin": {
-        "type": [
-          "string",
-          "null"
-        ]
-      },
       "collection_details": {
         "$ref": "#/definitions/CollectionDetails"
       },
-      "mint_denom": {
-        "type": "string"
-      },
-      "mint_price": {
-        "$ref": "#/definitions/Uint128"
-      },
-      "payment_collector": {
-        "type": [
-          "string",
-          "null"
-        ]
-      },
-      "per_address_limit": {
-        "type": "integer",
-        "format": "uint32",
-        "minimum": 0.0
-      },
-      "royalty_ratio": {
-        "type": "string"
-      },
-      "start_time": {
-        "$ref": "#/definitions/Timestamp"
-      },
-      "whitelist_address": {
-        "type": [
-          "string",
-          "null"
-        ]
+      "init": {
+        "$ref": "#/definitions/MinterInitExtention"
       }
     },
     "additionalProperties": false,
     "definitions": {
+      "Coin": {
+        "type": "object",
+        "required": [
+          "amount",
+          "denom"
+        ],
+        "properties": {
+          "amount": {
+            "$ref": "#/definitions/Uint128"
+          },
+          "denom": {
+            "type": "string"
+          }
+        }
+      },
       "CollectionDetails": {
         "type": "object",
         "required": [
@@ -66,10 +45,11 @@
           "id",
           "name",
           "nsfw",
-          "num_tokens",
           "preview_uri",
           "schema",
           "symbol",
+          "token_name",
+          "transferable",
           "uri",
           "uri_hash"
         ],
@@ -95,11 +75,6 @@
           "nsfw": {
             "type": "boolean"
           },
-          "num_tokens": {
-            "type": "integer",
-            "format": "uint32",
-            "minimum": 0.0
-          },
           "preview_uri": {
             "type": "string"
           },
@@ -109,11 +84,75 @@
           "symbol": {
             "type": "string"
           },
+          "token_name": {
+            "type": "string"
+          },
+          "transferable": {
+            "type": "boolean"
+          },
           "uri": {
             "type": "string"
           },
           "uri_hash": {
             "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MinterInitExtention": {
+        "type": "object",
+        "required": [
+          "admin",
+          "mint_price",
+          "num_tokens",
+          "per_address_limit",
+          "royalty_ratio",
+          "start_time"
+        ],
+        "properties": {
+          "admin": {
+            "type": "string"
+          },
+          "end_time": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/Timestamp"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mint_price": {
+            "$ref": "#/definitions/Coin"
+          },
+          "num_tokens": {
+            "type": "integer",
+            "format": "uint32",
+            "minimum": 0.0
+          },
+          "payment_collector": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "per_address_limit": {
+            "type": "integer",
+            "format": "uint32",
+            "minimum": 0.0
+          },
+          "royalty_ratio": {
+            "type": "string"
+          },
+          "start_time": {
+            "$ref": "#/definitions/Timestamp"
+          },
+          "whitelist_address": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "additionalProperties": false
@@ -165,14 +204,14 @@
               "recipient"
             ],
             "properties": {
-              "denom_id": {
+              "recipient": {
+                "type": "string"
+              },
+              "token_id": {
                 "type": [
                   "string",
                   "null"
                 ]
-              },
-              "recipient": {
-                "type": "string"
               }
             },
             "additionalProperties": false
@@ -227,7 +266,7 @@
             ],
             "properties": {
               "mint_price": {
-                "$ref": "#/definitions/Uint128"
+                "$ref": "#/definitions/Coin"
               }
             },
             "additionalProperties": false
@@ -247,9 +286,95 @@
           }
         },
         "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "required": [
+          "update_whitelist_address"
+        ],
+        "properties": {
+          "update_whitelist_address": {
+            "type": "object",
+            "required": [
+              "address"
+            ],
+            "properties": {
+              "address": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "required": [
+          "pause"
+        ],
+        "properties": {
+          "pause": {
+            "type": "object",
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "required": [
+          "unpause"
+        ],
+        "properties": {
+          "unpause": {
+            "type": "object",
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "required": [
+          "set_pausers"
+        ],
+        "properties": {
+          "set_pausers": {
+            "type": "object",
+            "required": [
+              "pausers"
+            ],
+            "properties": {
+              "pausers": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
       }
     ],
     "definitions": {
+      "Coin": {
+        "type": "object",
+        "required": [
+          "amount",
+          "denom"
+        ],
+        "properties": {
+          "amount": {
+            "$ref": "#/definitions/Uint128"
+          },
+          "denom": {
+            "type": "string"
+          }
+        }
+      },
       "Uint128": {
         "description": "A thin wrapper around u128 that is using strings for JSON encoding/decoding, such that the full u128 range can be used for clients that convert JSON numbers to floats, like JavaScript and jq.\n\n# Examples\n\nUse `from` to create instances of this and `u128` to get the value out:\n\n``` # use cosmwasm_std::Uint128; let a = Uint128::from(123u128); assert_eq!(a.u128(), 123);\n\nlet b = Uint128::from(42u64); assert_eq!(b.u128(), 42);\n\nlet c = Uint128::from(70u32); assert_eq!(c.u128(), 70); ```",
         "type": "string"
@@ -332,6 +457,32 @@
           }
         },
         "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "required": [
+          "is_paused"
+        ],
+        "properties": {
+          "is_paused": {
+            "type": "object",
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "required": [
+          "pausers"
+        ],
+        "properties": {
+          "pausers": {
+            "type": "object",
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
       }
     ]
   },
@@ -350,10 +501,11 @@
         "id",
         "name",
         "nsfw",
-        "num_tokens",
         "preview_uri",
         "schema",
         "symbol",
+        "token_name",
+        "transferable",
         "uri",
         "uri_hash"
       ],
@@ -379,11 +531,6 @@
         "nsfw": {
           "type": "boolean"
         },
-        "num_tokens": {
-          "type": "integer",
-          "format": "uint32",
-          "minimum": 0.0
-        },
         "preview_uri": {
           "type": "string"
         },
@@ -392,6 +539,12 @@
         },
         "symbol": {
           "type": "string"
+        },
+        "token_name": {
+          "type": "string"
+        },
+        "transferable": {
+          "type": "boolean"
         },
         "uri": {
           "type": "string"
@@ -418,6 +571,16 @@
         "admin": {
           "$ref": "#/definitions/Addr"
         },
+        "end_time": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "mint_price": {
           "$ref": "#/definitions/Coin"
         },
@@ -434,6 +597,14 @@
         },
         "start_time": {
           "$ref": "#/definitions/Timestamp"
+        },
+        "token_limit": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0.0
         },
         "whitelist_address": {
           "anyOf": [
@@ -489,6 +660,11 @@
         }
       }
     },
+    "is_paused": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Boolean",
+      "type": "boolean"
+    },
     "mintable_tokens": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Array_of_Token",
@@ -517,6 +693,7 @@
       "type": "object",
       "required": [
         "minted_tokens",
+        "public_mint_count",
         "total_minted_count"
       ],
       "properties": {
@@ -525,6 +702,11 @@
           "items": {
             "$ref": "#/definitions/Token"
           }
+        },
+        "public_mint_count": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
         },
         "total_minted_count": {
           "type": "integer",
@@ -545,6 +727,20 @@
             }
           },
           "additionalProperties": false
+        }
+      }
+    },
+    "pausers": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Array_of_Addr",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Addr"
+      },
+      "definitions": {
+        "Addr": {
+          "description": "A human readable address.\n\nIn Cosmos, this is typically bech32 encoded. But for multi-chain smart contracts no assumptions should be made other than being UTF-8 encoded and of reasonable length.\n\nThis type represents a validated address. It can be created in the following ways 1. Use `Addr::unchecked(input)` 2. Use `let checked: Addr = deps.api.addr_validate(input)?` 3. Use `let checked: Addr = deps.api.addr_humanize(canonical_addr)?` 4. Deserialize from JSON. This must only be done from JSON that was validated before such as a contract's state. `Addr` must not be used in messages sent by the user because this would result in unvalidated instances.\n\nThis type is immutable. If you really need to mutate it (Really? Are you sure?), create a mutable copy using `let mut mutable = Addr::to_string()` and operate on that `String` instance.",
+          "type": "string"
         }
       }
     },

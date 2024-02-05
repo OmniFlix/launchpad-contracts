@@ -4,54 +4,33 @@
   "type": "object",
   "required": [
     "collection_details",
-    "mint_denom",
-    "mint_price",
-    "per_address_limit",
-    "royalty_ratio",
-    "start_time"
+    "init"
   ],
   "properties": {
-    "admin": {
-      "type": [
-        "string",
-        "null"
-      ]
-    },
     "collection_details": {
       "$ref": "#/definitions/CollectionDetails"
     },
-    "mint_denom": {
-      "type": "string"
-    },
-    "mint_price": {
-      "$ref": "#/definitions/Uint128"
-    },
-    "payment_collector": {
-      "type": [
-        "string",
-        "null"
-      ]
-    },
-    "per_address_limit": {
-      "type": "integer",
-      "format": "uint32",
-      "minimum": 0.0
-    },
-    "royalty_ratio": {
-      "type": "string"
-    },
-    "start_time": {
-      "$ref": "#/definitions/Timestamp"
-    },
-    "whitelist_address": {
-      "type": [
-        "string",
-        "null"
-      ]
+    "init": {
+      "$ref": "#/definitions/MinterInitExtention"
     }
   },
   "additionalProperties": false,
   "definitions": {
+    "Coin": {
+      "type": "object",
+      "required": [
+        "amount",
+        "denom"
+      ],
+      "properties": {
+        "amount": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "denom": {
+          "type": "string"
+        }
+      }
+    },
     "CollectionDetails": {
       "type": "object",
       "required": [
@@ -62,10 +41,11 @@
         "id",
         "name",
         "nsfw",
-        "num_tokens",
         "preview_uri",
         "schema",
         "symbol",
+        "token_name",
+        "transferable",
         "uri",
         "uri_hash"
       ],
@@ -91,11 +71,6 @@
         "nsfw": {
           "type": "boolean"
         },
-        "num_tokens": {
-          "type": "integer",
-          "format": "uint32",
-          "minimum": 0.0
-        },
         "preview_uri": {
           "type": "string"
         },
@@ -105,11 +80,75 @@
         "symbol": {
           "type": "string"
         },
+        "token_name": {
+          "type": "string"
+        },
+        "transferable": {
+          "type": "boolean"
+        },
         "uri": {
           "type": "string"
         },
         "uri_hash": {
           "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "MinterInitExtention": {
+      "type": "object",
+      "required": [
+        "admin",
+        "mint_price",
+        "num_tokens",
+        "per_address_limit",
+        "royalty_ratio",
+        "start_time"
+      ],
+      "properties": {
+        "admin": {
+          "type": "string"
+        },
+        "end_time": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mint_price": {
+          "$ref": "#/definitions/Coin"
+        },
+        "num_tokens": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "payment_collector": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "per_address_limit": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "royalty_ratio": {
+          "type": "string"
+        },
+        "start_time": {
+          "$ref": "#/definitions/Timestamp"
+        },
+        "whitelist_address": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "additionalProperties": false

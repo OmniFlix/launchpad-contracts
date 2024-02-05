@@ -4,8 +4,8 @@
 * and run the @cosmwasm/ts-codegen generate command to regenerate this file.
 */
 
-import * as _0 from ".types";
+import * as _0 from "./OpenEditionMinterFactory.types";
 export namespace contracts {
-  export const = { ..._0
+  export const OpenEditionMinterFactory = { ..._0
   };
 }

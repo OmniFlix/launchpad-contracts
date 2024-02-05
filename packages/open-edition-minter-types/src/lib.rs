@@ -6,15 +6,18 @@ use minter_types::{CollectionDetails, Config, UserDetails};
 #[derive(QueryResponses)]
 pub enum QueryMsg {
     #[returns(CollectionDetails)]
-    Collection {},
+    Collection { edition: Option<u32> },
     #[returns(Config)]
-    Config {},
+    Config { edition: Option<u32> },
     #[returns(UserDetails)]
-    MintedTokens { address: String },
+    MintedTokens {
+        address: String,
+        edition: Option<u32>,
+    },
     #[returns(u32)]
-    TotalMintedCount {},
+    TotalMintedCount { edition: Option<u32> },
     #[returns(u32)]
-    TokensRemaining {},
+    TokensRemaining { edition: Option<u32> },
     #[returns(bool)]
     IsPaused {},
     #[returns(Vec<Addr>)]

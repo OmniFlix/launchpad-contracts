@@ -1304,6 +1304,7 @@ dependencies = [
  "cosmwasm-std",
  "cw-utils 1.0.3",
  "cw721-base 0.18.0",
+ "minter-types",
  "serde",
  "thiserror",
 ]

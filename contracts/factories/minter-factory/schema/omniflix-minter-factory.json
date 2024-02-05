@@ -7,7 +7,6 @@
     "title": "InstantiateMsg",
     "type": "object",
     "required": [
-      "allowed_minter_mint_denoms",
       "fee_collector_address",
       "minter_code_id",
       "minter_creation_fee"
@@ -18,12 +17,6 @@
           "string",
           "null"
         ]
-      },
-      "allowed_minter_mint_denoms": {
-        "type": "array",
-        "items": {
-          "type": "string"
-        }
       },
       "fee_collector_address": {
         "type": "string"
@@ -77,7 +70,7 @@
             ],
             "properties": {
               "msg": {
-                "$ref": "#/definitions/InstantiateMsg"
+                "$ref": "#/definitions/MinterInstantiateMsg_for_MinterInitExtention"
               }
             },
             "additionalProperties": false
@@ -151,30 +144,6 @@
       {
         "type": "object",
         "required": [
-          "update_allowed_minter_mint_denoms"
-        ],
-        "properties": {
-          "update_allowed_minter_mint_denoms": {
-            "type": "object",
-            "required": [
-              "allowed_minter_mint_denoms"
-            ],
-            "properties": {
-              "allowed_minter_mint_denoms": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              }
-            },
-            "additionalProperties": false
-          }
-        },
-        "additionalProperties": false
-      },
-      {
-        "type": "object",
-        "required": [
           "update_minter_code_id"
         ],
         "properties": {
@@ -222,10 +191,11 @@
           "id",
           "name",
           "nsfw",
-          "num_tokens",
           "preview_uri",
           "schema",
           "symbol",
+          "token_name",
+          "transferable",
           "uri",
           "uri_hash"
         ],
@@ -251,11 +221,6 @@
           "nsfw": {
             "type": "boolean"
           },
-          "num_tokens": {
-            "type": "integer",
-            "format": "uint32",
-            "minimum": 0.0
-          },
           "preview_uri": {
             "type": "string"
           },
@@ -264,6 +229,12 @@
           },
           "symbol": {
             "type": "string"
+          },
+          "token_name": {
+            "type": "string"
+          },
+          "transferable": {
+            "type": "boolean"
           },
           "uri": {
             "type": "string"
@@ -274,31 +245,37 @@
         },
         "additionalProperties": false
       },
-      "InstantiateMsg": {
+      "MinterInitExtention": {
         "type": "object",
         "required": [
-          "collection_details",
-          "mint_denom",
+          "admin",
           "mint_price",
+          "num_tokens",
           "per_address_limit",
           "royalty_ratio",
           "start_time"
         ],
         "properties": {
           "admin": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "collection_details": {
-            "$ref": "#/definitions/CollectionDetails"
-          },
-          "mint_denom": {
             "type": "string"
           },
+          "end_time": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/Timestamp"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "mint_price": {
-            "$ref": "#/definitions/Uint128"
+            "$ref": "#/definitions/Coin"
+          },
+          "num_tokens": {
+            "type": "integer",
+            "format": "uint32",
+            "minimum": 0.0
           },
           "payment_collector": {
             "type": [
@@ -322,6 +299,22 @@
               "string",
               "null"
             ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "MinterInstantiateMsg_for_MinterInitExtention": {
+        "type": "object",
+        "required": [
+          "collection_details",
+          "init"
+        ],
+        "properties": {
+          "collection_details": {
+            "$ref": "#/definitions/CollectionDetails"
+          },
+          "init": {
+            "$ref": "#/definitions/MinterInitExtention"
           }
         },
         "additionalProperties": false
@@ -403,7 +396,6 @@
           "type": "object",
           "required": [
             "admin",
-            "allowed_minter_mint_denoms",
             "fee_collector_address",
             "minter_code_id",
             "minter_creation_fee"
@@ -411,12 +403,6 @@
           "properties": {
             "admin": {
               "$ref": "#/definitions/Addr"
-            },
-            "allowed_minter_mint_denoms": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
             },
             "fee_collector_address": {
               "$ref": "#/definitions/Addr"

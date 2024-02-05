@@ -3,7 +3,6 @@
   "title": "InstantiateMsg",
   "type": "object",
   "required": [
-    "allowed_minter_mint_denoms",
     "fee_collector_address",
     "minter_code_id",
     "minter_creation_fee"
@@ -14,12 +13,6 @@
         "string",
         "null"
       ]
-    },
-    "allowed_minter_mint_denoms": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
     },
     "fee_collector_address": {
       "type": "string"

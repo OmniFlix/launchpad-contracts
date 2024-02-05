@@ -11,9 +11,9 @@ tarpaulin-report.html
 # Text file backups
 **/*.rs.bk
 
-# macOS
-.DS_Store
 
 # IDEs
 *.iml
 .idea
+
+/ts/node_modules
