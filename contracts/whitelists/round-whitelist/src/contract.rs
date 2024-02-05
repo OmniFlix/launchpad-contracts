@@ -159,7 +159,7 @@ pub fn execute_private_mint(
     )?;
 
     let res = Response::new()
-        .add_attribute("action", "privately_mint")
+        .add_attribute("action", "private_mint")
         .add_attribute("minter", collector.to_string());
     Ok(res)
 }
@@ -297,7 +297,6 @@ pub fn query_rounds(deps: Deps, _env: Env) -> Result<Vec<(u32, Round)>, Contract
     rounds.iter_mut().for_each(|round| {
         round.1.addresses = vec![];
     });
-    println!("{:?}", rounds);
     Ok(rounds)
 }
 

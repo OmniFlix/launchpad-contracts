@@ -1,5 +1,3 @@
-use std::fmt::format;
-
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Addr, Coin, Decimal, StdError, Storage, Timestamp};
 use cw_storage_plus::Item;
