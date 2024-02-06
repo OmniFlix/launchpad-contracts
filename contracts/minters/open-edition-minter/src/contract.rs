@@ -27,7 +27,6 @@ use omniflix_round_whitelist::msg::ExecuteMsg as RoundWhitelistExecuteMsg;
 use omniflix_std::types::omniflix::onft::v1beta1::{MsgCreateDenom, OnftQuerier, WeightedAddress};
 use whitelist_types::{
     check_if_address_is_member, check_if_whitelist_is_active, check_whitelist_price,
-    IsActiveResponse, IsMemberResponse, MintPriceResponse, RoundWhitelistQueryMsgs,
 };
 
 // version info for migration info
@@ -323,7 +322,8 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
             mint_price = whitelist_price;
 
             // Check if member is whitelisted
-            let is_member = check_if_address_is_member(&info.sender, deps.as_ref())?;
+            let is_member =
+                check_if_address_is_member(&info.sender, &whitelist_address, deps.as_ref())?;
             if !is_member {
                 return Err(ContractError::AddressNotWhitelisted {});
             }

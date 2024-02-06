@@ -85,9 +85,13 @@ pub fn check_if_whitelist_is_active(address: &Addr, deps: Deps) -> Result<bool, 
     Ok(is_active_res.is_active)
 }
 
-pub fn check_if_address_is_member(address: &Addr, deps: Deps) -> Result<bool, StdError> {
+pub fn check_if_address_is_member(
+    address: &Addr,
+    whitelist_address: &Addr,
+    deps: Deps,
+) -> Result<bool, StdError> {
     let is_member_res: IsMemberResponse = deps.querier.query_wasm_smart(
-        address,
+        whitelist_address,
         &RoundWhitelistQueryMsgs::IsMember {
             address: address.to_string(),
         },
