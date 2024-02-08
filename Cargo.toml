@@ -36,3 +36,4 @@ serde                = { version = "1.0.145", default-features = false, features
 whitelist-types = { version = "0.0.1", path = "packages/whitelist-types" }
 minter-types = { version = "0.0.1", path = "packages/minter-types" }
 open-edition-minter-types = { version = "0.0.1", path = "packages/open-edition-minter-types" }
+open-edition-minter-types-copy = { version = "0.0.1", path = "packages/open-edition-minter-types-copy" }
