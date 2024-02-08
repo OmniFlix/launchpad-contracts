@@ -73,7 +73,7 @@ mod test_open_edition_minter_minting {
         let minter_address = get_contract_address_from_res(res);
 
         // Try minting before start time
-        let mint_msg = OpenEditionMinterExecuteMsg::Mint {};
+        let mint_msg = OpenEditionMinterExecuteMsg::Mint { edition: None };
         let res = app
             .execute_contract(
                 collector.clone(),
@@ -98,7 +98,7 @@ mod test_open_edition_minter_minting {
             height: 1_000,
             time: Timestamp::from_nanos(1_000_000_000),
         });
-        let mint_msg = OpenEditionMinterExecuteMsg::Mint {};
+        let mint_msg = OpenEditionMinterExecuteMsg::Mint { edition: None };
         let res = app
             .execute_contract(
                 collector.clone(),
@@ -117,7 +117,7 @@ mod test_open_edition_minter_minting {
         );
 
         // Try minting with incorrect payment amount
-        let mint_msg = OpenEditionMinterExecuteMsg::Mint {};
+        let mint_msg = OpenEditionMinterExecuteMsg::Mint { edition: None };
         let res = app
             .execute_contract(
                 collector.clone(),
@@ -141,7 +141,7 @@ mod test_open_edition_minter_minting {
             height: 1_000,
             time: Timestamp::from_nanos(2_000_000_000 + 1),
         });
-        let mint_msg = OpenEditionMinterExecuteMsg::Mint {};
+        let mint_msg = OpenEditionMinterExecuteMsg::Mint { edition: None };
 
         let res = app
             .execute_contract(
@@ -169,7 +169,7 @@ mod test_open_edition_minter_minting {
             .unwrap()
             .amount;
         // Mint
-        let mint_msg = OpenEditionMinterExecuteMsg::Mint {};
+        let mint_msg = OpenEditionMinterExecuteMsg::Mint { edition: None };
         let _res = app
             .execute_contract(
                 collector.clone(),
@@ -207,7 +207,7 @@ mod test_open_edition_minter_minting {
         assert_eq!(collection.onfts.clone()[0].id, "1");
         assert_eq!(
             collection.onfts.clone()[0].metadata.clone().unwrap().name,
-            "token_name".to_string()
+            "token_name # 1".to_string()
         );
         //     Query minter
         let query_msg = OpenEditionMinterQueryMsg::TokensRemaining { edition: None };
@@ -235,7 +235,7 @@ mod test_open_edition_minter_minting {
             }))
             .unwrap();
             // Mint
-            let mint_msg = OpenEditionMinterExecuteMsg::Mint {};
+            let mint_msg = OpenEditionMinterExecuteMsg::Mint { edition: None };
             let _res = app
                 .execute_contract(
                     collector.clone(),
@@ -274,7 +274,7 @@ mod test_open_edition_minter_minting {
         assert_eq!(res, 1000);
 
         // Try minting after all tokens are minted
-        let mint_msg = OpenEditionMinterExecuteMsg::Mint {};
+        let mint_msg = OpenEditionMinterExecuteMsg::Mint { edition: None };
         let res = app
             .execute_contract(
                 collector.clone(),
@@ -346,7 +346,7 @@ mod test_open_edition_minter_minting {
             mint_price: Coin::new(1000000, "uflix"),
             start_time: Timestamp::from_nanos(1_000_000_000),
             end_time: Some(Timestamp::from_nanos(2_000_000_000)),
-            per_address_limit: 1,
+            per_address_limit: 3,
             royalty_ratio: "0.1".to_string(),
             payment_collector: Some("creator".to_string()),
             whitelist_address: None,
@@ -378,7 +378,7 @@ mod test_open_edition_minter_minting {
         });
 
         // Mint for collector
-        let mint_msg = OpenEditionMinterExecuteMsg::Mint {};
+        let mint_msg = OpenEditionMinterExecuteMsg::Mint { edition: None };
         let _res = app
             .execute_contract(
                 collector.clone(),
@@ -483,7 +483,7 @@ mod test_open_edition_minter_minting {
         assert_eq!(res, 1);
 
         // Try minting for collector 1 Should fail because minting is not started
-        let mint_msg = OpenEditionMinterExecuteMsg::Mint {};
+        let mint_msg = OpenEditionMinterExecuteMsg::Mint { edition: None };
         let res = app
             .execute_contract(
                 collector.clone(),
@@ -510,7 +510,7 @@ mod test_open_edition_minter_minting {
         });
 
         // Try minting for collector 1 with old payment amount Should fail because payment amount is changed
-        let mint_msg = OpenEditionMinterExecuteMsg::Mint {};
+        let mint_msg = OpenEditionMinterExecuteMsg::Mint { edition: None };
         let res = app
             .execute_contract(
                 collector.clone(),
@@ -530,7 +530,7 @@ mod test_open_edition_minter_minting {
         );
 
         // Mint for collector
-        let mint_msg = OpenEditionMinterExecuteMsg::Mint {};
+        let mint_msg = OpenEditionMinterExecuteMsg::Mint { edition: None };
         let _res = app
             .execute_contract(
                 collector.clone(),
@@ -544,12 +544,12 @@ mod test_open_edition_minter_minting {
         assert_eq!(collection.onfts.clone()[0].id, "1");
         assert_eq!(
             collection.onfts.clone()[0].metadata.clone().unwrap().name,
-            "Omniflix Minter Community Edition 1".to_string()
+            "Omniflix Minter Community Edition 1 # 1".to_string()
         );
         assert_eq!(collection.onfts.clone()[1].id, "2");
         assert_eq!(
             collection.onfts.clone()[1].metadata.clone().unwrap().name,
-            "Omniflix Minter Community Edition 2".to_string()
+            "Omniflix Minter Community Edition 2 # 2".to_string()
         );
         assert_eq!(
             collection.onfts.clone()[1]
@@ -558,6 +558,23 @@ mod test_open_edition_minter_minting {
                 .unwrap()
                 .media_uri,
             "base_uri_2".to_string()
+        );
+        // Now we have two editions lets mint for first edition once again
+        let mint_msg = OpenEditionMinterExecuteMsg::Mint { edition: Some(1) };
+        let _res = app
+            .execute_contract(
+                collector.clone(),
+                Addr::unchecked(minter_address.clone()),
+                &mint_msg,
+                &[Coin::new(1000000, "uflix")],
+            )
+            .unwrap();
+        // Now query onft and compare tokens
+        let collection = query_onft_collection(app.storage(), minter_address.clone());
+        assert_eq!(collection.onfts.clone()[2].id, "3");
+        assert_eq!(
+            collection.onfts.clone()[2].metadata.clone().unwrap().name,
+            "Omniflix Minter Community Edition 1 # 3".to_string()
         );
     }
 }

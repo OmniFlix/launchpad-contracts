@@ -3,9 +3,12 @@ use cosmwasm_std::{Coin, Timestamp};
 
 #[cw_serde]
 pub enum ExecuteMsg {
-    Mint {},
+    Mint {
+        edition: Option<u32>,
+    },
     MintAdmin {
         recipient: String,
+        edition: Option<u32>,
     },
     UpdateRoyaltyRatio {
         ratio: String,

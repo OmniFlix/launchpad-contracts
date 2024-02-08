@@ -1,3 +1,5 @@
+use std::fmt::format;
+
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Addr, Coin, Decimal, StdError, Storage, Timestamp};
 use cw_storage_plus::Item;
@@ -207,7 +209,7 @@ pub fn generate_mint_message(
         }
         true => {
             let metadata = Metadata {
-                name: collection.token_name.to_string(),
+                name: format!("{} # {}", collection.token_name.clone(), token_id),
                 description: collection.description.clone(),
                 media_uri: collection.base_uri.clone(),
                 preview_uri: collection.preview_uri.clone(),

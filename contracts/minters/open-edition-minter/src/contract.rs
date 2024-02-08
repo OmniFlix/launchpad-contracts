@@ -217,8 +217,10 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        ExecuteMsg::Mint {} => execute_mint(deps, env, info),
-        ExecuteMsg::MintAdmin { recipient } => execute_mint_admin(deps, env, info, recipient),
+        ExecuteMsg::Mint { edition } => execute_mint(deps, env, info, edition),
+        ExecuteMsg::MintAdmin { recipient, edition } => {
+            execute_mint_admin(deps, env, info, recipient, edition)
+        }
         ExecuteMsg::UpdateRoyaltyRatio { ratio } => {
             execute_update_royalty_ratio(deps, env, info, ratio)
         }
@@ -270,12 +272,17 @@ pub fn execute(
     }
 }
 
-pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response, ContractError> {
+pub fn execute_mint(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    edition: Option<u32>,
+) -> Result<Response, ContractError> {
     let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
     pause_state.error_if_paused(deps.storage)?;
 
     // Find the latest edition
-    let edition_number = CURRENT_EDITION.load(deps.storage)?;
+    let edition_number = edition.unwrap_or(CURRENT_EDITION.load(deps.storage)?);
     let edition_params = EDITIONS.load(deps.storage, edition_number)?;
 
     let config = edition_params.config;
@@ -414,10 +421,11 @@ pub fn execute_mint_admin(
     env: Env,
     info: MessageInfo,
     recipient: String,
+    edition: Option<u32>,
 ) -> Result<Response, ContractError> {
     nonpayable(&info)?;
 
-    let edition_number = CURRENT_EDITION.load(deps.storage)?;
+    let edition_number = edition.unwrap_or(CURRENT_EDITION.load(deps.storage)?);
     let edition_params = EDITIONS.load(deps.storage, edition_number)?;
 
     let config = edition_params.config;
