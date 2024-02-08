@@ -8,7 +8,9 @@ use cosmwasm_std::{
     Response, StdResult, Uint128, WasmMsg,
 };
 use cw_utils::{maybe_addr, must_pay, nonpayable};
-use minter_types::{CollectionDetails, Config, PauseState, Token, UserDetails};
+use minter_types::{
+    generate_mint_message, CollectionDetails, Config, PauseState, Token, UserDetails,
+};
 use open_edition_minter_types::QueryMsg;
 
 use crate::error::ContractError;
@@ -23,6 +25,7 @@ use omniflix_std::types::omniflix::onft::v1beta1::{
     Metadata, MsgCreateDenom, MsgMintOnft, OnftQuerier, WeightedAddress,
 };
 use whitelist_types::{
+    check_if_address_is_member, check_if_whitelist_is_active, check_whitelist_price,
     IsActiveResponse, IsMemberResponse, MintPriceResponse, RoundWhitelistQueryMsgs,
 };
 
@@ -112,13 +115,14 @@ pub fn instantiate(
     if royalty_ratio < Decimal::zero() || royalty_ratio > Decimal::one() {
         return Err(ContractError::InvalidRoyaltyRatio {});
     }
+
     // Check if whitelist already active
     if let Some(whitelist_address) = msg.init.whitelist_address.clone() {
-        let is_active: IsActiveResponse = deps.querier.query_wasm_smart(
-            whitelist_address.clone(),
-            &RoundWhitelistQueryMsgs::IsActive {},
+        let is_active = check_if_whitelist_is_active(
+            &deps.api.addr_validate(&whitelist_address)?,
+            deps.as_ref(),
         )?;
-        if is_active.is_active {
+        if is_active {
             return Err(ContractError::WhitelistAlreadyActive {});
         }
     }
@@ -138,8 +142,10 @@ pub fn instantiate(
         end_time: msg.init.end_time,
         token_limit: msg.init.token_limit,
     };
+
     CONFIG.save(deps.storage, &config)?;
     MINTED_COUNT.save(deps.storage, &0)?;
+
     let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
     pause_state.set_pausers(deps.storage, info.sender.clone(), vec![admin.clone()])?;
 
@@ -160,6 +166,7 @@ pub fn instantiate(
         transferable: msg.collection_details.transferable,
         royalty_receivers: msg.collection_details.royalty_receivers,
     };
+
     COLLECTION.save(deps.storage, &collection)?;
 
     let nft_creation_msg: CosmosMsg = MsgCreateDenom {
@@ -224,6 +231,7 @@ pub fn execute(
 pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response, ContractError> {
     let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
     pause_state.error_if_paused(deps.storage)?;
+
     let config = CONFIG.load(deps.storage)?;
     // Check if any token limit set and if it is reached
     if let Some(token_limit) = config.token_limit {
@@ -249,10 +257,13 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
         return Err(ContractError::AddressReachedMintLimit {});
     }
     let token_id = last_token_id(deps.storage) + 1;
+
     user_details.minted_tokens.push(Token {
         token_id: token_id.to_string(),
     });
+
     MINTED_TOKENS.save(deps.storage, info.sender.clone(), &user_details)?;
+
     let mut mint_price = config.mint_price;
     // Check if minting is started
 
@@ -263,27 +274,20 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     if !is_public {
         // Check if any whitelist is present
         if let Some(whitelist_address) = config.whitelist_address {
-            let is_active: IsActiveResponse = deps.querier.query_wasm_smart(
-                whitelist_address.clone().into_string(),
-                &RoundWhitelistQueryMsgs::IsActive {},
-            )?;
-            if !is_active.is_active {
+            let is_active = check_if_whitelist_is_active(&whitelist_address, deps.as_ref())?;
+            if !is_active {
                 return Err(ContractError::WhitelistNotActive {});
             }
             // Check whitelist price
-            let whitelist_price_response: MintPriceResponse = deps.querier.query_wasm_smart(
-                whitelist_address.clone().into_string(),
-                &RoundWhitelistQueryMsgs::Price {},
-            )?;
-            mint_price = whitelist_price_response.mint_price;
+            let whitelist_price = check_whitelist_price(&whitelist_address, deps.as_ref())?;
+            mint_price = whitelist_price;
             // Check if member is whitelisted
-            let is_member_response: IsMemberResponse = deps.querier.query_wasm_smart(
-                whitelist_address.clone().into_string(),
-                &RoundWhitelistQueryMsgs::IsMember {
-                    address: info.sender.clone().into_string(),
-                },
+            let is_member = check_if_address_is_member(
+                &info.sender.clone(),
+                &whitelist_address,
+                deps.as_ref(),
             )?;
-            if !is_member_response.is_member {
+            if !is_member {
                 return Err(ContractError::AddressNotWhitelisted {});
             }
             messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
@@ -322,28 +326,15 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     // Save the user details
     MINTED_TOKENS.save(deps.storage, info.sender.clone(), &user_details)?;
 
-    // Generate the metadata
-    let metadata = Metadata {
-        name: collection.token_name,
-        description: collection.description,
-        media_uri: collection.base_uri,
-        preview_uri: collection.preview_uri,
-        uri_hash: collection.uri_hash,
-    };
-
     // Create the mint message
-    let mint_msg: CosmosMsg = MsgMintOnft {
-        data: collection.data,
-        id: token_id.clone().to_string(),
-        metadata: Some(metadata.clone()),
-        denom_id: collection.id.clone(),
-        transferable: true,
-        sender: env.contract.address.clone().into_string(),
-        extensible: collection.extensible,
-        nsfw: collection.nsfw,
-        recipient: info.sender.clone().into_string(),
-        royalty_share: config.royalty_ratio.atomics().to_string(),
-    }
+    let mint_msg: CosmosMsg = generate_mint_message(
+        &collection,
+        config.royalty_ratio,
+        &info.sender,
+        &env.contract.address,
+        true,
+        token_id.to_string(),
+    )
     .into();
 
     // Create the Bank send message
@@ -384,40 +375,44 @@ pub fn execute_mint_admin(
     if info.sender != config.admin {
         return Err(ContractError::Unauthorized {});
     }
+    // Check if any token limit set and if it is reached
+    if let Some(token_limit) = config.token_limit {
+        if MINTED_COUNT.load(deps.storage)? >= token_limit {
+            return Err(ContractError::NoTokensLeftToMint {});
+        }
+    }
+    // Check if end time is determined and if it is passed
+    // We are not checking if start time is reached because admin can mint before start time
+    // But even admin cannot mint after end time
+    if let Some(end_time) = config.end_time {
+        if env.block.time > end_time {
+            return Err(ContractError::PublicMintingEnded {});
+        }
+    }
+
     let recipient = deps.api.addr_validate(&recipient)?;
-    // We are not checking token limit nor end time here because this is admin minting
+
     let token_id = last_token_id(deps.storage) + 1;
-    // Generate the metadata
+
     let mut user_details = MINTED_TOKENS
         .may_load(deps.storage, recipient.clone())?
         .unwrap_or(UserDetails::default());
+
     user_details.total_minted_count += 1;
     user_details.minted_tokens.push(Token {
         token_id: token_id.to_string(),
     });
+
     MINTED_TOKENS.save(deps.storage, recipient.clone(), &user_details)?;
 
-    let metadata = Metadata {
-        name: collection.name,
-        description: collection.description,
-        media_uri: collection.base_uri,
-        preview_uri: collection.preview_uri,
-        uri_hash: collection.uri_hash,
-    };
-
-    // Create the mint message
-    let mint_msg: CosmosMsg = MsgMintOnft {
-        data: collection.data,
-        id: collection.id.clone(),
-        metadata: Some(metadata),
-        denom_id: collection.id.clone(),
-        transferable: true,
-        sender: env.contract.address.into_string(),
-        extensible: collection.extensible,
-        nsfw: collection.nsfw,
-        recipient: recipient.into_string(),
-        royalty_share: config.royalty_ratio.atomics().to_string(),
-    }
+    let mint_msg: CosmosMsg = generate_mint_message(
+        &collection,
+        config.royalty_ratio,
+        &recipient,
+        &env.contract.address,
+        true,
+        token_id.to_string(),
+    )
     .into();
 
     let res = Response::new()
@@ -439,6 +434,7 @@ pub fn execute_burn_remaining_tokens(
     }
     // We cannot burn open edition minter but we can set token limit to 0
     let mut config = CONFIG.load(deps.storage)?;
+
     config.token_limit = Some(0);
     CONFIG.save(deps.storage, &config)?;
 
@@ -513,20 +509,16 @@ pub fn execute_update_whitelist_address(
     if info.sender != config.admin {
         return Err(ContractError::Unauthorized {});
     }
-    let whitelist_address = config.whitelist_address.clone();
-    // Check if whitelist already active
-    let is_active: bool = deps.querier.query_wasm_smart(
-        whitelist_address.clone().unwrap().into_string(),
-        &RoundWhitelistQueryMsgs::IsActive {},
-    )?;
-    if is_active {
-        return Err(ContractError::WhitelistAlreadyActive {});
+    // Current whitelist can not be active if we are updating it
+    if let Some(whitelist_address) = config.whitelist_address.clone() {
+        let is_active = check_if_whitelist_is_active(&whitelist_address, deps.as_ref())?;
+        if is_active {
+            return Err(ContractError::WhitelistAlreadyActive {});
+        }
     }
     let address = deps.api.addr_validate(&address)?;
-    let is_active: bool = deps.querier.query_wasm_smart(
-        address.clone().into_string(),
-        &RoundWhitelistQueryMsgs::IsActive {},
-    )?;
+    // Proposed whitelist can not be active if we are updating it
+    let is_active = check_if_whitelist_is_active(&address, deps.as_ref())?;
     if is_active {
         return Err(ContractError::WhitelistAlreadyActive {});
     }
