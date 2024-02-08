@@ -1,0 +1,92 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CollectionDetails",
+  "type": "object",
+  "required": [
+    "base_uri",
+    "data",
+    "description",
+    "extensible",
+    "id",
+    "name",
+    "nsfw",
+    "preview_uri",
+    "schema",
+    "symbol",
+    "token_name",
+    "transferable",
+    "uri",
+    "uri_hash"
+  ],
+  "properties": {
+    "base_uri": {
+      "type": "string"
+    },
+    "data": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "extensible": {
+      "type": "boolean"
+    },
+    "id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "nsfw": {
+      "type": "boolean"
+    },
+    "preview_uri": {
+      "type": "string"
+    },
+    "royalty_receivers": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "#/definitions/WeightedAddress"
+      }
+    },
+    "schema": {
+      "type": "string"
+    },
+    "symbol": {
+      "type": "string"
+    },
+    "token_name": {
+      "type": "string"
+    },
+    "transferable": {
+      "type": "boolean"
+    },
+    "uri": {
+      "type": "string"
+    },
+    "uri_hash": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "WeightedAddress": {
+      "type": "object",
+      "required": [
+        "address",
+        "weight"
+      ],
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "weight": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
