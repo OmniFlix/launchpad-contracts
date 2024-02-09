@@ -21,7 +21,8 @@ use crate::state::{COLLECTION, CONFIG, MINTABLE_TOKENS, MINTED_TOKENS, TOTAL_TOK
 use crate::utils::{
     collect_mintable_tokens, generate_tokens, randomize_token_list, return_random_token,
 };
-use minter_types::{Config, PauseState, QueryMsg, Token, UserDetails};
+use minter_types::{Config, QueryMsg, Token, UserDetails};
+use pauser::PauseState;
 
 use cw2::set_contract_version;
 use omniflix_std::types::omniflix::onft::v1beta1::{MsgCreateDenom, OnftQuerier, WeightedAddress};

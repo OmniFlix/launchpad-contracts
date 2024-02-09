@@ -8,10 +8,9 @@ use cosmwasm_std::{
     Response, StdResult, Uint128, WasmMsg,
 };
 use cw_utils::{maybe_addr, must_pay, nonpayable};
-use minter_types::{
-    generate_mint_message, CollectionDetails, Config, PauseState, Token, UserDetails,
-};
+use minter_types::{generate_mint_message, CollectionDetails, Config, Token, UserDetails};
 use open_edition_minter_types::QueryMsg;
+use pauser::PauseState;
 
 use crate::error::ContractError;
 use crate::msg::ExecuteMsg;

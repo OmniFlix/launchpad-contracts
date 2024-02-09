@@ -57,4 +57,4 @@ whitelist-types ={ workspace = true }
 open-edition-minter-types = {workspace=true}
 omniflix-open-edition-minter-factory = {path = "../../factories/open-edition-minter-factory"}
 omniflix-round-whitelist = {path="../../whitelists/round-whitelist"}
-
+pauser = { workspace = true }
