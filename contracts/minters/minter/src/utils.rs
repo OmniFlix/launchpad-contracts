@@ -1,11 +1,13 @@
 use std::convert::TryInto;
 
-use cosmwasm_std::{Env, StdError};
+use cosmwasm_std::{Env, Order, StdError, Storage};
 use minter_types::Token;
 use rand_core::{RngCore, SeedableRng};
 use rand_xoshiro::Xoshiro128PlusPlus;
 use sha2::{Digest, Sha256};
 use shuffle::{fy::FisherYates, shuffler::Shuffler};
+
+use crate::state::MINTABLE_TOKENS;
 
 pub fn randomize_token_list(
     tokens: Vec<(u32, Token)>,
@@ -91,6 +93,15 @@ pub fn generate_tokens(num_of_tokens: u32) -> Vec<(u32, Token)> {
         })
         .collect();
     tokens
+}
+pub fn collect_mintable_tokens(storage: &dyn Storage) -> Result<Vec<(u32, Token)>, StdError> {
+    // Collect mintable tokens
+    let mut mintable_tokens: Vec<(u32, Token)> = Vec::new();
+    for item in MINTABLE_TOKENS.range(storage, None, None, Order::Ascending) {
+        let (key, value) = item?;
+        mintable_tokens.push((key, value));
+    }
+    Ok(mintable_tokens)
 }
 
 #[cfg(test)]

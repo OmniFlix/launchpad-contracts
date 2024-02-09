@@ -14,18 +14,17 @@ use omniflix_minter_factory::msg::{CreateMinterMsg, ParamsResponse};
 use omniflix_round_whitelist::msg::ExecuteMsg::PrivateMint;
 use whitelist_types::{
     check_if_address_is_member, check_if_whitelist_is_active, check_whitelist_price,
-    IsActiveResponse, IsMemberResponse, MintPriceResponse, RoundWhitelistQueryMsgs,
 };
 
 use crate::error::ContractError;
 use crate::state::{COLLECTION, CONFIG, MINTABLE_TOKENS, MINTED_TOKENS, TOTAL_TOKENS_REMAINING};
-use crate::utils::{generate_tokens, randomize_token_list, return_random_token};
+use crate::utils::{
+    collect_mintable_tokens, generate_tokens, randomize_token_list, return_random_token,
+};
 use minter_types::{Config, PauseState, QueryMsg, Token, UserDetails};
 
 use cw2::set_contract_version;
-use omniflix_std::types::omniflix::onft::v1beta1::{
-    Metadata, MsgCreateDenom, MsgMintOnft, OnftQuerier, WeightedAddress,
-};
+use omniflix_std::types::omniflix::onft::v1beta1::{MsgCreateDenom, OnftQuerier, WeightedAddress};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:omniflix-minter";
@@ -244,7 +243,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     // Error if paused
     let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
     pause_state.error_if_paused(deps.storage)?;
-
+    // Load config
     let config = CONFIG.load(deps.storage)?;
     // Check if any tokens are left
     let total_tokens_remaining = TOTAL_TOKENS_REMAINING.load(deps.storage)?;
@@ -259,11 +258,8 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     let mut mint_price = config.mint_price;
 
     // Collect mintable tokens
-    let mut mintable_tokens: Vec<(u32, Token)> = Vec::new();
-    for item in MINTABLE_TOKENS.range(deps.storage, None, None, Order::Ascending) {
-        let (key, value) = item?;
-        mintable_tokens.push((key, value));
-    }
+    let mintable_tokens = collect_mintable_tokens(deps.as_ref().storage)?;
+
     // Check if public end time is determined and if it is passed
     if let Some(end_time) = config.end_time {
         if env.block.time > end_time {
@@ -325,6 +321,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     user_details.total_minted_count += 1;
     // Add the minted token to the user details
     user_details.minted_tokens.push(random_token.1.clone());
+
     MINTED_TOKENS.save(deps.storage, info.sender.clone(), &user_details)?;
 
     // Check the payment
@@ -401,12 +398,8 @@ pub fn execute_mint_admin(
     let recipient = deps.api.addr_validate(&recipient)?;
 
     // Collect mintable tokens
-    let mut mintable_tokens: Vec<(u32, Token)> = Vec::new();
-    for item in MINTABLE_TOKENS.range(deps.storage, None, None, Order::Ascending) {
-        let (key, value) = item?;
-        // Add the (key, value) tuple to the vector
-        mintable_tokens.push((key, value));
-    }
+    let mintable_tokens = collect_mintable_tokens(deps.as_ref().storage)?;
+
     let token = match token_id {
         None => return_random_token(&mintable_tokens, env.clone())?,
         Some(token_id) => {
