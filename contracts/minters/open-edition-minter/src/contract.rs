@@ -21,7 +21,7 @@ use omniflix_open_edition_minter_factory::msg::{
 };
 use omniflix_round_whitelist::msg::ExecuteMsg as RoundWhitelistExecuteMsg;
 use omniflix_std::types::omniflix::onft::v1beta1::{
-    Metadata, MsgCreateDenom, MsgMintOnft, OnftQuerier, WeightedAddress,
+    Metadata, MsgCreateDenom, MsgMintOnft, MsgUpdateDenom, OnftQuerier, WeightedAddress,
 };
 use whitelist_types::{
     check_if_address_is_member, check_if_whitelist_is_active, check_whitelist_price,
@@ -224,6 +224,14 @@ pub fn execute(
         ExecuteMsg::Pause {} => execute_pause(deps, env, info),
         ExecuteMsg::Unpause {} => execute_unpause(deps, env, info),
         ExecuteMsg::SetPausers { pausers } => execute_set_pausers(deps, env, info, pausers),
+        ExecuteMsg::UpdateRoyaltyReceivers { receivers } => {
+            execute_update_royalty_receivers(deps, env, info, receivers)
+        }
+        ExecuteMsg::UpdateDenom {
+            name,
+            description,
+            preview_uri,
+        } => execute_update_denom(deps, env, info, name, description, preview_uri),
     }
 }
 
@@ -571,6 +579,89 @@ pub fn execute_set_pausers(
     let res = Response::new()
         .add_attribute("action", "set_pausers")
         .add_attribute("pausers", pausers.join(","));
+    Ok(res)
+}
+
+pub fn execute_update_royalty_receivers(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    receivers: Vec<WeightedAddress>,
+) -> Result<Response, ContractError> {
+    // Check if sender is admin
+    let mut collection = COLLECTION.load(deps.storage)?;
+    let config = CONFIG.load(deps.storage)?;
+    if info.sender != config.admin {
+        return Err(ContractError::Unauthorized {});
+    }
+    collection.royalty_receivers = Some(receivers.clone());
+
+    COLLECTION.save(deps.storage, &collection)?;
+
+    let update_msg: CosmosMsg = MsgUpdateDenom {
+        sender: env.contract.address.into_string(),
+        royalty_receivers: receivers,
+        id: collection.id,
+        description: collection.description,
+        name: collection.name,
+        preview_uri: collection.preview_uri,
+    }
+    .into();
+
+    let res = Response::new()
+        .add_message(update_msg)
+        .add_attribute("action", "update_royalty_receivers");
+    Ok(res)
+}
+
+pub fn execute_update_denom(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    name: Option<String>,
+    description: Option<String>,
+    preview_uri: Option<String>,
+) -> Result<Response, ContractError> {
+    // Check if sender is admin
+    let mut collection = COLLECTION.load(deps.storage)?;
+    let config = CONFIG.load(deps.storage)?;
+    if info.sender != config.admin {
+        return Err(ContractError::Unauthorized {});
+    }
+    // Check if public or private minting has started
+    if config.start_time < env.block.time {
+        return Err(ContractError::MintingAlreadyStarted {});
+    };
+    let whitelist_address = config.whitelist_address.clone();
+    if whitelist_address.is_some() {
+        let is_active = check_if_whitelist_is_active(&whitelist_address.unwrap(), deps.as_ref())?;
+        if is_active {
+            return Err(ContractError::WhitelistAlreadyActive {});
+        }
+    };
+    collection.name = name.clone().unwrap_or(collection.name);
+    collection.description = description.clone().unwrap_or(collection.description);
+    collection.preview_uri = preview_uri.clone().unwrap_or(collection.preview_uri);
+    COLLECTION.save(deps.storage, &collection)?;
+
+    let update_msg: CosmosMsg = MsgUpdateDenom {
+        sender: env.contract.address.into_string(),
+        id: collection.id,
+        description: description.unwrap_or(collection.description),
+        name: name.unwrap_or(collection.name),
+        preview_uri: preview_uri.unwrap_or(collection.preview_uri),
+        royalty_receivers: collection
+            .royalty_receivers
+            .unwrap_or(vec![WeightedAddress {
+                address: config.payment_collector.into_string(),
+                weight: Decimal::one().to_string(),
+            }]),
+    }
+    .into();
+
+    let res = Response::new()
+        .add_attribute("action", "update_denom")
+        .add_message(update_msg);
     Ok(res)
 }
 
