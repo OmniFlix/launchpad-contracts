@@ -13,13 +13,13 @@ use omniflix_minter_factory::msg::QueryMsg::Params as QueryFactoryParams;
 use omniflix_minter_factory::msg::{CreateMinterMsg, ParamsResponse};
 use omniflix_round_whitelist::msg::ExecuteMsg::PrivateMint;
 use whitelist_types::{
-    check_if_whitelist_is_active, IsActiveResponse, IsMemberResponse, MintPriceResponse,
-    RoundWhitelistQueryMsgs,
+    check_if_address_is_member, check_if_whitelist_is_active, check_whitelist_price,
+    IsActiveResponse, IsMemberResponse, MintPriceResponse, RoundWhitelistQueryMsgs,
 };
 
 use crate::error::ContractError;
 use crate::state::{COLLECTION, CONFIG, MINTABLE_TOKENS, MINTED_TOKENS, TOTAL_TOKENS_REMAINING};
-use crate::utils::{randomize_token_list, return_random_token};
+use crate::utils::{generate_tokens, randomize_token_list, return_random_token};
 use minter_types::{Config, PauseState, QueryMsg, Token, UserDetails};
 
 use cw2::set_contract_version;
@@ -162,23 +162,12 @@ pub fn instantiate(
     COLLECTION.save(deps.storage, &collection)?;
 
     // Generate tokens
-    let tokens: Vec<(u32, Token)> = (1..=num_tokens)
-        .map(|x| {
-            (
-                x,
-                Token {
-                    token_id: x.to_string(),
-                },
-            )
-        })
-        .collect();
+    let tokens = generate_tokens(num_tokens);
+    let randomized_list = randomize_token_list(tokens.clone(), num_tokens, env.clone())?;
 
     // Save mintable tokens
-    for (key, value) in randomize_token_list(tokens, num_tokens, env.clone())? {
-        match MINTABLE_TOKENS.save(deps.storage, key, &value) {
-            Ok(_) => (),
-            Err(_) => return Err(ContractError::ErrorSavingTokens {}),
-        }
+    for token in randomized_list {
+        MINTABLE_TOKENS.save(deps.storage, token.0, &token.1)?;
     }
 
     // Save total tokens
@@ -259,6 +248,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     let config = CONFIG.load(deps.storage)?;
     // Check if any tokens are left
     let total_tokens_remaining = TOTAL_TOKENS_REMAINING.load(deps.storage)?;
+
     if total_tokens_remaining == 0 {
         return Err(ContractError::NoTokensLeftToMint {});
     }
@@ -298,19 +288,16 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
                 return Err(ContractError::WhitelistNotActive {});
             }
             // Check whitelist price
-            let whitelist_price_response: MintPriceResponse = deps.querier.query_wasm_smart(
-                whitelist_address.clone().into_string(),
-                &RoundWhitelistQueryMsgs::Price {},
-            )?;
-            mint_price = whitelist_price_response.mint_price;
+            let whitelist_price = check_whitelist_price(&whitelist_address, deps.as_ref())?;
+            mint_price = whitelist_price;
+
             // Check if member is whitelisted
-            let is_member_response: IsMemberResponse = deps.querier.query_wasm_smart(
-                whitelist_address.clone().into_string(),
-                &RoundWhitelistQueryMsgs::IsMember {
-                    address: info.sender.clone().into_string(),
-                },
+            let is_member = check_if_address_is_member(
+                &info.sender.clone(),
+                &whitelist_address,
+                deps.as_ref(),
             )?;
-            if !is_member_response.is_member {
+            if !is_member {
                 return Err(ContractError::AddressNotWhitelisted {});
             }
             messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
@@ -422,11 +409,11 @@ pub fn execute_mint_admin(
     }
     let token = match token_id {
         None => return_random_token(&mintable_tokens, env.clone())?,
-        Some(denom_id) => {
+        Some(token_id) => {
             // Find key for the desired token
             let token: Option<(u32, Token)> = mintable_tokens
                 .iter()
-                .find(|(_, token)| token.token_id == denom_id)
+                .find(|(_, token)| token.token_id == token_id)
                 .map(|(key, token)| (*key, token.clone()));
 
             match token {

@@ -79,6 +79,19 @@ pub fn return_random_token(
         }
     }
 }
+pub fn generate_tokens(num_of_tokens: u32) -> Vec<(u32, Token)> {
+    let tokens: Vec<(u32, Token)> = (1..=num_of_tokens)
+        .map(|x| {
+            (
+                x,
+                Token {
+                    token_id: x.to_string(),
+                },
+            )
+        })
+        .collect();
+    tokens
+}
 
 #[cfg(test)]
 mod tests {
