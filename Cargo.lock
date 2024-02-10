@@ -651,6 +651,7 @@ dependencies = [
  "omniflix-std",
  "omniflix-testing",
  "open-edition-minter-types",
+ "pauser",
  "prost 0.12.3",
  "schemars",
  "serde",
@@ -740,6 +741,7 @@ dependencies = [
  "omniflix-minter-factory",
  "omniflix-round-whitelist",
  "omniflix-std",
+ "pauser",
  "rand_core 0.6.4",
  "rand_xoshiro",
  "schemars",
@@ -783,6 +785,31 @@ dependencies = [
  "omniflix-round-whitelist",
  "omniflix-std",
  "open-edition-minter-types",
+ "pauser",
+ "schemars",
+ "serde",
+ "sha2 0.10.8",
+ "thiserror",
+ "whitelist-types",
+]
+
+[[package]]
+name = "omniflix-open-edition-minter-copy"
+version = "0.0.1"
+dependencies = [
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "cw-controllers",
+ "cw-storage-plus 1.2.0",
+ "cw-utils 1.0.3",
+ "cw2 1.1.1",
+ "minter-types",
+ "omniflix-open-edition-minter-factory",
+ "omniflix-round-whitelist",
+ "omniflix-std",
+ "open-edition-minter-types-copy",
+ "pauser",
  "schemars",
  "serde",
  "sha2 0.10.8",
@@ -919,6 +946,32 @@ dependencies = [
  "cw-utils 1.0.3",
  "cw721-base 0.18.0",
  "minter-types",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
+name = "open-edition-minter-types-copy"
+version = "0.0.1"
+dependencies = [
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cw-utils 1.0.3",
+ "cw721-base 0.18.0",
+ "minter-types",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
+name = "pauser"
+version = "0.0.1"
+dependencies = [
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cw-storage-plus 1.2.0",
+ "cw-utils 1.0.3",
+ "cw721-base 0.18.0",
  "serde",
  "thiserror",
 ]

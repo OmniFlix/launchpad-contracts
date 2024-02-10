@@ -5,28 +5,27 @@ use std::str::FromStr;
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     to_json_binary, Addr, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo,
-    Response, StdResult, Timestamp, Uint128, WasmMsg,
+    Response, StdResult, Uint128, WasmMsg,
 };
 use cw_utils::{maybe_addr, must_pay, nonpayable};
-use minter_types::{
-    generate_mint_message, CollectionDetails, Config, PauseState, Token, UserDetails,
-};
+use minter_types::{generate_mint_message, CollectionDetails, Config, Token, UserDetails};
 use open_edition_minter_types::QueryMsg;
+use pauser::PauseState;
 
 use crate::error::ContractError;
 use crate::msg::ExecuteMsg;
-use crate::state::{
-    EditionParams, MintedTokens, CURRENT_EDITION, EDITIONS, LAST_MINTED_TOKEN_ID, MINTED_COUNT,
-    MINTED_TOKENS_KEY,
-};
+use crate::state::{last_token_id, COLLECTION, CONFIG, MINTED_COUNT, MINTED_TOKENS};
 use cw2::set_contract_version;
 use omniflix_open_edition_minter_factory::msg::{
     OpenEditionMinterCreateMsg, ParamsResponse, QueryMsg as OpenEditionMinterFactoryQueryMsg,
 };
 use omniflix_round_whitelist::msg::ExecuteMsg as RoundWhitelistExecuteMsg;
-use omniflix_std::types::omniflix::onft::v1beta1::{MsgCreateDenom, OnftQuerier, WeightedAddress};
+use omniflix_std::types::omniflix::onft::v1beta1::{
+    Metadata, MsgCreateDenom, MsgMintOnft, MsgUpdateDenom, OnftQuerier, WeightedAddress,
+};
 use whitelist_types::{
     check_if_address_is_member, check_if_whitelist_is_active, check_whitelist_price,
+    IsActiveResponse, IsMemberResponse, MintPriceResponse, RoundWhitelistQueryMsgs,
 };
 
 // version info for migration info
@@ -115,9 +114,10 @@ pub fn instantiate(
     if royalty_ratio < Decimal::zero() || royalty_ratio > Decimal::one() {
         return Err(ContractError::InvalidRoyaltyRatio {});
     }
+
     // Check if whitelist already active
     if let Some(whitelist_address) = msg.init.whitelist_address.clone() {
-        let is_active: bool = check_if_whitelist_is_active(
+        let is_active = check_if_whitelist_is_active(
             &deps.api.addr_validate(&whitelist_address)?,
             deps.as_ref(),
         )?;
@@ -125,7 +125,6 @@ pub fn instantiate(
             return Err(ContractError::WhitelistAlreadyActive {});
         }
     }
-
     let admin = deps.api.addr_validate(&msg.init.admin)?;
 
     let payment_collector =
@@ -142,7 +141,10 @@ pub fn instantiate(
         end_time: msg.init.end_time,
         token_limit: msg.init.token_limit,
     };
-    // Set the pause state
+
+    CONFIG.save(deps.storage, &config)?;
+    MINTED_COUNT.save(deps.storage, &0)?;
+
     let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
     pause_state.set_pausers(deps.storage, info.sender.clone(), vec![admin.clone()])?;
 
@@ -164,16 +166,7 @@ pub fn instantiate(
         royalty_receivers: msg.collection_details.royalty_receivers,
     };
 
-    // Save the collection as edition 1
-    let edition_params = EditionParams {
-        config: config.clone(),
-        collection: collection.clone(),
-    };
-
-    EDITIONS.save(deps.storage, 1, &edition_params)?;
-    CURRENT_EDITION.save(deps.storage, &1)?;
-    MINTED_COUNT.save(deps.storage, 1, &0)?;
-    LAST_MINTED_TOKEN_ID.save(deps.storage, &0)?;
+    COLLECTION.save(deps.storage, &collection)?;
 
     let nft_creation_msg: CosmosMsg = MsgCreateDenom {
         description: collection.description,
@@ -196,7 +189,7 @@ pub fn instantiate(
         royalty_receivers: collection
             .royalty_receivers
             .unwrap_or(vec![WeightedAddress {
-                address: admin.clone().into_string(),
+                address: admin.into_string(),
                 weight: Decimal::one().to_string(),
             }]),
     }
@@ -217,10 +210,8 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        ExecuteMsg::Mint { edition } => execute_mint(deps, env, info, edition),
-        ExecuteMsg::MintAdmin { recipient, edition } => {
-            execute_mint_admin(deps, env, info, recipient, edition)
-        }
+        ExecuteMsg::Mint {} => execute_mint(deps, env, info),
+        ExecuteMsg::MintAdmin { recipient } => execute_mint_admin(deps, env, info, recipient),
         ExecuteMsg::UpdateRoyaltyRatio { ratio } => {
             execute_update_royalty_ratio(deps, env, info, ratio)
         }
@@ -233,81 +224,52 @@ pub fn execute(
         ExecuteMsg::Pause {} => execute_pause(deps, env, info),
         ExecuteMsg::Unpause {} => execute_unpause(deps, env, info),
         ExecuteMsg::SetPausers { pausers } => execute_set_pausers(deps, env, info, pausers),
-        ExecuteMsg::NewEdition {
-            whitelist_address,
-            token_limit,
-            start_time,
-            end_time,
-            mint_price,
-            royalty_ratio,
-            token_name,
+        ExecuteMsg::UpdateRoyaltyReceivers { receivers } => {
+            execute_update_royalty_receivers(deps, env, info, receivers)
+        }
+        ExecuteMsg::UpdateDenom {
+            name,
             description,
-            base_uri,
             preview_uri,
-            uri_hash,
-            transferable,
-            extensible,
-            nsfw,
-            data,
-        } => execute_new_edition(
-            deps,
-            env,
-            info,
-            whitelist_address,
-            token_limit,
-            start_time,
-            end_time,
-            mint_price,
-            royalty_ratio,
-            token_name,
-            description,
-            base_uri,
-            preview_uri,
-            uri_hash,
-            transferable,
-            extensible,
-            nsfw,
-            data,
-        ),
+        } => execute_update_denom(deps, env, info, name, description, preview_uri),
     }
 }
 
-pub fn execute_mint(
-    deps: DepsMut,
-    env: Env,
-    info: MessageInfo,
-    edition: Option<u32>,
-) -> Result<Response, ContractError> {
+pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response, ContractError> {
     let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
     pause_state.error_if_paused(deps.storage)?;
 
-    // Find the latest edition
-    let edition_number = edition.unwrap_or(CURRENT_EDITION.load(deps.storage)?);
-    let edition_params = EDITIONS.load(deps.storage, edition_number)?;
-
-    let config = edition_params.config;
-    let collection = edition_params.collection;
+    let config = CONFIG.load(deps.storage)?;
     // Check if any token limit set and if it is reached
     if let Some(token_limit) = config.token_limit {
-        if MINTED_COUNT.load(deps.storage, edition_number).unwrap_or(0) >= token_limit {
+        if MINTED_COUNT.load(deps.storage)? >= token_limit {
             return Err(ContractError::NoTokensLeftToMint {});
         }
     }
-
     // Check if end time is determined and if it is passed
     if let Some(end_time) = config.end_time {
         if env.block.time > end_time {
             return Err(ContractError::PublicMintingEnded {});
         }
-    };
-    let minted_tokens = MintedTokens::new(MINTED_TOKENS_KEY);
-    let mut user_details = minted_tokens
-        .load(deps.storage, edition_number, info.sender.clone())
-        .unwrap_or_default();
+    }
 
-    let last_token_id = LAST_MINTED_TOKEN_ID.load(deps.storage)?;
-    let token_id = last_token_id + 1;
-    LAST_MINTED_TOKEN_ID.save(deps.storage, &token_id)?;
+    let mut user_details = MINTED_TOKENS
+        .may_load(deps.storage, info.sender.clone())?
+        .unwrap_or(UserDetails::default());
+
+    // Increment total minted count
+    user_details.total_minted_count += 1;
+    // Check if address has reached the limit
+    if user_details.total_minted_count > config.per_address_limit {
+        return Err(ContractError::AddressReachedMintLimit {});
+    }
+    let token_id = last_token_id(deps.storage) + 1;
+
+    user_details.minted_tokens.push(Token {
+        token_id: token_id.to_string(),
+    });
+
+    MINTED_TOKENS.save(deps.storage, info.sender.clone(), &user_details)?;
 
     let mut mint_price = config.mint_price;
     // Check if minting is started
@@ -319,7 +281,6 @@ pub fn execute_mint(
     if !is_public {
         // Check if any whitelist is present
         if let Some(whitelist_address) = config.whitelist_address {
-            // Check if whitelist is active
             let is_active = check_if_whitelist_is_active(&whitelist_address, deps.as_ref())?;
             if !is_active {
                 return Err(ContractError::WhitelistNotActive {});
@@ -327,10 +288,12 @@ pub fn execute_mint(
             // Check whitelist price
             let whitelist_price = check_whitelist_price(&whitelist_address, deps.as_ref())?;
             mint_price = whitelist_price;
-
             // Check if member is whitelisted
-            let is_member =
-                check_if_address_is_member(&info.sender, &whitelist_address, deps.as_ref())?;
+            let is_member = check_if_address_is_member(
+                &info.sender.clone(),
+                &whitelist_address,
+                deps.as_ref(),
+            )?;
             if !is_member {
                 return Err(ContractError::AddressNotWhitelisted {});
             }
@@ -347,26 +310,7 @@ pub fn execute_mint(
                 current_time: env.block.time,
             });
         };
-    } else {
-        user_details.public_mint_count += 1;
-        // Check if address has reached the limit
-        if user_details.public_mint_count > config.per_address_limit {
-            return Err(ContractError::AddressReachedMintLimit {});
-        }
     }
-    // Increment total minted count
-    user_details.total_minted_count += 1;
-
-    user_details.minted_tokens.push(Token {
-        token_id: token_id.to_string(),
-    });
-    // Save the user details
-    minted_tokens.save(
-        deps.storage,
-        edition_number,
-        info.sender.clone(),
-        &user_details,
-    );
 
     // Check the payment
     let amount = must_pay(&info, &mint_price.denom)?;
@@ -379,12 +323,17 @@ pub fn execute_mint(
     }
     // Get the payment collector address
     let payment_collector = config.payment_collector;
-    //let collection = COLLECTION.load(deps.storage)?;
+    let collection = COLLECTION.load(deps.storage)?;
 
-    let mut minted_count = MINTED_COUNT.load(deps.storage, edition_number)?;
-    minted_count += 1;
-    MINTED_COUNT.save(deps.storage, edition_number, &minted_count)?;
+    MINTED_COUNT.update(deps.storage, |mut total_tokens| -> StdResult<_> {
+        total_tokens += 1;
+        Ok(total_tokens)
+    })?;
 
+    // Save the user details
+    MINTED_TOKENS.save(deps.storage, info.sender.clone(), &user_details)?;
+
+    // Create the mint message
     let mint_msg: CosmosMsg = generate_mint_message(
         &collection,
         config.royalty_ratio,
@@ -421,45 +370,47 @@ pub fn execute_mint_admin(
     env: Env,
     info: MessageInfo,
     recipient: String,
-    edition: Option<u32>,
 ) -> Result<Response, ContractError> {
     nonpayable(&info)?;
 
-    let edition_number = edition.unwrap_or(CURRENT_EDITION.load(deps.storage)?);
-    let edition_params = EDITIONS.load(deps.storage, edition_number)?;
-
-    let config = edition_params.config;
-    let collection = edition_params.collection;
-
+    let config = CONFIG.load(deps.storage)?;
     let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
     pause_state.error_if_paused(deps.storage)?;
+    let collection = COLLECTION.load(deps.storage)?;
 
     // Check if sender is admin
     if info.sender != config.admin {
         return Err(ContractError::Unauthorized {});
     }
+    // Check if any token limit set and if it is reached
+    if let Some(token_limit) = config.token_limit {
+        if MINTED_COUNT.load(deps.storage)? >= token_limit {
+            return Err(ContractError::NoTokensLeftToMint {});
+        }
+    }
+    // Check if end time is determined and if it is passed
+    // We are not checking if start time is reached because admin can mint before start time
+    // But even admin cannot mint after end time
+    if let Some(end_time) = config.end_time {
+        if env.block.time > end_time {
+            return Err(ContractError::PublicMintingEnded {});
+        }
+    }
+
     let recipient = deps.api.addr_validate(&recipient)?;
-    // We are not checking token limit nor end time here because this is the admin minting
-    let last_token_id = LAST_MINTED_TOKEN_ID.load(deps.storage)?;
-    let token_id = last_token_id + 1;
 
-    let minted_tokens = MintedTokens::new(MINTED_TOKENS_KEY);
+    let token_id = last_token_id(deps.storage) + 1;
 
-    let mut user_details = minted_tokens
-        .load(deps.storage, edition_number, recipient.clone())
-        .unwrap_or_default();
+    let mut user_details = MINTED_TOKENS
+        .may_load(deps.storage, recipient.clone())?
+        .unwrap_or(UserDetails::default());
 
     user_details.total_minted_count += 1;
     user_details.minted_tokens.push(Token {
         token_id: token_id.to_string(),
     });
-    // Save the user details
-    minted_tokens.save(
-        deps.storage,
-        edition_number,
-        recipient.clone(),
-        &user_details,
-    );
+
+    MINTED_TOKENS.save(deps.storage, recipient.clone(), &user_details)?;
 
     let mint_msg: CosmosMsg = generate_mint_message(
         &collection,
@@ -484,13 +435,16 @@ pub fn execute_burn_remaining_tokens(
     info: MessageInfo,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
-    let edition_number = CURRENT_EDITION.load(deps.storage)?;
-    let mut edition_params = EDITIONS.load(deps.storage, edition_number)?;
-    if info.sender != edition_params.clone().config.admin {
+    let config = CONFIG.load(deps.storage)?;
+    if info.sender != config.admin {
         return Err(ContractError::Unauthorized {});
     }
-    edition_params.config.token_limit = Some(0);
-    EDITIONS.save(deps.storage, edition_number, &edition_params)?;
+    // We cannot burn open edition minter but we can set token limit to 0
+    let mut config = CONFIG.load(deps.storage)?;
+
+    config.token_limit = Some(0);
+    CONFIG.save(deps.storage, &config)?;
+
     let res = Response::new().add_attribute("action", "burn_remaining_tokens");
     Ok(res)
 }
@@ -501,11 +455,9 @@ pub fn execute_update_royalty_ratio(
     info: MessageInfo,
     ratio: String,
 ) -> Result<Response, ContractError> {
-    let edition_number = CURRENT_EDITION.load(deps.storage)?;
-    let mut edition_params = EDITIONS.load(deps.storage, edition_number)?;
-
     // Check if sender is admin
-    if info.sender != edition_params.config.admin {
+    let mut config = CONFIG.load(deps.storage)?;
+    if info.sender != config.admin {
         return Err(ContractError::Unauthorized {});
     }
     // Check if ratio is decimal number
@@ -514,9 +466,9 @@ pub fn execute_update_royalty_ratio(
     if ratio < Decimal::zero() || ratio > Decimal::one() {
         return Err(ContractError::InvalidRoyaltyRatio {});
     }
-    edition_params.config.royalty_ratio = ratio;
+    config.royalty_ratio = ratio;
 
-    EDITIONS.save(deps.storage, edition_number, &edition_params)?;
+    CONFIG.save(deps.storage, &config)?;
 
     let res = Response::new()
         .add_attribute("action", "update_royalty_ratio")
@@ -526,25 +478,30 @@ pub fn execute_update_royalty_ratio(
 
 pub fn execute_update_mint_price(
     deps: DepsMut,
-    _env: Env,
+    env: Env,
     info: MessageInfo,
-    mint_price: Coin,
+    mint_price: Uint128,
 ) -> Result<Response, ContractError> {
-    let edition_number = CURRENT_EDITION.load(deps.storage)?;
-    let mut edition_params = EDITIONS.load(deps.storage, edition_number)?;
-
     // Check if sender is admin
-    if info.sender != edition_params.config.admin {
+    let mut config = CONFIG.load(deps.storage)?;
+    if info.sender != config.admin {
         return Err(ContractError::Unauthorized {});
     }
-    edition_params.config.mint_price = mint_price.clone();
+    // Check if trading has started
+    if env.block.time > config.start_time {
+        return Err(ContractError::MintingAlreadyStarted {});
+    }
+    // Check if mint price is valid
+    if mint_price == Uint128::new(0) {
+        return Err(ContractError::InvalidMintPrice {});
+    }
+    config.mint_price.amount = mint_price;
 
-    EDITIONS.save(deps.storage, edition_number, &edition_params)?;
+    CONFIG.save(deps.storage, &config)?;
 
     let res = Response::new()
         .add_attribute("action", "update_mint_price")
-        .add_attribute("mint_price_denom", mint_price.denom.to_string())
-        .add_attribute("mint_price_amount", mint_price.amount.to_string());
+        .add_attribute("mint_price", mint_price.to_string());
     Ok(res)
 }
 
@@ -555,30 +512,26 @@ pub fn execute_update_whitelist_address(
     address: String,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
-    let edition_number = CURRENT_EDITION.load(deps.storage)?;
-    let mut edition_params = EDITIONS.load(deps.storage, edition_number)?;
-    if info.sender != edition_params.config.admin {
+    let mut config = CONFIG.load(deps.storage)?;
+    if info.sender != config.admin {
         return Err(ContractError::Unauthorized {});
     }
-    let whitelist_address = edition_params.config.whitelist_address.clone();
-    // Check if whitelist already active
-    match whitelist_address {
-        Some(whitelist_address) => {
-            let is_active: bool = check_if_whitelist_is_active(&whitelist_address, deps.as_ref())?;
-            if is_active {
-                return Err(ContractError::WhitelistAlreadyActive {});
-            }
+    // Current whitelist can not be active if we are updating it
+    if let Some(whitelist_address) = config.whitelist_address.clone() {
+        let is_active = check_if_whitelist_is_active(&whitelist_address, deps.as_ref())?;
+        if is_active {
+            return Err(ContractError::WhitelistAlreadyActive {});
         }
-        None => {}
     }
-
     let address = deps.api.addr_validate(&address)?;
-    let is_active: bool = check_if_whitelist_is_active(&address, deps.as_ref())?;
+    // Proposed whitelist can not be active if we are updating it
+    let is_active = check_if_whitelist_is_active(&address, deps.as_ref())?;
     if is_active {
         return Err(ContractError::WhitelistAlreadyActive {});
     }
-    edition_params.config.whitelist_address = Some(address.clone());
-    EDITIONS.save(deps.storage, edition_number, &edition_params)?;
+    config.whitelist_address = Some(address.clone());
+
+    CONFIG.save(deps.storage, &config)?;
 
     let res = Response::new()
         .add_attribute("action", "update_whitelist_address")
@@ -629,102 +582,86 @@ pub fn execute_set_pausers(
     Ok(res)
 }
 
-pub fn execute_new_edition(
+pub fn execute_update_royalty_receivers(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    whitelist_address: Option<String>,
-    token_limit: Option<u32>,
-    start_time: Timestamp,
-    end_time: Option<Timestamp>,
-    mint_price: Coin,
-    royalty_ratio: String,
-    token_name: String,
-    description: String,
-    base_uri: String,
-    preview_uri: String,
-    uri_hash: String,
-    transferable: bool,
-    extensible: bool,
-    nsfw: bool,
-    data: String,
+    receivers: Vec<WeightedAddress>,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
-    let current_edition_number = CURRENT_EDITION.load(deps.storage)?;
-    let current_edition_params = EDITIONS.load(deps.storage, current_edition_number)?;
-    if info.sender != current_edition_params.config.admin {
+    let mut collection = COLLECTION.load(deps.storage)?;
+    let config = CONFIG.load(deps.storage)?;
+    if info.sender != config.admin {
         return Err(ContractError::Unauthorized {});
     }
-    // Check if token limit is 0
-    if let Some(token_limit) = token_limit {
-        if token_limit == 0 {
-            return Err(ContractError::InvalidNumTokens {});
-        }
+    collection.royalty_receivers = Some(receivers.clone());
+
+    COLLECTION.save(deps.storage, &collection)?;
+
+    let update_msg: CosmosMsg = MsgUpdateDenom {
+        sender: env.contract.address.into_string(),
+        royalty_receivers: receivers,
+        id: collection.id,
+        description: collection.description,
+        name: collection.name,
+        preview_uri: collection.preview_uri,
     }
-    // Check start time
-    if start_time < env.block.time {
-        return Err(ContractError::InvalidStartTime {});
+    .into();
+
+    let res = Response::new()
+        .add_message(update_msg)
+        .add_attribute("action", "update_royalty_receivers");
+    Ok(res)
+}
+
+pub fn execute_update_denom(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    name: Option<String>,
+    description: Option<String>,
+    preview_uri: Option<String>,
+) -> Result<Response, ContractError> {
+    // Check if sender is admin
+    let mut collection = COLLECTION.load(deps.storage)?;
+    let config = CONFIG.load(deps.storage)?;
+    if info.sender != config.admin {
+        return Err(ContractError::Unauthorized {});
     }
-    // Check end time
-    if let Some(end_time) = end_time {
-        if end_time < start_time {
-            return Err(ContractError::InvalidEndTime {});
-        }
-    }
-    // Check royalty ratio we expect decimal number
-    let royalty_ratio = Decimal::from_str(&royalty_ratio)?;
-    if royalty_ratio < Decimal::zero() || royalty_ratio > Decimal::one() {
-        return Err(ContractError::InvalidRoyaltyRatio {});
-    }
-    // Check if whitelist already active
-    if let Some(whitelist_address) = whitelist_address.clone() {
-        let is_active: bool = check_if_whitelist_is_active(
-            &deps.api.addr_validate(&whitelist_address)?,
-            deps.as_ref(),
-        )?;
+    // Check if public or private minting has started
+    if config.start_time < env.block.time {
+        return Err(ContractError::MintingAlreadyStarted {});
+    };
+    let whitelist_address = config.whitelist_address.clone();
+    if whitelist_address.is_some() {
+        let is_active = check_if_whitelist_is_active(&whitelist_address.unwrap(), deps.as_ref())?;
         if is_active {
             return Err(ContractError::WhitelistAlreadyActive {});
         }
-    }
+    };
+    collection.name = name.clone().unwrap_or(collection.name);
+    collection.description = description.clone().unwrap_or(collection.description);
+    collection.preview_uri = preview_uri.clone().unwrap_or(collection.preview_uri);
+    COLLECTION.save(deps.storage, &collection)?;
 
-    let config = Config {
-        per_address_limit: current_edition_params.config.per_address_limit,
-        payment_collector: current_edition_params.config.payment_collector,
-        start_time,
-        royalty_ratio,
-        admin: current_edition_params.config.admin,
-        mint_price,
-        whitelist_address: maybe_addr(deps.api, whitelist_address)?,
-        end_time,
-        token_limit,
-    };
-    let collection = CollectionDetails {
-        name: current_edition_params.collection.name,
-        description,
-        preview_uri,
-        schema: current_edition_params.collection.schema,
-        symbol: current_edition_params.collection.symbol,
-        id: current_edition_params.collection.id,
-        extensible,
-        nsfw,
-        base_uri,
-        uri: current_edition_params.collection.uri,
-        uri_hash,
-        data: data.clone(),
-        token_name,
-        transferable,
-        royalty_receivers: current_edition_params.collection.royalty_receivers,
-    };
-    let edition_params = EditionParams { config, collection };
-    let new_edition_number = current_edition_number + 1;
-    EDITIONS.save(deps.storage, new_edition_number, &edition_params)?;
-    CURRENT_EDITION.save(deps.storage, &new_edition_number)?;
-    MINTED_COUNT.save(deps.storage, new_edition_number, &0)?;
+    let update_msg: CosmosMsg = MsgUpdateDenom {
+        sender: env.contract.address.into_string(),
+        id: collection.id,
+        description: description.unwrap_or(collection.description),
+        name: name.unwrap_or(collection.name),
+        preview_uri: preview_uri.unwrap_or(collection.preview_uri),
+        royalty_receivers: collection
+            .royalty_receivers
+            .unwrap_or(vec![WeightedAddress {
+                address: config.payment_collector.into_string(),
+                weight: Decimal::one().to_string(),
+            }]),
+    }
+    .into();
 
     let res = Response::new()
-        .add_attribute("action", "new_edition")
-        .add_attribute("edition_number", new_edition_number.to_string());
-
+        .add_attribute("action", "update_denom")
+        .add_message(update_msg);
     Ok(res)
 }
 
@@ -732,37 +669,25 @@ pub fn execute_new_edition(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
-        QueryMsg::Collection { edition } => to_json_binary(&query_collection(deps, env, edition)?),
-        QueryMsg::Config { edition } => to_json_binary(&query_config(deps, env, edition)?),
-        QueryMsg::MintedTokens { address, edition } => {
-            to_json_binary(&query_minted_tokens(deps, env, address, edition)?)
+        QueryMsg::Collection {} => to_json_binary(&query_collection(deps, env)?),
+        QueryMsg::Config {} => to_json_binary(&query_config(deps, env)?),
+        QueryMsg::MintedTokens { address } => {
+            to_json_binary(&query_minted_tokens(deps, env, address)?)
         }
-        QueryMsg::TotalMintedCount { edition } => {
-            to_json_binary(&query_total_tokens_minted(deps, env, edition)?)
-        }
-        QueryMsg::TokensRemaining { edition } => {
-            to_json_binary(&query_tokens_remaining(deps, env, edition)?)
-        }
+        QueryMsg::TotalMintedCount {} => to_json_binary(&query_total_tokens_minted(deps, env)?),
+        QueryMsg::TokensRemaining {} => to_json_binary(&query_tokens_remaining(deps, env)?),
         QueryMsg::IsPaused {} => to_json_binary(&query_is_paused(deps, env)?),
         QueryMsg::Pausers {} => to_json_binary(&query_pausers(deps, env)?),
     }
 }
 
-fn query_collection(
-    deps: Deps,
-    _env: Env,
-    edition: Option<u32>,
-) -> Result<CollectionDetails, ContractError> {
-    let edition = edition.unwrap_or(CURRENT_EDITION.load(deps.storage)?);
-    let edition_params = EDITIONS.load(deps.storage, edition)?;
-    let collection = edition_params.collection;
+fn query_collection(deps: Deps, _env: Env) -> Result<CollectionDetails, ContractError> {
+    let collection = COLLECTION.load(deps.storage)?;
     Ok(collection)
 }
 
-fn query_config(deps: Deps, _env: Env, edition: Option<u32>) -> Result<Config, ContractError> {
-    let edition = edition.unwrap_or(CURRENT_EDITION.load(deps.storage)?);
-    let edition_params = EDITIONS.load(deps.storage, edition)?;
-    let config = edition_params.config;
+fn query_config(deps: Deps, _env: Env) -> Result<Config, ContractError> {
+    let config = CONFIG.load(deps.storage)?;
     Ok(config)
 }
 
@@ -770,38 +695,25 @@ fn query_minted_tokens(
     deps: Deps,
     _env: Env,
     address: String,
-    edition: Option<u32>,
 ) -> Result<UserDetails, ContractError> {
     let address = deps.api.addr_validate(&address)?;
-    let edition = edition.unwrap_or(CURRENT_EDITION.load(deps.storage)?);
-    let minted_tokens = MintedTokens::new(MINTED_TOKENS_KEY);
-    let user_details = minted_tokens
-        .load(deps.storage, edition, address)
-        .unwrap_or_default();
-    Ok(user_details)
+    let minted_tokens = MINTED_TOKENS.load(deps.storage, address)?;
+    Ok(minted_tokens)
 }
 
-fn query_total_tokens_minted(
-    deps: Deps,
-    _env: Env,
-    edition: Option<u32>,
-) -> Result<u32, ContractError> {
-    let edition = edition.unwrap_or(CURRENT_EDITION.load(deps.storage)?);
-    let minted_count = MINTED_COUNT.load(deps.storage, edition).unwrap_or(0);
-    Ok(minted_count)
+fn query_total_tokens_minted(deps: Deps, _env: Env) -> Result<u32, ContractError> {
+    let total_tokens = MINTED_COUNT.load(deps.storage).unwrap_or(0);
+    Ok(total_tokens)
 }
 
-fn query_tokens_remaining(
-    deps: Deps,
-    _env: Env,
-    edition: Option<u32>,
-) -> Result<u32, ContractError> {
-    let edition = edition.unwrap_or(CURRENT_EDITION.load(deps.storage)?);
-    let edition_params = EDITIONS.load(deps.storage, edition)?;
-    let config = edition_params.config;
-    let minted_count = MINTED_COUNT.load(deps.storage, edition).unwrap_or(0);
-    let tokens_remaining = config.token_limit.unwrap_or(u32::MAX) - minted_count;
-    Ok(tokens_remaining)
+fn query_tokens_remaining(deps: Deps, _env: Env) -> Result<u32, ContractError> {
+    let config = CONFIG.load(deps.storage)?;
+    if let Some(token_limit) = config.token_limit {
+        let total_tokens = MINTED_COUNT.load(deps.storage).unwrap_or(0);
+        Ok(token_limit - total_tokens)
+    } else {
+        Err(ContractError::TokenLimitNotSet {})
+    }
 }
 
 fn query_is_paused(deps: Deps, _env: Env) -> Result<bool, ContractError> {

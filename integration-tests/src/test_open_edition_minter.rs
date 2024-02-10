@@ -274,7 +274,7 @@ mod test_open_edition_minter_creation {
         assert_eq!(uflix_after - uflix_before, Uint128::from(1000000u128));
 
         // Query the minter
-        let query_msg = OpenEditionMinterQueryMsg::Config { edition: None };
+        let query_msg = OpenEditionMinterQueryMsg::Config {};
 
         let config_res: Config = app
             .wrap()
@@ -299,7 +299,7 @@ mod test_open_edition_minter_creation {
         );
 
         // Query the minter
-        let query_msg = OpenEditionMinterQueryMsg::TokensRemaining { edition: None };
+        let query_msg = OpenEditionMinterQueryMsg::TokensRemaining {};
 
         let tokens_remaining_res: u32 = app
             .wrap()
@@ -309,7 +309,7 @@ mod test_open_edition_minter_creation {
         assert_eq!(tokens_remaining_res, 1000);
 
         // Query the minter
-        let query_msg = OpenEditionMinterQueryMsg::TotalMintedCount { edition: None };
+        let query_msg = OpenEditionMinterQueryMsg::TotalMintedCount {};
 
         let total_minted_count_res: u32 = app
             .wrap()
@@ -319,7 +319,7 @@ mod test_open_edition_minter_creation {
         assert_eq!(total_minted_count_res, 0);
 
         // Query the minter
-        let query_msg = OpenEditionMinterQueryMsg::Collection { edition: None };
+        let query_msg = OpenEditionMinterQueryMsg::Collection {};
 
         let collection_res: CollectionDetails = app
             .wrap()

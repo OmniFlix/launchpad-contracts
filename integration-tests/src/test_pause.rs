@@ -4,7 +4,7 @@ mod test_pause {
 
     use cosmwasm_std::{coin, to_json_binary, Addr, BlockInfo, QueryRequest, Timestamp, WasmQuery};
     use cw_multi_test::Executor;
-    use minter_types::PauseError;
+    use pauser::PauseError;
 
     use minter_types::QueryMsg;
     use omniflix_minter::msg::ExecuteMsg as MinterExecuteMsg;

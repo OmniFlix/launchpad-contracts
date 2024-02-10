@@ -1,5 +1,6 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::Coin;
+use omniflix_std::types::omniflix::onft::v1beta1::WeightedAddress;
 
 #[cw_serde]
 pub enum ExecuteMsg {
@@ -25,5 +26,13 @@ pub enum ExecuteMsg {
     // At every update full list of pausers should be sent
     SetPausers {
         pausers: Vec<String>,
+    },
+    UpdateRoyaltyReceivers {
+        receivers: Vec<WeightedAddress>,
+    },
+    UpdateDenom {
+        name: Option<String>,
+        description: Option<String>,
+        preview_uri: Option<String>,
     },
 }

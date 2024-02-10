@@ -2,7 +2,7 @@ use std::convert::Infallible;
 
 use cosmwasm_std::{CheckedFromRatioError, ConversionOverflowError, StdError, Timestamp, Uint128};
 use cw_utils::PaymentError;
-use minter_types::PauseError;
+use pauser::PauseError;
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq)]
