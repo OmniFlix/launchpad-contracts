@@ -22,4 +22,6 @@ pub enum QueryMsg {
     IsPaused {},
     #[returns(Vec<Addr>)]
     Pausers {},
+    #[returns(u32)]
+    CurrentEditionNumber {},
 }

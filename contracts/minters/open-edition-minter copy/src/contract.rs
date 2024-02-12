@@ -734,6 +734,9 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         }
         QueryMsg::IsPaused {} => to_json_binary(&query_is_paused(deps, env)?),
         QueryMsg::Pausers {} => to_json_binary(&query_pausers(deps, env)?),
+        QueryMsg::CurrentEditionNumber {} => {
+            to_json_binary(&query_current_edition_number(deps, env)?)
+        }
     }
 }
 
@@ -803,4 +806,9 @@ fn query_pausers(deps: Deps, _env: Env) -> Result<Vec<Addr>, ContractError> {
     let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
     let pausers = pause_state.pausers.load(deps.storage).unwrap_or(vec![]);
     Ok(pausers)
+}
+
+fn query_current_edition_number(deps: Deps, _env: Env) -> Result<u32, ContractError> {
+    let current_edition = CURRENT_EDITION.load(deps.storage).unwrap_or(1);
+    Ok(current_edition)
 }
