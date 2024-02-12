@@ -27,7 +27,7 @@ use pauser::PauseState;
 
 use cw2::set_contract_version;
 use omniflix_std::types::omniflix::onft::v1beta1::{
-    MsgCreateDenom, MsgUpdateDenom, OnftQuerier, WeightedAddress,
+    Collection, MsgCreateDenom, MsgUpdateDenom, OnftQuerier, WeightedAddress,
 };
 
 // version info for migration info
@@ -703,17 +703,17 @@ pub fn execute_update_denom(
     if info.sender != config.admin {
         return Err(ContractError::Unauthorized {});
     }
-    // Check if public or private minting has started
-    if config.start_time < env.block.time {
+    let onft_querier = OnftQuerier::new(&deps.querier);
+    let minted_nfties_res = onft_querier.collection(collection.clone().id, None)?;
+    let minted_nfties = minted_nfties_res
+        .collection
+        .unwrap_or(Collection::default())
+        .onfts;
+    if !minted_nfties.is_empty() {
+        // If there is any nft minted for the collection update denoms should not work
         return Err(ContractError::MintingAlreadyStarted {});
-    };
-    let whitelist_address = config.whitelist_address.clone();
-    if whitelist_address.is_some() {
-        let is_active = check_if_whitelist_is_active(&whitelist_address.unwrap(), deps.as_ref())?;
-        if is_active {
-            return Err(ContractError::WhitelistAlreadyActive {});
-        }
-    };
+    }
+
     collection.name = name.clone().unwrap_or(collection.name);
     collection.description = description.clone().unwrap_or(collection.description);
     collection.preview_uri = preview_uri.clone().unwrap_or(collection.preview_uri);

@@ -23,7 +23,9 @@ use omniflix_open_edition_minter_factory::msg::{
     OpenEditionMinterCreateMsg, ParamsResponse, QueryMsg as OpenEditionMinterFactoryQueryMsg,
 };
 use omniflix_round_whitelist::msg::ExecuteMsg as RoundWhitelistExecuteMsg;
-use omniflix_std::types::omniflix::onft::v1beta1::{MsgCreateDenom, OnftQuerier, WeightedAddress};
+use omniflix_std::types::omniflix::onft::v1beta1::{
+    Collection, MsgCreateDenom, MsgUpdateDenom, OnftQuerier, WeightedAddress,
+};
 use whitelist_types::{
     check_if_address_is_member, check_if_whitelist_is_active, check_whitelist_price,
 };
@@ -268,6 +270,14 @@ pub fn execute(
             nsfw,
             data,
         ),
+        ExecuteMsg::UpdateRoyaltyReceivers { receivers } => {
+            execute_update_royalty_receivers(deps, env, info, receivers)
+        }
+        ExecuteMsg::UpdateDenom {
+            name,
+            description,
+            preview_uri,
+        } => execute_update_denom(deps, env, info, name, description, preview_uri),
     }
 }
 
@@ -714,6 +724,114 @@ pub fn execute_new_edition(
         .add_attribute("action", "new_edition")
         .add_attribute("edition_number", new_edition_number.to_string());
 
+    Ok(res)
+}
+pub fn execute_update_royalty_receivers(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    receivers: Vec<WeightedAddress>,
+) -> Result<Response, ContractError> {
+    // Check if sender is admin
+    let current_edition_number = CURRENT_EDITION.load(deps.storage)?;
+    let edition_params = EDITIONS.load(deps.storage, current_edition_number)?;
+    for edition_number in 1..=current_edition_number {
+        let edition_params = EDITIONS.load(deps.storage, edition_number)?;
+        let mut collection = edition_params.collection;
+        let config = edition_params.config;
+
+        if info.sender != config.admin {
+            return Err(ContractError::Unauthorized {});
+        }
+        collection.royalty_receivers = Some(receivers.clone());
+        EDITIONS.save(
+            deps.storage,
+            edition_number,
+            &EditionParams {
+                config: config,
+                collection: collection,
+            },
+        )?;
+    }
+
+    let update_msg: CosmosMsg = MsgUpdateDenom {
+        sender: env.contract.address.into_string(),
+        royalty_receivers: receivers,
+        id: edition_params.collection.id,
+        description: edition_params.collection.description,
+        name: edition_params.collection.name,
+        preview_uri: edition_params.collection.preview_uri,
+    }
+    .into();
+
+    let res = Response::new()
+        .add_message(update_msg)
+        .add_attribute("action", "update_royalty_receivers");
+    Ok(res)
+}
+
+pub fn execute_update_denom(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    name: Option<String>,
+    description: Option<String>,
+    preview_uri: Option<String>,
+) -> Result<Response, ContractError> {
+    let current_edition_number = CURRENT_EDITION.load(deps.storage)?;
+    let edition_params = EDITIONS.load(deps.storage, current_edition_number)?;
+    let onft_querier = OnftQuerier::new(&deps.querier);
+    let minted_nfties_res = onft_querier.collection(edition_params.collection.clone().id, None)?;
+    let minted_nfties = minted_nfties_res
+        .collection
+        .unwrap_or(Collection::default())
+        .onfts;
+
+    if !minted_nfties.is_empty() {
+        // If there is any nft minted for the collection update denoms should not work
+        return Err(ContractError::MintingAlreadyStarted {});
+    }
+
+    // We would have to update name and description in the collection of all editions
+    for edition_number in 1..=current_edition_number {
+        let edition_params = EDITIONS.load(deps.storage, edition_number)?;
+        let mut collection = edition_params.collection;
+        let config = edition_params.config;
+
+        if info.sender != config.admin {
+            return Err(ContractError::Unauthorized {});
+        }
+        collection.name = name.clone().unwrap_or(collection.name);
+        collection.description = description.clone().unwrap_or(collection.description);
+        collection.preview_uri = preview_uri.clone().unwrap_or(collection.preview_uri);
+        EDITIONS.save(
+            deps.storage,
+            edition_number,
+            &EditionParams {
+                config: config,
+                collection: collection,
+            },
+        )?;
+    }
+
+    let update_msg: CosmosMsg = MsgUpdateDenom {
+        sender: env.contract.address.into_string(),
+        id: edition_params.collection.id,
+        description: description.unwrap_or(edition_params.collection.description),
+        name: name.unwrap_or(edition_params.collection.name),
+        preview_uri: preview_uri.unwrap_or(edition_params.collection.preview_uri),
+        royalty_receivers: edition_params.collection.royalty_receivers.unwrap_or(vec![
+            WeightedAddress {
+                address: edition_params.config.payment_collector.into_string(),
+                weight: Decimal::one().to_string(),
+            },
+        ]),
+    }
+    .into();
+
+    let res = Response::new()
+        .add_attribute("action", "update_denom")
+        .add_message(update_msg);
     Ok(res)
 }
 

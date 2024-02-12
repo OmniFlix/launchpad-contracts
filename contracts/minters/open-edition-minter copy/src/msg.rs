@@ -1,5 +1,6 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Coin, Timestamp};
+use omniflix_std::types::omniflix::onft::v1beta1::WeightedAddress;
 
 #[cw_serde]
 pub enum ExecuteMsg {
@@ -40,5 +41,13 @@ pub enum ExecuteMsg {
         extensible: Option<bool>,
         nsfw: Option<bool>,
         data: Option<String>,
+    },
+    UpdateRoyaltyReceivers {
+        receivers: Vec<WeightedAddress>,
+    },
+    UpdateDenom {
+        name: Option<String>,
+        description: Option<String>,
+        preview_uri: Option<String>,
     },
 }
