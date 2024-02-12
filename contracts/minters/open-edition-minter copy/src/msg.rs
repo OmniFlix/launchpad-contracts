@@ -50,4 +50,5 @@ pub enum ExecuteMsg {
         description: Option<String>,
         preview_uri: Option<String>,
     },
+    PurgeDenom {},
 }

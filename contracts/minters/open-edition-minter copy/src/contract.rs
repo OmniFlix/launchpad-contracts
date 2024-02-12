@@ -24,7 +24,7 @@ use omniflix_open_edition_minter_factory::msg::{
 };
 use omniflix_round_whitelist::msg::ExecuteMsg as RoundWhitelistExecuteMsg;
 use omniflix_std::types::omniflix::onft::v1beta1::{
-    Collection, MsgCreateDenom, MsgUpdateDenom, OnftQuerier, WeightedAddress,
+    Collection, MsgCreateDenom, MsgPurgeDenom, MsgUpdateDenom, OnftQuerier, WeightedAddress,
 };
 use whitelist_types::{
     check_if_address_is_member, check_if_whitelist_is_active, check_whitelist_price,
@@ -278,6 +278,7 @@ pub fn execute(
             description,
             preview_uri,
         } => execute_update_denom(deps, env, info, name, description, preview_uri),
+        ExecuteMsg::PurgeDenom {} => execute_purge_denom(deps, env, info),
     }
 }
 
@@ -833,6 +834,38 @@ pub fn execute_update_denom(
         .add_attribute("action", "update_denom")
         .add_message(update_msg);
     Ok(res)
+}
+fn execute_purge_denom(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+) -> Result<Response, ContractError> {
+    let current_edition_number = CURRENT_EDITION.load(deps.storage)?;
+    let edition_params = EDITIONS.load(deps.storage, current_edition_number)?;
+    if edition_params.config.admin != info.sender {
+        return Err(ContractError::Unauthorized {});
+    }
+    let onft_querier = OnftQuerier::new(&deps.querier);
+    let minted_nfties_res = onft_querier.collection(edition_params.collection.clone().id, None)?;
+    let minted_nfties = minted_nfties_res
+        .collection
+        .unwrap_or(Collection::default())
+        .onfts;
+
+    if !minted_nfties.is_empty() {
+        // If there is any nft minted for the collection purge denoms should not work
+        return Err(ContractError::MintingAlreadyStarted {});
+    }
+
+    let purge_msg: CosmosMsg = MsgPurgeDenom {
+        id: edition_params.collection.id,
+        sender: info.sender.into_string(),
+    }
+    .into();
+
+    Ok(Response::new()
+        .add_attribute("action", "purge_denom")
+        .add_message(purge_msg))
 }
 
 // Implement Queries
