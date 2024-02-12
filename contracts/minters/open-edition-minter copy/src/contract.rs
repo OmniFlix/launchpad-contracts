@@ -637,20 +637,21 @@ pub fn execute_new_edition(
     start_time: Timestamp,
     end_time: Option<Timestamp>,
     mint_price: Coin,
-    royalty_ratio: String,
+    royalty_ratio: Option<String>,
     token_name: String,
-    description: String,
-    base_uri: String,
-    preview_uri: String,
-    uri_hash: String,
-    transferable: bool,
-    extensible: bool,
-    nsfw: bool,
-    data: String,
+    description: Option<String>,
+    base_uri: Option<String>,
+    preview_uri: Option<String>,
+    uri_hash: Option<String>,
+    transferable: Option<bool>,
+    extensible: Option<bool>,
+    nsfw: Option<bool>,
+    data: Option<String>,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
     let current_edition_number = CURRENT_EDITION.load(deps.storage)?;
     let current_edition_params = EDITIONS.load(deps.storage, current_edition_number)?;
+
     if info.sender != current_edition_params.config.admin {
         return Err(ContractError::Unauthorized {});
     }
@@ -671,20 +672,9 @@ pub fn execute_new_edition(
         }
     }
     // Check royalty ratio we expect decimal number
-    let royalty_ratio = Decimal::from_str(&royalty_ratio)?;
-    if royalty_ratio < Decimal::zero() || royalty_ratio > Decimal::one() {
-        return Err(ContractError::InvalidRoyaltyRatio {});
-    }
-    // Check if whitelist already active
-    if let Some(whitelist_address) = whitelist_address.clone() {
-        let is_active: bool = check_if_whitelist_is_active(
-            &deps.api.addr_validate(&whitelist_address)?,
-            deps.as_ref(),
-        )?;
-        if is_active {
-            return Err(ContractError::WhitelistAlreadyActive {});
-        }
-    }
+    let royalty_ratio = Decimal::from_str(
+        &royalty_ratio.unwrap_or(current_edition_params.config.royalty_ratio.to_string()),
+    )?;
 
     let config = Config {
         per_address_limit: current_edition_params.config.per_address_limit,
@@ -699,19 +689,19 @@ pub fn execute_new_edition(
     };
     let collection = CollectionDetails {
         name: current_edition_params.collection.name,
-        description,
-        preview_uri,
+        description: description.unwrap_or(current_edition_params.collection.description),
+        preview_uri: preview_uri.unwrap_or(current_edition_params.collection.preview_uri),
         schema: current_edition_params.collection.schema,
         symbol: current_edition_params.collection.symbol,
         id: current_edition_params.collection.id,
-        extensible,
-        nsfw,
-        base_uri,
+        extensible: extensible.unwrap_or(current_edition_params.collection.extensible),
+        nsfw: nsfw.unwrap_or(current_edition_params.collection.nsfw),
+        base_uri: base_uri.unwrap_or(current_edition_params.collection.base_uri),
         uri: current_edition_params.collection.uri,
-        uri_hash,
-        data: data.clone(),
+        uri_hash: uri_hash.unwrap_or(current_edition_params.collection.uri_hash),
+        data: data.unwrap_or(current_edition_params.collection.data),
         token_name,
-        transferable,
+        transferable: transferable.unwrap_or(current_edition_params.collection.transferable),
         royalty_receivers: current_edition_params.collection.royalty_receivers,
     };
     let edition_params = EditionParams { config, collection };
