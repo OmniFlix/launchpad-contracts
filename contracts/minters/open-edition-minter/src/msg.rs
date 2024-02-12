@@ -1,5 +1,5 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::Uint128;
+use cosmwasm_std::{Coin, Uint128};
 use omniflix_std::types::omniflix::onft::v1beta1::WeightedAddress;
 
 #[cw_serde]
@@ -12,7 +12,7 @@ pub enum ExecuteMsg {
         ratio: String,
     },
     UpdateMintPrice {
-        mint_price: Uint128,
+        mint_price: Coin,
     },
     UpdateWhitelistAddress {
         address: String,

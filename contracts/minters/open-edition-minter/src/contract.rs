@@ -480,7 +480,7 @@ pub fn execute_update_mint_price(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    mint_price: Uint128,
+    mint_price: Coin,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
     let mut config = CONFIG.load(deps.storage)?;
@@ -491,17 +491,14 @@ pub fn execute_update_mint_price(
     if env.block.time > config.start_time {
         return Err(ContractError::MintingAlreadyStarted {});
     }
-    // Check if mint price is valid
-    if mint_price == Uint128::new(0) {
-        return Err(ContractError::InvalidMintPrice {});
-    }
-    config.mint_price.amount = mint_price;
+    config.mint_price = mint_price.clone();
 
     CONFIG.save(deps.storage, &config)?;
 
     let res = Response::new()
         .add_attribute("action", "update_mint_price")
-        .add_attribute("mint_price", mint_price.to_string());
+        .add_attribute("mint_price_amount", mint_price.amount.to_string())
+        .add_attribute("denom", mint_price.denom);
     Ok(res)
 }
 
