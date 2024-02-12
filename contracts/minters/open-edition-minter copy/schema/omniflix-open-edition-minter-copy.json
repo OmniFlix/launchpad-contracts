@@ -1,5 +1,5 @@
 {
-  "contract_name": "omniflix-open-edition-minter",
+  "contract_name": "omniflix-open-edition-minter-copy",
   "contract_version": "0.0.1",
   "idl_version": "1.0.0",
   "instantiate": {
@@ -213,6 +213,16 @@
         "properties": {
           "mint": {
             "type": "object",
+            "properties": {
+              "edition": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "uint32",
+                "minimum": 0.0
+              }
+            },
             "additionalProperties": false
           }
         },
@@ -230,6 +240,14 @@
               "recipient"
             ],
             "properties": {
+              "edition": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "uint32",
+                "minimum": 0.0
+              },
               "recipient": {
                 "type": "string"
               }
@@ -361,28 +379,28 @@
           "new_edition": {
             "type": "object",
             "required": [
-              "base_uri",
-              "data",
-              "description",
-              "extensible",
               "mint_price",
-              "nsfw",
-              "preview_uri",
-              "royalty_ratio",
               "start_time",
-              "token_name",
-              "transferable",
-              "uri_hash"
+              "token_name"
             ],
             "properties": {
               "base_uri": {
-                "type": "string"
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
               "data": {
-                "type": "string"
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
               "description": {
-                "type": "string"
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
               "end_time": {
                 "anyOf": [
@@ -395,19 +413,31 @@
                 ]
               },
               "extensible": {
-                "type": "boolean"
+                "type": [
+                  "boolean",
+                  "null"
+                ]
               },
               "mint_price": {
                 "$ref": "#/definitions/Coin"
               },
               "nsfw": {
-                "type": "boolean"
+                "type": [
+                  "boolean",
+                  "null"
+                ]
               },
               "preview_uri": {
-                "type": "string"
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
               "royalty_ratio": {
-                "type": "string"
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
               "start_time": {
                 "$ref": "#/definitions/Timestamp"
@@ -424,10 +454,16 @@
                 "type": "string"
               },
               "transferable": {
-                "type": "boolean"
+                "type": [
+                  "boolean",
+                  "null"
+                ]
               },
               "uri_hash": {
-                "type": "string"
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
               "whitelist_address": {
                 "type": [
@@ -621,6 +657,19 @@
         ],
         "properties": {
           "pausers": {
+            "type": "object",
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "required": [
+          "current_edition_number"
+        ],
+        "properties": {
+          "current_edition_number": {
             "type": "object",
             "additionalProperties": false
           }
@@ -828,6 +877,13 @@
           "type": "string"
         }
       }
+    },
+    "current_edition_number": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "uint32",
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
     },
     "is_paused": {
       "$schema": "http://json-schema.org/draft-07/schema#",

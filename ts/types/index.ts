@@ -22,6 +22,9 @@ import * as _14 from "./OmniflixMinter.message-composer";
 import * as _15 from "./OmniflixOpenEditionMinter.types";
 import * as _16 from "./OmniflixOpenEditionMinter.client";
 import * as _17 from "./OmniflixOpenEditionMinter.message-composer";
+import * as _18 from "./OmniflixOpenEditionMinterCopy.types";
+import * as _19 from "./OmniflixOpenEditionMinterCopy.client";
+import * as _20 from "./OmniflixOpenEditionMinterCopy.message-composer";
 export namespace contracts {
   export const OmniflixMinterFactory = { ..._0,
     ..._1,
@@ -46,5 +49,9 @@ export namespace contracts {
   export const OmniflixOpenEditionMinter = { ..._15,
     ..._16,
     ..._17
+  };
+  export const OmniflixOpenEditionMinterCopy = { ..._18,
+    ..._19,
+    ..._20
   };
 }
