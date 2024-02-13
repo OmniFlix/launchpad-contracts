@@ -7,30 +7,42 @@
 import { MsgExecuteContractEncodeObject } from "@cosmjs/cosmwasm-stargate";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { toUtf8 } from "@cosmjs/encoding";
-import { Timestamp, Uint64, Uint128, InstantiateMsg, CollectionDetails, WeightedAddress, OpenEditionMinterInitExtention, Coin, ExecuteMsg, QueryMsg, Addr, Decimal, Config, Boolean, UserDetails, Token, ArrayOfAddr, Uint32 } from "./OmniflixOpenEditionMinter.types";
-export interface OmniflixOpenEditionMinterMsg {
+import { Timestamp, Uint64, Uint128, InstantiateMsg, CollectionDetails, WeightedAddress, OpenEditionMinterInitExtention, Coin, ExecuteMsg, QueryMsg, Addr, Decimal, Config, Uint32, Boolean, UserDetails, Token, ArrayOfAddr } from "./OmniflixMultiMintOpenEditionMinter.types";
+export interface OmniflixMultiMintOpenEditionMinterMsg {
   contractAddress: string;
   sender: string;
-  mint: (_funds?: Coin[]) => MsgExecuteContractEncodeObject;
+  mint: ({
+    dropId
+  }: {
+    dropId?: number;
+  }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   mintAdmin: ({
+    dropId,
     recipient
   }: {
+    dropId?: number;
     recipient: string;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   updateRoyaltyRatio: ({
+    dropId,
     ratio
   }: {
+    dropId?: number;
     ratio: string;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   updateMintPrice: ({
+    dropId,
     mintPrice
   }: {
+    dropId?: number;
     mintPrice: Coin;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   updateWhitelistAddress: ({
-    address
+    address,
+    dropId
   }: {
     address: string;
+    dropId?: number;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   pause: (_funds?: Coin[]) => MsgExecuteContractEncodeObject;
   unpause: (_funds?: Coin[]) => MsgExecuteContractEncodeObject;
@@ -38,6 +50,41 @@ export interface OmniflixOpenEditionMinterMsg {
     pausers
   }: {
     pausers: string[];
+  }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
+  newDrop: ({
+    baseUri,
+    data,
+    description,
+    endTime,
+    extensible,
+    mintPrice,
+    nsfw,
+    perAddressLimit,
+    previewUri,
+    royaltyRatio,
+    startTime,
+    tokenLimit,
+    tokenName,
+    transferable,
+    uriHash,
+    whitelistAddress
+  }: {
+    baseUri?: string;
+    data?: string;
+    description?: string;
+    endTime?: Timestamp;
+    extensible?: boolean;
+    mintPrice: Coin;
+    nsfw?: boolean;
+    perAddressLimit: number;
+    previewUri?: string;
+    royaltyRatio?: string;
+    startTime: Timestamp;
+    tokenLimit?: number;
+    tokenName: string;
+    transferable?: boolean;
+    uriHash?: string;
+    whitelistAddress?: string;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   updateRoyaltyReceivers: ({
     receivers
@@ -55,7 +102,7 @@ export interface OmniflixOpenEditionMinterMsg {
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   purgeDenom: (_funds?: Coin[]) => MsgExecuteContractEncodeObject;
 }
-export class OmniflixOpenEditionMinterMsgComposer implements OmniflixOpenEditionMinterMsg {
+export class OmniflixMultiMintOpenEditionMinterMsgComposer implements OmniflixMultiMintOpenEditionMinterMsg {
   sender: string;
   contractAddress: string;
 
@@ -70,27 +117,36 @@ export class OmniflixOpenEditionMinterMsgComposer implements OmniflixOpenEdition
     this.pause = this.pause.bind(this);
     this.unpause = this.unpause.bind(this);
     this.setPausers = this.setPausers.bind(this);
+    this.newDrop = this.newDrop.bind(this);
     this.updateRoyaltyReceivers = this.updateRoyaltyReceivers.bind(this);
     this.updateDenom = this.updateDenom.bind(this);
     this.purgeDenom = this.purgeDenom.bind(this);
   }
 
-  mint = (_funds?: Coin[]): MsgExecuteContractEncodeObject => {
+  mint = ({
+    dropId
+  }: {
+    dropId?: number;
+  }, _funds?: Coin[]): MsgExecuteContractEncodeObject => {
     return {
       typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
       value: MsgExecuteContract.fromPartial({
         sender: this.sender,
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
-          mint: {}
+          mint: {
+            drop_id: dropId
+          }
         })),
         funds: _funds
       })
     };
   };
   mintAdmin = ({
+    dropId,
     recipient
   }: {
+    dropId?: number;
     recipient: string;
   }, _funds?: Coin[]): MsgExecuteContractEncodeObject => {
     return {
@@ -100,6 +156,7 @@ export class OmniflixOpenEditionMinterMsgComposer implements OmniflixOpenEdition
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
           mint_admin: {
+            drop_id: dropId,
             recipient
           }
         })),
@@ -108,8 +165,10 @@ export class OmniflixOpenEditionMinterMsgComposer implements OmniflixOpenEdition
     };
   };
   updateRoyaltyRatio = ({
+    dropId,
     ratio
   }: {
+    dropId?: number;
     ratio: string;
   }, _funds?: Coin[]): MsgExecuteContractEncodeObject => {
     return {
@@ -119,6 +178,7 @@ export class OmniflixOpenEditionMinterMsgComposer implements OmniflixOpenEdition
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
           update_royalty_ratio: {
+            drop_id: dropId,
             ratio
           }
         })),
@@ -127,8 +187,10 @@ export class OmniflixOpenEditionMinterMsgComposer implements OmniflixOpenEdition
     };
   };
   updateMintPrice = ({
+    dropId,
     mintPrice
   }: {
+    dropId?: number;
     mintPrice: Coin;
   }, _funds?: Coin[]): MsgExecuteContractEncodeObject => {
     return {
@@ -138,6 +200,7 @@ export class OmniflixOpenEditionMinterMsgComposer implements OmniflixOpenEdition
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
           update_mint_price: {
+            drop_id: dropId,
             mint_price: mintPrice
           }
         })),
@@ -146,9 +209,11 @@ export class OmniflixOpenEditionMinterMsgComposer implements OmniflixOpenEdition
     };
   };
   updateWhitelistAddress = ({
-    address
+    address,
+    dropId
   }: {
     address: string;
+    dropId?: number;
   }, _funds?: Coin[]): MsgExecuteContractEncodeObject => {
     return {
       typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
@@ -157,7 +222,8 @@ export class OmniflixOpenEditionMinterMsgComposer implements OmniflixOpenEdition
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
           update_whitelist_address: {
-            address
+            address,
+            drop_id: dropId
           }
         })),
         funds: _funds
@@ -203,6 +269,70 @@ export class OmniflixOpenEditionMinterMsgComposer implements OmniflixOpenEdition
         msg: toUtf8(JSON.stringify({
           set_pausers: {
             pausers
+          }
+        })),
+        funds: _funds
+      })
+    };
+  };
+  newDrop = ({
+    baseUri,
+    data,
+    description,
+    endTime,
+    extensible,
+    mintPrice,
+    nsfw,
+    perAddressLimit,
+    previewUri,
+    royaltyRatio,
+    startTime,
+    tokenLimit,
+    tokenName,
+    transferable,
+    uriHash,
+    whitelistAddress
+  }: {
+    baseUri?: string;
+    data?: string;
+    description?: string;
+    endTime?: Timestamp;
+    extensible?: boolean;
+    mintPrice: Coin;
+    nsfw?: boolean;
+    perAddressLimit: number;
+    previewUri?: string;
+    royaltyRatio?: string;
+    startTime: Timestamp;
+    tokenLimit?: number;
+    tokenName: string;
+    transferable?: boolean;
+    uriHash?: string;
+    whitelistAddress?: string;
+  }, _funds?: Coin[]): MsgExecuteContractEncodeObject => {
+    return {
+      typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+      value: MsgExecuteContract.fromPartial({
+        sender: this.sender,
+        contract: this.contractAddress,
+        msg: toUtf8(JSON.stringify({
+          new_drop: {
+            base_uri: baseUri,
+            data,
+            description,
+            end_time: endTime,
+            extensible,
+            mint_price: mintPrice,
+            nsfw,
+            per_address_limit: perAddressLimit,
+            preview_uri: previewUri,
+            royalty_ratio: royaltyRatio,
+            start_time: startTime,
+            token_limit: tokenLimit,
+            token_name: tokenName,
+            transferable,
+            uri_hash: uriHash,
+            whitelist_address: whitelistAddress
           }
         })),
         funds: _funds

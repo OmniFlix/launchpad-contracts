@@ -7,7 +7,7 @@
 import { MsgExecuteContractEncodeObject } from "@cosmjs/cosmwasm-stargate";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { toUtf8 } from "@cosmjs/encoding";
-import { Timestamp, Uint64, Uint128, InstantiateMsg, CollectionDetails, MinterInitExtention, Coin, ExecuteMsg, QueryMsg, Addr, Decimal, Config, Boolean, ArrayOfToken, Token, UserDetails, ArrayOfAddr, Uint32 } from "./OmniflixMinter.types";
+import { Timestamp, Uint64, Uint128, InstantiateMsg, CollectionDetails, WeightedAddress, MinterInitExtention, Coin, ExecuteMsg, QueryMsg, Addr, Decimal, Config, Boolean, ArrayOfToken, Token, UserDetails, ArrayOfAddr, Uint32 } from "./OmniflixMinter.types";
 export interface OmniflixMinterMsg {
   contractAddress: string;
   sender: string;
@@ -43,6 +43,21 @@ export interface OmniflixMinterMsg {
   }: {
     pausers: string[];
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
+  updateRoyaltyReceivers: ({
+    receivers
+  }: {
+    receivers: WeightedAddress[];
+  }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
+  updateDenom: ({
+    description,
+    name,
+    previewUri
+  }: {
+    description?: string;
+    name?: string;
+    previewUri?: string;
+  }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
+  purgeDenom: (_funds?: Coin[]) => MsgExecuteContractEncodeObject;
 }
 export class OmniflixMinterMsgComposer implements OmniflixMinterMsg {
   sender: string;
@@ -61,6 +76,9 @@ export class OmniflixMinterMsgComposer implements OmniflixMinterMsg {
     this.pause = this.pause.bind(this);
     this.unpause = this.unpause.bind(this);
     this.setPausers = this.setPausers.bind(this);
+    this.updateRoyaltyReceivers = this.updateRoyaltyReceivers.bind(this);
+    this.updateDenom = this.updateDenom.bind(this);
+    this.purgeDenom = this.purgeDenom.bind(this);
   }
 
   mint = (_funds?: Coin[]): MsgExecuteContractEncodeObject => {
@@ -221,6 +239,63 @@ export class OmniflixMinterMsgComposer implements OmniflixMinterMsg {
           set_pausers: {
             pausers
           }
+        })),
+        funds: _funds
+      })
+    };
+  };
+  updateRoyaltyReceivers = ({
+    receivers
+  }: {
+    receivers: WeightedAddress[];
+  }, _funds?: Coin[]): MsgExecuteContractEncodeObject => {
+    return {
+      typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+      value: MsgExecuteContract.fromPartial({
+        sender: this.sender,
+        contract: this.contractAddress,
+        msg: toUtf8(JSON.stringify({
+          update_royalty_receivers: {
+            receivers
+          }
+        })),
+        funds: _funds
+      })
+    };
+  };
+  updateDenom = ({
+    description,
+    name,
+    previewUri
+  }: {
+    description?: string;
+    name?: string;
+    previewUri?: string;
+  }, _funds?: Coin[]): MsgExecuteContractEncodeObject => {
+    return {
+      typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+      value: MsgExecuteContract.fromPartial({
+        sender: this.sender,
+        contract: this.contractAddress,
+        msg: toUtf8(JSON.stringify({
+          update_denom: {
+            description,
+            name,
+            preview_uri: previewUri
+          }
+        })),
+        funds: _funds
+      })
+    };
+  };
+  purgeDenom = (_funds?: Coin[]): MsgExecuteContractEncodeObject => {
+    return {
+      typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+      value: MsgExecuteContract.fromPartial({
+        sender: this.sender,
+        contract: this.contractAddress,
+        msg: toUtf8(JSON.stringify({
+          purge_denom: {}
         })),
         funds: _funds
       })

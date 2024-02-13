@@ -6,22 +6,41 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { StdFee } from "@cosmjs/amino";
-import { Timestamp, Uint64, Uint128, InstantiateMsg, CollectionDetails, WeightedAddress, MinterInitExtention, Coin, ExecuteMsg, QueryMsg, Addr, Decimal, Config, Boolean, ArrayOfToken, Token, UserDetails, ArrayOfAddr, Uint32 } from "./OmniflixMinter.types";
-export interface OmniflixMinterReadOnlyInterface {
+import { Timestamp, Uint64, Uint128, InstantiateMsg, CollectionDetails, WeightedAddress, OpenEditionMinterInitExtention, Coin, ExecuteMsg, QueryMsg, Addr, Decimal, Config, Uint32, Boolean, UserDetails, Token, ArrayOfAddr } from "./OmniflixMultiMintOpenEditionMinter.types";
+export interface OmniflixMultiMintOpenEditionMinterReadOnlyInterface {
   contractAddress: string;
-  collection: () => Promise<CollectionDetails>;
-  config: () => Promise<Config>;
-  mintableTokens: () => Promise<ArrayOfToken>;
+  collection: ({
+    dropId
+  }: {
+    dropId?: number;
+  }) => Promise<CollectionDetails>;
+  config: ({
+    dropId
+  }: {
+    dropId?: number;
+  }) => Promise<Config>;
   mintedTokens: ({
-    address
+    address,
+    dropId
   }: {
     address: string;
+    dropId?: number;
   }) => Promise<UserDetails>;
-  totalTokens: () => Promise<Uint32>;
+  totalMintedCount: ({
+    dropId
+  }: {
+    dropId?: number;
+  }) => Promise<Uint32>;
+  tokensRemaining: ({
+    dropId
+  }: {
+    dropId?: number;
+  }) => Promise<Uint32>;
   isPaused: () => Promise<Boolean>;
   pausers: () => Promise<ArrayOfAddr>;
+  currentDropNumber: () => Promise<Uint32>;
 }
-export class OmniflixMinterQueryClient implements OmniflixMinterReadOnlyInterface {
+export class OmniflixMultiMintOpenEditionMinterQueryClient implements OmniflixMultiMintOpenEditionMinterReadOnlyInterface {
   client: CosmWasmClient;
   contractAddress: string;
 
@@ -30,42 +49,70 @@ export class OmniflixMinterQueryClient implements OmniflixMinterReadOnlyInterfac
     this.contractAddress = contractAddress;
     this.collection = this.collection.bind(this);
     this.config = this.config.bind(this);
-    this.mintableTokens = this.mintableTokens.bind(this);
     this.mintedTokens = this.mintedTokens.bind(this);
-    this.totalTokens = this.totalTokens.bind(this);
+    this.totalMintedCount = this.totalMintedCount.bind(this);
+    this.tokensRemaining = this.tokensRemaining.bind(this);
     this.isPaused = this.isPaused.bind(this);
     this.pausers = this.pausers.bind(this);
+    this.currentDropNumber = this.currentDropNumber.bind(this);
   }
 
-  collection = async (): Promise<CollectionDetails> => {
-    return this.client.queryContractSmart(this.contractAddress, {
-      collection: {}
-    });
-  };
-  config = async (): Promise<Config> => {
-    return this.client.queryContractSmart(this.contractAddress, {
-      config: {}
-    });
-  };
-  mintableTokens = async (): Promise<ArrayOfToken> => {
-    return this.client.queryContractSmart(this.contractAddress, {
-      mintable_tokens: {}
-    });
-  };
-  mintedTokens = async ({
-    address
+  collection = async ({
+    dropId
   }: {
-    address: string;
-  }): Promise<UserDetails> => {
+    dropId?: number;
+  }): Promise<CollectionDetails> => {
     return this.client.queryContractSmart(this.contractAddress, {
-      minted_tokens: {
-        address
+      collection: {
+        drop_id: dropId
       }
     });
   };
-  totalTokens = async (): Promise<Uint32> => {
+  config = async ({
+    dropId
+  }: {
+    dropId?: number;
+  }): Promise<Config> => {
     return this.client.queryContractSmart(this.contractAddress, {
-      total_tokens: {}
+      config: {
+        drop_id: dropId
+      }
+    });
+  };
+  mintedTokens = async ({
+    address,
+    dropId
+  }: {
+    address: string;
+    dropId?: number;
+  }): Promise<UserDetails> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      minted_tokens: {
+        address,
+        drop_id: dropId
+      }
+    });
+  };
+  totalMintedCount = async ({
+    dropId
+  }: {
+    dropId?: number;
+  }): Promise<Uint32> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      total_minted_count: {
+        drop_id: dropId
+      }
+    });
+  };
+  tokensRemaining = async ({
+    dropId
+  }: {
+    dropId?: number;
+  }): Promise<Uint32> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      tokens_remaining: {
+        drop_id: dropId
+      }
     });
   };
   isPaused = async (): Promise<Boolean> => {
@@ -78,34 +125,47 @@ export class OmniflixMinterQueryClient implements OmniflixMinterReadOnlyInterfac
       pausers: {}
     });
   };
+  currentDropNumber = async (): Promise<Uint32> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      current_drop_number: {}
+    });
+  };
 }
-export interface OmniflixMinterInterface extends OmniflixMinterReadOnlyInterface {
+export interface OmniflixMultiMintOpenEditionMinterInterface extends OmniflixMultiMintOpenEditionMinterReadOnlyInterface {
   contractAddress: string;
   sender: string;
-  mint: (fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
-  mintAdmin: ({
-    recipient,
-    tokenId
+  mint: ({
+    dropId
   }: {
-    recipient: string;
-    tokenId?: string;
+    dropId?: number;
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
-  burnRemainingTokens: (fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
+  mintAdmin: ({
+    dropId,
+    recipient
+  }: {
+    dropId?: number;
+    recipient: string;
+  }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   updateRoyaltyRatio: ({
+    dropId,
     ratio
   }: {
+    dropId?: number;
     ratio: string;
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   updateMintPrice: ({
+    dropId,
     mintPrice
   }: {
+    dropId?: number;
     mintPrice: Coin;
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
-  randomizeList: (fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   updateWhitelistAddress: ({
-    address
+    address,
+    dropId
   }: {
     address: string;
+    dropId?: number;
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   pause: (fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   unpause: (fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
@@ -113,6 +173,41 @@ export interface OmniflixMinterInterface extends OmniflixMinterReadOnlyInterface
     pausers
   }: {
     pausers: string[];
+  }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
+  newDrop: ({
+    baseUri,
+    data,
+    description,
+    endTime,
+    extensible,
+    mintPrice,
+    nsfw,
+    perAddressLimit,
+    previewUri,
+    royaltyRatio,
+    startTime,
+    tokenLimit,
+    tokenName,
+    transferable,
+    uriHash,
+    whitelistAddress
+  }: {
+    baseUri?: string;
+    data?: string;
+    description?: string;
+    endTime?: Timestamp;
+    extensible?: boolean;
+    mintPrice: Coin;
+    nsfw?: boolean;
+    perAddressLimit: number;
+    previewUri?: string;
+    royaltyRatio?: string;
+    startTime: Timestamp;
+    tokenLimit?: number;
+    tokenName: string;
+    transferable?: boolean;
+    uriHash?: string;
+    whitelistAddress?: string;
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   updateRoyaltyReceivers: ({
     receivers
@@ -130,7 +225,7 @@ export interface OmniflixMinterInterface extends OmniflixMinterReadOnlyInterface
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   purgeDenom: (fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
 }
-export class OmniflixMinterClient extends OmniflixMinterQueryClient implements OmniflixMinterInterface {
+export class OmniflixMultiMintOpenEditionMinterClient extends OmniflixMultiMintOpenEditionMinterQueryClient implements OmniflixMultiMintOpenEditionMinterInterface {
   client: SigningCosmWasmClient;
   sender: string;
   contractAddress: string;
@@ -142,78 +237,82 @@ export class OmniflixMinterClient extends OmniflixMinterQueryClient implements O
     this.contractAddress = contractAddress;
     this.mint = this.mint.bind(this);
     this.mintAdmin = this.mintAdmin.bind(this);
-    this.burnRemainingTokens = this.burnRemainingTokens.bind(this);
     this.updateRoyaltyRatio = this.updateRoyaltyRatio.bind(this);
     this.updateMintPrice = this.updateMintPrice.bind(this);
-    this.randomizeList = this.randomizeList.bind(this);
     this.updateWhitelistAddress = this.updateWhitelistAddress.bind(this);
     this.pause = this.pause.bind(this);
     this.unpause = this.unpause.bind(this);
     this.setPausers = this.setPausers.bind(this);
+    this.newDrop = this.newDrop.bind(this);
     this.updateRoyaltyReceivers = this.updateRoyaltyReceivers.bind(this);
     this.updateDenom = this.updateDenom.bind(this);
     this.purgeDenom = this.purgeDenom.bind(this);
   }
 
-  mint = async (fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
-    return await this.client.execute(this.sender, this.contractAddress, {
-      mint: {}
-    }, fee, memo, _funds);
-  };
-  mintAdmin = async ({
-    recipient,
-    tokenId
+  mint = async ({
+    dropId
   }: {
-    recipient: string;
-    tokenId?: string;
+    dropId?: number;
   }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
-      mint_admin: {
-        recipient,
-        token_id: tokenId
+      mint: {
+        drop_id: dropId
       }
     }, fee, memo, _funds);
   };
-  burnRemainingTokens = async (fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
+  mintAdmin = async ({
+    dropId,
+    recipient
+  }: {
+    dropId?: number;
+    recipient: string;
+  }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
-      burn_remaining_tokens: {}
+      mint_admin: {
+        drop_id: dropId,
+        recipient
+      }
     }, fee, memo, _funds);
   };
   updateRoyaltyRatio = async ({
+    dropId,
     ratio
   }: {
+    dropId?: number;
     ratio: string;
   }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       update_royalty_ratio: {
+        drop_id: dropId,
         ratio
       }
     }, fee, memo, _funds);
   };
   updateMintPrice = async ({
+    dropId,
     mintPrice
   }: {
+    dropId?: number;
     mintPrice: Coin;
   }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       update_mint_price: {
+        drop_id: dropId,
         mint_price: mintPrice
       }
     }, fee, memo, _funds);
   };
-  randomizeList = async (fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
-    return await this.client.execute(this.sender, this.contractAddress, {
-      randomize_list: {}
-    }, fee, memo, _funds);
-  };
   updateWhitelistAddress = async ({
-    address
+    address,
+    dropId
   }: {
     address: string;
+    dropId?: number;
   }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       update_whitelist_address: {
-        address
+        address,
+        drop_id: dropId
       }
     }, fee, memo, _funds);
   };
@@ -235,6 +334,62 @@ export class OmniflixMinterClient extends OmniflixMinterQueryClient implements O
     return await this.client.execute(this.sender, this.contractAddress, {
       set_pausers: {
         pausers
+      }
+    }, fee, memo, _funds);
+  };
+  newDrop = async ({
+    baseUri,
+    data,
+    description,
+    endTime,
+    extensible,
+    mintPrice,
+    nsfw,
+    perAddressLimit,
+    previewUri,
+    royaltyRatio,
+    startTime,
+    tokenLimit,
+    tokenName,
+    transferable,
+    uriHash,
+    whitelistAddress
+  }: {
+    baseUri?: string;
+    data?: string;
+    description?: string;
+    endTime?: Timestamp;
+    extensible?: boolean;
+    mintPrice: Coin;
+    nsfw?: boolean;
+    perAddressLimit: number;
+    previewUri?: string;
+    royaltyRatio?: string;
+    startTime: Timestamp;
+    tokenLimit?: number;
+    tokenName: string;
+    transferable?: boolean;
+    uriHash?: string;
+    whitelistAddress?: string;
+  }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
+    return await this.client.execute(this.sender, this.contractAddress, {
+      new_drop: {
+        base_uri: baseUri,
+        data,
+        description,
+        end_time: endTime,
+        extensible,
+        mint_price: mintPrice,
+        nsfw,
+        per_address_limit: perAddressLimit,
+        preview_uri: previewUri,
+        royalty_ratio: royaltyRatio,
+        start_time: startTime,
+        token_limit: tokenLimit,
+        token_name: tokenName,
+        transferable,
+        uri_hash: uriHash,
+        whitelist_address: whitelistAddress
       }
     }, fee, memo, _funds);
   };

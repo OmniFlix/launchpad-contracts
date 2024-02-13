@@ -8,7 +8,7 @@ codegen({
     { name: "OmniflixRoundWhitelist", dir: "../contracts/whitelists/round-whitelist/schema" },
     { name: "OmniflixMinter", dir: "../contracts/minters/minter/schema" },
     { name: "OmniflixOpenEditionMinter", dir: "../contracts/minters/open-edition-minter/schema" },
-    { name: "OmniflixOpenEditionMinterCopy", dir: "../contracts/minters/open-edition-minter copy/schema" },
+    { name: "OmniflixMultiMintOpenEditionMinter", dir: "../contracts/minters/multi-mint-oem/schema" },
   ],
   outPath: "./types/",
   options: {

@@ -9,7 +9,7 @@ export type Uint64 = string;
 export type Uint128 = string;
 export interface InstantiateMsg {
   collection_details: CollectionDetails;
-  init: MinterInitExtention;
+  init: OpenEditionMinterInitExtention;
 }
 export interface CollectionDetails {
   base_uri: string;
@@ -33,15 +33,15 @@ export interface WeightedAddress {
   weight: string;
   [k: string]: unknown;
 }
-export interface MinterInitExtention {
+export interface OpenEditionMinterInitExtention {
   admin: string;
   end_time?: Timestamp | null;
   mint_price: Coin;
-  num_tokens: number;
   payment_collector?: string | null;
   per_address_limit: number;
   royalty_ratio: string;
   start_time: Timestamp;
+  token_limit?: number | null;
   whitelist_address?: string | null;
 }
 export interface Coin {
@@ -50,27 +50,28 @@ export interface Coin {
   [k: string]: unknown;
 }
 export type ExecuteMsg = {
-  mint: {};
-} | {
-  mint_admin: {
-    recipient: string;
-    token_id?: string | null;
+  mint: {
+    drop_id?: number | null;
   };
 } | {
-  burn_remaining_tokens: {};
+  mint_admin: {
+    drop_id?: number | null;
+    recipient: string;
+  };
 } | {
   update_royalty_ratio: {
+    drop_id?: number | null;
     ratio: string;
   };
 } | {
   update_mint_price: {
+    drop_id?: number | null;
     mint_price: Coin;
   };
 } | {
-  randomize_list: {};
-} | {
   update_whitelist_address: {
     address: string;
+    drop_id?: number | null;
   };
 } | {
   pause: {};
@@ -79,6 +80,25 @@ export type ExecuteMsg = {
 } | {
   set_pausers: {
     pausers: string[];
+  };
+} | {
+  new_drop: {
+    base_uri?: string | null;
+    data?: string | null;
+    description?: string | null;
+    end_time?: Timestamp | null;
+    extensible?: boolean | null;
+    mint_price: Coin;
+    nsfw?: boolean | null;
+    per_address_limit: number;
+    preview_uri?: string | null;
+    royalty_ratio?: string | null;
+    start_time: Timestamp;
+    token_limit?: number | null;
+    token_name: string;
+    transferable?: boolean | null;
+    uri_hash?: string | null;
+    whitelist_address?: string | null;
   };
 } | {
   update_royalty_receivers: {
@@ -94,21 +114,32 @@ export type ExecuteMsg = {
   purge_denom: {};
 };
 export type QueryMsg = {
-  collection: {};
+  collection: {
+    drop_id?: number | null;
+  };
 } | {
-  config: {};
-} | {
-  mintable_tokens: {};
+  config: {
+    drop_id?: number | null;
+  };
 } | {
   minted_tokens: {
     address: string;
+    drop_id?: number | null;
   };
 } | {
-  total_tokens: {};
+  total_minted_count: {
+    drop_id?: number | null;
+  };
+} | {
+  tokens_remaining: {
+    drop_id?: number | null;
+  };
 } | {
   is_paused: {};
 } | {
   pausers: {};
+} | {
+  current_drop_number: {};
 };
 export type Addr = string;
 export type Decimal = string;
@@ -123,15 +154,14 @@ export interface Config {
   token_limit?: number | null;
   whitelist_address?: Addr | null;
 }
+export type Uint32 = number;
 export type Boolean = boolean;
-export type ArrayOfToken = Token[];
-export interface Token {
-  token_id: string;
-}
 export interface UserDetails {
   minted_tokens: Token[];
   public_mint_count: number;
   total_minted_count: number;
 }
+export interface Token {
+  token_id: string;
+}
 export type ArrayOfAddr = Addr[];
-export type Uint32 = number;

@@ -11,7 +11,7 @@
         "mint": {
           "type": "object",
           "properties": {
-            "edition": {
+            "drop_id": {
               "type": [
                 "integer",
                 "null"
@@ -37,7 +37,7 @@
             "recipient"
           ],
           "properties": {
-            "edition": {
+            "drop_id": {
               "type": [
                 "integer",
                 "null"
@@ -66,6 +66,14 @@
             "ratio"
           ],
           "properties": {
+            "drop_id": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
+              "minimum": 0.0
+            },
             "ratio": {
               "type": "string"
             }
@@ -87,6 +95,14 @@
             "mint_price"
           ],
           "properties": {
+            "drop_id": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
+              "minimum": 0.0
+            },
             "mint_price": {
               "$ref": "#/definitions/Coin"
             }
@@ -110,6 +126,14 @@
           "properties": {
             "address": {
               "type": "string"
+            },
+            "drop_id": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
+              "minimum": 0.0
             }
           },
           "additionalProperties": false
@@ -170,13 +194,14 @@
     {
       "type": "object",
       "required": [
-        "new_edition"
+        "new_drop"
       ],
       "properties": {
-        "new_edition": {
+        "new_drop": {
           "type": "object",
           "required": [
             "mint_price",
+            "per_address_limit",
             "start_time",
             "token_name"
           ],
@@ -223,6 +248,11 @@
                 "boolean",
                 "null"
               ]
+            },
+            "per_address_limit": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0.0
             },
             "preview_uri": {
               "type": [
@@ -273,6 +303,76 @@
         }
       },
       "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "update_royalty_receivers"
+      ],
+      "properties": {
+        "update_royalty_receivers": {
+          "type": "object",
+          "required": [
+            "receivers"
+          ],
+          "properties": {
+            "receivers": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/WeightedAddress"
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "update_denom"
+      ],
+      "properties": {
+        "update_denom": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "name": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "preview_uri": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "purge_denom"
+      ],
+      "properties": {
+        "purge_denom": {
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     }
   ],
   "definitions": {
@@ -306,6 +406,21 @@
     "Uint64": {
       "description": "A thin wrapper around u64 that is using strings for JSON encoding/decoding, such that the full u64 range can be used for clients that convert JSON numbers to floats, like JavaScript and jq.\n\n# Examples\n\nUse `from` to create instances of this and `u64` to get the value out:\n\n``` # use cosmwasm_std::Uint64; let a = Uint64::from(42u64); assert_eq!(a.u64(), 42);\n\nlet b = Uint64::from(70u32); assert_eq!(b.u64(), 70); ```",
       "type": "string"
+    },
+    "WeightedAddress": {
+      "type": "object",
+      "required": [
+        "address",
+        "weight"
+      ],
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "weight": {
+          "type": "string"
+        }
+      }
     }
   }
 }

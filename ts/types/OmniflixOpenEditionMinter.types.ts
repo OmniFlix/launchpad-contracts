@@ -76,45 +76,30 @@ export type ExecuteMsg = {
     pausers: string[];
   };
 } | {
-  new_edition: {
-    base_uri: string;
-    data: string;
-    description: string;
-    end_time?: Timestamp | null;
-    extensible: boolean;
-    mint_price: Coin;
-    nsfw: boolean;
-    preview_uri: string;
-    royalty_ratio: string;
-    start_time: Timestamp;
-    token_limit?: number | null;
-    token_name: string;
-    transferable: boolean;
-    uri_hash: string;
-    whitelist_address?: string | null;
-  };
-};
-export type QueryMsg = {
-  collection: {
-    edition?: number | null;
+  update_royalty_receivers: {
+    receivers: WeightedAddress[];
   };
 } | {
-  config: {
-    edition?: number | null;
+  update_denom: {
+    description?: string | null;
+    name?: string | null;
+    preview_uri?: string | null;
   };
+} | {
+  purge_denom: {};
+};
+export type QueryMsg = {
+  collection: {};
+} | {
+  config: {};
 } | {
   minted_tokens: {
     address: string;
-    edition?: number | null;
   };
 } | {
-  total_minted_count: {
-    edition?: number | null;
-  };
+  total_minted_count: {};
 } | {
-  tokens_remaining: {
-    edition?: number | null;
-  };
+  tokens_remaining: {};
 } | {
   is_paused: {};
 } | {

@@ -9,33 +9,15 @@ import { StdFee } from "@cosmjs/amino";
 import { Timestamp, Uint64, Uint128, InstantiateMsg, CollectionDetails, WeightedAddress, OpenEditionMinterInitExtention, Coin, ExecuteMsg, QueryMsg, Addr, Decimal, Config, Boolean, UserDetails, Token, ArrayOfAddr, Uint32 } from "./OmniflixOpenEditionMinter.types";
 export interface OmniflixOpenEditionMinterReadOnlyInterface {
   contractAddress: string;
-  collection: ({
-    edition
-  }: {
-    edition?: number;
-  }) => Promise<CollectionDetails>;
-  config: ({
-    edition
-  }: {
-    edition?: number;
-  }) => Promise<Config>;
+  collection: () => Promise<CollectionDetails>;
+  config: () => Promise<Config>;
   mintedTokens: ({
-    address,
-    edition
+    address
   }: {
     address: string;
-    edition?: number;
   }) => Promise<UserDetails>;
-  totalMintedCount: ({
-    edition
-  }: {
-    edition?: number;
-  }) => Promise<Uint32>;
-  tokensRemaining: ({
-    edition
-  }: {
-    edition?: number;
-  }) => Promise<Uint32>;
+  totalMintedCount: () => Promise<Uint32>;
+  tokensRemaining: () => Promise<Uint32>;
   isPaused: () => Promise<Boolean>;
   pausers: () => Promise<ArrayOfAddr>;
 }
@@ -55,62 +37,35 @@ export class OmniflixOpenEditionMinterQueryClient implements OmniflixOpenEdition
     this.pausers = this.pausers.bind(this);
   }
 
-  collection = async ({
-    edition
-  }: {
-    edition?: number;
-  }): Promise<CollectionDetails> => {
+  collection = async (): Promise<CollectionDetails> => {
     return this.client.queryContractSmart(this.contractAddress, {
-      collection: {
-        edition
-      }
+      collection: {}
     });
   };
-  config = async ({
-    edition
-  }: {
-    edition?: number;
-  }): Promise<Config> => {
+  config = async (): Promise<Config> => {
     return this.client.queryContractSmart(this.contractAddress, {
-      config: {
-        edition
-      }
+      config: {}
     });
   };
   mintedTokens = async ({
-    address,
-    edition
+    address
   }: {
     address: string;
-    edition?: number;
   }): Promise<UserDetails> => {
     return this.client.queryContractSmart(this.contractAddress, {
       minted_tokens: {
-        address,
-        edition
+        address
       }
     });
   };
-  totalMintedCount = async ({
-    edition
-  }: {
-    edition?: number;
-  }): Promise<Uint32> => {
+  totalMintedCount = async (): Promise<Uint32> => {
     return this.client.queryContractSmart(this.contractAddress, {
-      total_minted_count: {
-        edition
-      }
+      total_minted_count: {}
     });
   };
-  tokensRemaining = async ({
-    edition
-  }: {
-    edition?: number;
-  }): Promise<Uint32> => {
+  tokensRemaining = async (): Promise<Uint32> => {
     return this.client.queryContractSmart(this.contractAddress, {
-      tokens_remaining: {
-        edition
-      }
+      tokens_remaining: {}
     });
   };
   isPaused = async (): Promise<Boolean> => {
@@ -155,39 +110,21 @@ export interface OmniflixOpenEditionMinterInterface extends OmniflixOpenEditionM
   }: {
     pausers: string[];
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
-  newEdition: ({
-    baseUri,
-    data,
-    description,
-    endTime,
-    extensible,
-    mintPrice,
-    nsfw,
-    previewUri,
-    royaltyRatio,
-    startTime,
-    tokenLimit,
-    tokenName,
-    transferable,
-    uriHash,
-    whitelistAddress
+  updateRoyaltyReceivers: ({
+    receivers
   }: {
-    baseUri: string;
-    data: string;
-    description: string;
-    endTime?: Timestamp;
-    extensible: boolean;
-    mintPrice: Coin;
-    nsfw: boolean;
-    previewUri: string;
-    royaltyRatio: string;
-    startTime: Timestamp;
-    tokenLimit?: number;
-    tokenName: string;
-    transferable: boolean;
-    uriHash: string;
-    whitelistAddress?: string;
+    receivers: WeightedAddress[];
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
+  updateDenom: ({
+    description,
+    name,
+    previewUri
+  }: {
+    description?: string;
+    name?: string;
+    previewUri?: string;
+  }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
+  purgeDenom: (fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
 }
 export class OmniflixOpenEditionMinterClient extends OmniflixOpenEditionMinterQueryClient implements OmniflixOpenEditionMinterInterface {
   client: SigningCosmWasmClient;
@@ -207,7 +144,9 @@ export class OmniflixOpenEditionMinterClient extends OmniflixOpenEditionMinterQu
     this.pause = this.pause.bind(this);
     this.unpause = this.unpause.bind(this);
     this.setPausers = this.setPausers.bind(this);
-    this.newEdition = this.newEdition.bind(this);
+    this.updateRoyaltyReceivers = this.updateRoyaltyReceivers.bind(this);
+    this.updateDenom = this.updateDenom.bind(this);
+    this.purgeDenom = this.purgeDenom.bind(this);
   }
 
   mint = async (fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
@@ -280,57 +219,37 @@ export class OmniflixOpenEditionMinterClient extends OmniflixOpenEditionMinterQu
       }
     }, fee, memo, _funds);
   };
-  newEdition = async ({
-    baseUri,
-    data,
-    description,
-    endTime,
-    extensible,
-    mintPrice,
-    nsfw,
-    previewUri,
-    royaltyRatio,
-    startTime,
-    tokenLimit,
-    tokenName,
-    transferable,
-    uriHash,
-    whitelistAddress
+  updateRoyaltyReceivers = async ({
+    receivers
   }: {
-    baseUri: string;
-    data: string;
-    description: string;
-    endTime?: Timestamp;
-    extensible: boolean;
-    mintPrice: Coin;
-    nsfw: boolean;
-    previewUri: string;
-    royaltyRatio: string;
-    startTime: Timestamp;
-    tokenLimit?: number;
-    tokenName: string;
-    transferable: boolean;
-    uriHash: string;
-    whitelistAddress?: string;
+    receivers: WeightedAddress[];
   }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
-      new_edition: {
-        base_uri: baseUri,
-        data,
-        description,
-        end_time: endTime,
-        extensible,
-        mint_price: mintPrice,
-        nsfw,
-        preview_uri: previewUri,
-        royalty_ratio: royaltyRatio,
-        start_time: startTime,
-        token_limit: tokenLimit,
-        token_name: tokenName,
-        transferable,
-        uri_hash: uriHash,
-        whitelist_address: whitelistAddress
+      update_royalty_receivers: {
+        receivers
       }
+    }, fee, memo, _funds);
+  };
+  updateDenom = async ({
+    description,
+    name,
+    previewUri
+  }: {
+    description?: string;
+    name?: string;
+    previewUri?: string;
+  }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
+    return await this.client.execute(this.sender, this.contractAddress, {
+      update_denom: {
+        description,
+        name,
+        preview_uri: previewUri
+      }
+    }, fee, memo, _funds);
+  };
+  purgeDenom = async (fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
+    return await this.client.execute(this.sender, this.contractAddress, {
+      purge_denom: {}
     }, fee, memo, _funds);
   };
 }
