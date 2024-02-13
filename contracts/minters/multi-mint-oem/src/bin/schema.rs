@@ -1,8 +1,8 @@
 use cosmwasm_schema::write_api;
 
-use open_edition_minter_types_copy::QueryMsg;
+use multi_mint_open_edition_minter_types::QueryMsg;
 
-use omniflix_open_edition_minter_copy::msg::ExecuteMsg;
+use omniflix_multi_mint_open_edition_minter::msg::ExecuteMsg;
 
 use omniflix_open_edition_minter_factory::msg::OpenEditionMinterCreateMsg;
 

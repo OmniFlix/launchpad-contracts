@@ -21,7 +21,8 @@ use omniflix_open_edition_minter_factory::msg::{
 };
 use omniflix_round_whitelist::msg::ExecuteMsg as RoundWhitelistExecuteMsg;
 use omniflix_std::types::omniflix::onft::v1beta1::{
-    Metadata, MsgCreateDenom, MsgMintOnft, MsgUpdateDenom, OnftQuerier, WeightedAddress,
+    Collection, Metadata, MsgCreateDenom, MsgMintOnft, MsgPurgeDenom, MsgUpdateDenom, OnftQuerier,
+    WeightedAddress,
 };
 use whitelist_types::{
     check_if_address_is_member, check_if_whitelist_is_active, check_whitelist_price,
@@ -232,6 +233,7 @@ pub fn execute(
             description,
             preview_uri,
         } => execute_update_denom(deps, env, info, name, description, preview_uri),
+        ExecuteMsg::PurgeDenom {} => execute_purge_denom(deps, env, info),
     }
 }
 
@@ -341,6 +343,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
         &env.contract.address,
         true,
         token_id.to_string(),
+        None,
     )
     .into();
 
@@ -419,6 +422,7 @@ pub fn execute_mint_admin(
         &env.contract.address,
         true,
         token_id.to_string(),
+        None,
     )
     .into();
 
@@ -625,17 +629,17 @@ pub fn execute_update_denom(
     if info.sender != config.admin {
         return Err(ContractError::Unauthorized {});
     }
-    // Check if public or private minting has started
-    if config.start_time < env.block.time {
+    let onft_querier = OnftQuerier::new(&deps.querier);
+    let minted_nfties_res = onft_querier.collection(collection.clone().id, None)?;
+    let minted_nfties = minted_nfties_res
+        .collection
+        .unwrap_or(Collection::default())
+        .onfts;
+
+    if !minted_nfties.is_empty() {
+        // If there is any nft minted for the collection update denoms should not work
         return Err(ContractError::MintingAlreadyStarted {});
-    };
-    let whitelist_address = config.whitelist_address.clone();
-    if whitelist_address.is_some() {
-        let is_active = check_if_whitelist_is_active(&whitelist_address.unwrap(), deps.as_ref())?;
-        if is_active {
-            return Err(ContractError::WhitelistAlreadyActive {});
-        }
-    };
+    }
     collection.name = name.clone().unwrap_or(collection.name);
     collection.description = description.clone().unwrap_or(collection.description);
     collection.preview_uri = preview_uri.clone().unwrap_or(collection.preview_uri);
@@ -659,6 +663,39 @@ pub fn execute_update_denom(
     let res = Response::new()
         .add_attribute("action", "update_denom")
         .add_message(update_msg);
+    Ok(res)
+}
+fn execute_purge_denom(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+) -> Result<Response, ContractError> {
+    // Check if sender is admin
+    let collection = COLLECTION.load(deps.storage)?;
+    let config = CONFIG.load(deps.storage)?;
+    if info.sender != config.admin {
+        return Err(ContractError::Unauthorized {});
+    }
+    let onft_querier = OnftQuerier::new(&deps.querier);
+    let minted_nfties_res = onft_querier.collection(collection.clone().id, None)?;
+    let minted_nfties = minted_nfties_res
+        .collection
+        .unwrap_or(Collection::default())
+        .onfts;
+
+    if !minted_nfties.is_empty() {
+        // If there is any nft minted for the collection purge denoms should not work
+        return Err(ContractError::MintingAlreadyStarted {});
+    }
+    let purge_msg: CosmosMsg = MsgPurgeDenom {
+        sender: env.contract.address.into_string(),
+        id: collection.id,
+    }
+    .into();
+
+    let res = Response::new()
+        .add_attribute("action", "purge_denom")
+        .add_message(purge_msg);
     Ok(res)
 }
 

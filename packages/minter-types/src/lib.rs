@@ -93,6 +93,8 @@ pub fn generate_mint_message(
     contract_address: &Addr,
     is_edition: bool,
     token_id: String,
+    // Purpose of token_number is to handle the case when the token is an drop
+    drop_token_number: Option<String>,
 ) -> MsgMintOnft {
     match is_edition {
         false => {
@@ -119,7 +121,11 @@ pub fn generate_mint_message(
         }
         true => {
             let metadata = Metadata {
-                name: format!("{} # {}", collection.token_name.clone(), token_id),
+                name: format!(
+                    "{} # {}",
+                    collection.token_name.clone(),
+                    drop_token_number.unwrap_or(token_id.clone())
+                ),
                 description: collection.description.clone(),
                 media_uri: collection.base_uri.clone(),
                 preview_uri: collection.preview_uri.clone(),
