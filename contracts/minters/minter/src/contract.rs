@@ -367,6 +367,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
         &env.contract.address,
         false,
         token_id.clone(),
+        None,
     )
     .into();
 
@@ -458,6 +459,7 @@ pub fn execute_mint_admin(
         &env.contract.address,
         false,
         token_id.clone(),
+        None,
     )
     .into();
 

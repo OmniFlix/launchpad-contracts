@@ -718,6 +718,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "multi-mint-open-edition-minter-types"
+version = "0.0.1"
+dependencies = [
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cw-utils 1.0.3",
+ "cw721-base 0.18.0",
+ "minter-types",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "num-traits"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -770,6 +783,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "omniflix-multi-mint-open-edition-minter"
+version = "0.0.1"
+dependencies = [
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "cw-controllers",
+ "cw-storage-plus 1.2.0",
+ "cw-utils 1.0.3",
+ "cw2 1.1.1",
+ "minter-types",
+ "multi-mint-open-edition-minter-types",
+ "omniflix-open-edition-minter-factory",
+ "omniflix-round-whitelist",
+ "omniflix-std",
+ "pauser",
+ "schemars",
+ "serde",
+ "sha2 0.10.8",
+ "thiserror",
+ "whitelist-types",
+]
+
+[[package]]
 name = "omniflix-open-edition-minter"
 version = "0.0.1"
 dependencies = [
@@ -785,30 +822,6 @@ dependencies = [
  "omniflix-round-whitelist",
  "omniflix-std",
  "open-edition-minter-types",
- "pauser",
- "schemars",
- "serde",
- "sha2 0.10.8",
- "thiserror",
- "whitelist-types",
-]
-
-[[package]]
-name = "omniflix-open-edition-minter-copy"
-version = "0.0.1"
-dependencies = [
- "cosmwasm-schema",
- "cosmwasm-std",
- "cosmwasm-storage",
- "cw-controllers",
- "cw-storage-plus 1.2.0",
- "cw-utils 1.0.3",
- "cw2 1.1.1",
- "minter-types",
- "omniflix-open-edition-minter-factory",
- "omniflix-round-whitelist",
- "omniflix-std",
- "open-edition-minter-types-copy",
  "pauser",
  "schemars",
  "serde",
@@ -939,19 +952,6 @@ checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 
 [[package]]
 name = "open-edition-minter-types"
-version = "0.0.1"
-dependencies = [
- "cosmwasm-schema",
- "cosmwasm-std",
- "cw-utils 1.0.3",
- "cw721-base 0.18.0",
- "minter-types",
- "serde",
- "thiserror",
-]
-
-[[package]]
-name = "open-edition-minter-types-copy"
 version = "0.0.1"
 dependencies = [
  "cosmwasm-schema",

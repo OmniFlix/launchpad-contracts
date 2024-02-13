@@ -1,5 +1,5 @@
 [package]
-name        = "open-edition-minter-types-copy"
+name        = "multi-mint-open-edition-minter-types"
 authors     = ["Adnan Deniz Corlu <adenizcorlu@gmail.com>"]
 description = "Common types used by minter contracts"
 version     = { workspace = true }

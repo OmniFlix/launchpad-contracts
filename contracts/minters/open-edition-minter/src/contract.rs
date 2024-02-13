@@ -343,6 +343,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
         &env.contract.address,
         true,
         token_id.to_string(),
+        None,
     )
     .into();
 
@@ -421,6 +422,7 @@ pub fn execute_mint_admin(
         &env.contract.address,
         true,
         token_id.to_string(),
+        None,
     )
     .into();
 

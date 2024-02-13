@@ -9,13 +9,14 @@ use cosmwasm_std::{
 };
 use cw_utils::{maybe_addr, must_pay, nonpayable};
 use minter_types::{generate_mint_message, CollectionDetails, Config, Token, UserDetails};
-use open_edition_minter_types_copy::QueryMsg;
+use multi_mint_open_edition_minter_types::QueryMsg;
 use pauser::PauseState;
+use sha2::digest::typenum::Cube;
 
 use crate::error::ContractError;
 use crate::msg::ExecuteMsg;
 use crate::state::{
-    EditionParams, MintedTokens, CURRENT_EDITION, EDITIONS, LAST_MINTED_TOKEN_ID, MINTED_COUNT,
+    DropParams, MintedTokens, CURRENT_DROP_ID, DROPS, LAST_MINTED_TOKEN_ID, MINTED_COUNT,
     MINTED_TOKENS_KEY,
 };
 use cw2::set_contract_version;
@@ -31,7 +32,7 @@ use whitelist_types::{
 };
 
 // version info for migration info
-const CONTRACT_NAME: &str = "crates.io:omniflix-minter-open-edition-minter";
+const CONTRACT_NAME: &str = "crates.io:omniflix-multi-mint-open-edition-minter";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[cfg(not(test))]
@@ -165,14 +166,14 @@ pub fn instantiate(
         royalty_receivers: msg.collection_details.royalty_receivers,
     };
 
-    // Save the collection as edition 1
-    let edition_params = EditionParams {
+    // Save the collection as drop 1
+    let drop_params = DropParams {
         config: config.clone(),
         collection: collection.clone(),
     };
 
-    EDITIONS.save(deps.storage, 1, &edition_params)?;
-    CURRENT_EDITION.save(deps.storage, &1)?;
+    DROPS.save(deps.storage, 1, &drop_params)?;
+    CURRENT_DROP_ID.save(deps.storage, &1)?;
     MINTED_COUNT.save(deps.storage, 1, &0)?;
     LAST_MINTED_TOKEN_ID.save(deps.storage, &0)?;
 
@@ -218,23 +219,24 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        ExecuteMsg::Mint { edition } => execute_mint(deps, env, info, edition),
-        ExecuteMsg::MintAdmin { recipient, edition } => {
-            execute_mint_admin(deps, env, info, recipient, edition)
+        ExecuteMsg::Mint { drop_id } => execute_mint(deps, env, info, drop_id),
+        ExecuteMsg::MintAdmin { recipient, drop_id } => {
+            execute_mint_admin(deps, env, info, recipient, drop_id)
         }
-        ExecuteMsg::UpdateRoyaltyRatio { ratio } => {
-            execute_update_royalty_ratio(deps, env, info, ratio)
+        ExecuteMsg::UpdateRoyaltyRatio { ratio, drop_id } => {
+            execute_update_royalty_ratio(deps, env, info, ratio, drop_id)
         }
-        ExecuteMsg::UpdateMintPrice { mint_price } => {
-            execute_update_mint_price(deps, env, info, mint_price)
-        }
-        ExecuteMsg::UpdateWhitelistAddress { address } => {
-            execute_update_whitelist_address(deps, env, info, address)
+        ExecuteMsg::UpdateMintPrice {
+            mint_price,
+            drop_id,
+        } => execute_update_mint_price(deps, env, info, mint_price, drop_id),
+        ExecuteMsg::UpdateWhitelistAddress { address, drop_id } => {
+            execute_update_whitelist_address(deps, env, info, address, drop_id)
         }
         ExecuteMsg::Pause {} => execute_pause(deps, env, info),
         ExecuteMsg::Unpause {} => execute_unpause(deps, env, info),
         ExecuteMsg::SetPausers { pausers } => execute_set_pausers(deps, env, info, pausers),
-        ExecuteMsg::NewEdition {
+        ExecuteMsg::NewDrop {
             whitelist_address,
             token_limit,
             start_time,
@@ -250,7 +252,8 @@ pub fn execute(
             extensible,
             nsfw,
             data,
-        } => execute_new_edition(
+            per_address_limit,
+        } => execute_new_drop(
             deps,
             env,
             info,
@@ -259,6 +262,7 @@ pub fn execute(
             start_time,
             end_time,
             mint_price,
+            per_address_limit,
             royalty_ratio,
             token_name,
             description,
@@ -286,20 +290,20 @@ pub fn execute_mint(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    edition: Option<u32>,
+    drop_id: Option<u32>,
 ) -> Result<Response, ContractError> {
     let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
     pause_state.error_if_paused(deps.storage)?;
 
-    // Find the latest edition
-    let edition_number = edition.unwrap_or(CURRENT_EDITION.load(deps.storage)?);
-    let edition_params = EDITIONS.load(deps.storage, edition_number)?;
+    // Find the drop
+    let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
+    let drop_params = DROPS.load(deps.storage, drop_id)?;
 
-    let config = edition_params.config;
-    let collection = edition_params.collection;
+    let config = drop_params.config;
+    let collection = drop_params.collection;
     // Check if any token limit set and if it is reached
     if let Some(token_limit) = config.token_limit {
-        if MINTED_COUNT.load(deps.storage, edition_number).unwrap_or(0) >= token_limit {
+        if MINTED_COUNT.load(deps.storage, drop_id).unwrap_or(0) >= token_limit {
             return Err(ContractError::NoTokensLeftToMint {});
         }
     }
@@ -311,10 +315,12 @@ pub fn execute_mint(
         }
     };
     let minted_tokens = MintedTokens::new(MINTED_TOKENS_KEY);
-    let mut user_details = minted_tokens
-        .load(deps.storage, edition_number, info.sender.clone())
-        .unwrap_or_default();
 
+    let mut user_details = minted_tokens
+        .load(deps.storage, drop_id, info.sender.clone())
+        .unwrap_or_default();
+    // Load and increment the minted count
+    // This minted count is seperate from the drops
     let last_token_id = LAST_MINTED_TOKEN_ID.load(deps.storage)?;
     let token_id = last_token_id + 1;
     LAST_MINTED_TOKEN_ID.save(deps.storage, &token_id)?;
@@ -359,7 +365,7 @@ pub fn execute_mint(
         };
     } else {
         user_details.public_mint_count += 1;
-        // Check if address has reached the limit
+        // Check if address has reached the public mint limit
         if user_details.public_mint_count > config.per_address_limit {
             return Err(ContractError::AddressReachedMintLimit {});
         }
@@ -371,12 +377,7 @@ pub fn execute_mint(
         token_id: token_id.to_string(),
     });
     // Save the user details
-    minted_tokens.save(
-        deps.storage,
-        edition_number,
-        info.sender.clone(),
-        &user_details,
-    );
+    minted_tokens.save(deps.storage, drop_id, info.sender.clone(), &user_details);
 
     // Check the payment
     let amount = must_pay(&info, &mint_price.denom)?;
@@ -389,11 +390,10 @@ pub fn execute_mint(
     }
     // Get the payment collector address
     let payment_collector = config.payment_collector;
-    //let collection = COLLECTION.load(deps.storage)?;
 
-    let mut minted_count = MINTED_COUNT.load(deps.storage, edition_number)?;
+    let mut minted_count = MINTED_COUNT.load(deps.storage, drop_id)?;
     minted_count += 1;
-    MINTED_COUNT.save(deps.storage, edition_number, &minted_count)?;
+    MINTED_COUNT.save(deps.storage, drop_id, &minted_count)?;
 
     let mint_msg: CosmosMsg = generate_mint_message(
         &collection,
@@ -402,6 +402,7 @@ pub fn execute_mint(
         &env.contract.address,
         true,
         token_id.to_string(),
+        Some(minted_count.to_string()),
     )
     .into();
 
@@ -431,45 +432,57 @@ pub fn execute_mint_admin(
     env: Env,
     info: MessageInfo,
     recipient: String,
-    edition: Option<u32>,
+    drop_id: Option<u32>,
 ) -> Result<Response, ContractError> {
     nonpayable(&info)?;
 
-    let edition_number = edition.unwrap_or(CURRENT_EDITION.load(deps.storage)?);
-    let edition_params = EDITIONS.load(deps.storage, edition_number)?;
+    let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
+    let drop_params = DROPS.load(deps.storage, drop_id)?;
 
-    let config = edition_params.config;
-    let collection = edition_params.collection;
-
-    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
-    pause_state.error_if_paused(deps.storage)?;
+    let config = drop_params.config;
+    let collection = drop_params.collection;
 
     // Check if sender is admin
     if info.sender != config.admin {
         return Err(ContractError::Unauthorized {});
     }
+    // Check if any token left for current drop
+    if let Some(token_limit) = config.token_limit {
+        if MINTED_COUNT.load(deps.storage, drop_id).unwrap_or(0) >= token_limit {
+            return Err(ContractError::NoTokensLeftToMint {});
+        }
+    }
+    // Check if end time is determined and if it is passed
+    if let Some(end_time) = config.end_time {
+        if env.block.time > end_time {
+            return Err(ContractError::PublicMintingEnded {});
+        }
+    };
+
+    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    pause_state.error_if_paused(deps.storage)?;
     let recipient = deps.api.addr_validate(&recipient)?;
-    // We are not checking token limit nor end time here because this is the admin minting
+
     let last_token_id = LAST_MINTED_TOKEN_ID.load(deps.storage)?;
     let token_id = last_token_id + 1;
 
     let minted_tokens = MintedTokens::new(MINTED_TOKENS_KEY);
 
     let mut user_details = minted_tokens
-        .load(deps.storage, edition_number, recipient.clone())
+        .load(deps.storage, drop_id, recipient.clone())
         .unwrap_or_default();
 
     user_details.total_minted_count += 1;
     user_details.minted_tokens.push(Token {
         token_id: token_id.to_string(),
     });
+
     // Save the user details
-    minted_tokens.save(
-        deps.storage,
-        edition_number,
-        recipient.clone(),
-        &user_details,
-    );
+    minted_tokens.save(deps.storage, drop_id, recipient.clone(), &user_details);
+
+    // Load current drops minted count and increment it
+    let minted_count = MINTED_COUNT.load(deps.storage, drop_id)?;
+    MINTED_COUNT.save(deps.storage, drop_id, &(minted_count.clone() + 1))?;
 
     let mint_msg: CosmosMsg = generate_mint_message(
         &collection,
@@ -478,6 +491,7 @@ pub fn execute_mint_admin(
         &env.contract.address,
         true,
         token_id.to_string(),
+        Some((minted_count + 1).to_string()),
     )
     .into();
 
@@ -488,34 +502,19 @@ pub fn execute_mint_admin(
         .add_attribute("denom_id", collection.id);
     Ok(res)
 }
-pub fn execute_burn_remaining_tokens(
-    deps: DepsMut,
-    _env: Env,
-    info: MessageInfo,
-) -> Result<Response, ContractError> {
-    // Check if sender is admin
-    let edition_number = CURRENT_EDITION.load(deps.storage)?;
-    let mut edition_params = EDITIONS.load(deps.storage, edition_number)?;
-    if info.sender != edition_params.clone().config.admin {
-        return Err(ContractError::Unauthorized {});
-    }
-    edition_params.config.token_limit = Some(0);
-    EDITIONS.save(deps.storage, edition_number, &edition_params)?;
-    let res = Response::new().add_attribute("action", "burn_remaining_tokens");
-    Ok(res)
-}
 
 pub fn execute_update_royalty_ratio(
     deps: DepsMut,
     _env: Env,
     info: MessageInfo,
     ratio: String,
+    drop_id: Option<u32>,
 ) -> Result<Response, ContractError> {
-    let edition_number = CURRENT_EDITION.load(deps.storage)?;
-    let mut edition_params = EDITIONS.load(deps.storage, edition_number)?;
+    let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
+    let mut drop_params = DROPS.load(deps.storage, drop_id)?;
 
     // Check if sender is admin
-    if info.sender != edition_params.config.admin {
+    if info.sender != drop_params.config.admin {
         return Err(ContractError::Unauthorized {});
     }
     // Check if ratio is decimal number
@@ -524,9 +523,10 @@ pub fn execute_update_royalty_ratio(
     if ratio < Decimal::zero() || ratio > Decimal::one() {
         return Err(ContractError::InvalidRoyaltyRatio {});
     }
-    edition_params.config.royalty_ratio = ratio;
 
-    EDITIONS.save(deps.storage, edition_number, &edition_params)?;
+    drop_params.config.royalty_ratio = ratio;
+
+    DROPS.save(deps.storage, drop_id, &drop_params)?;
 
     let res = Response::new()
         .add_attribute("action", "update_royalty_ratio")
@@ -539,17 +539,18 @@ pub fn execute_update_mint_price(
     _env: Env,
     info: MessageInfo,
     mint_price: Coin,
+    drop_id: Option<u32>,
 ) -> Result<Response, ContractError> {
-    let edition_number = CURRENT_EDITION.load(deps.storage)?;
-    let mut edition_params = EDITIONS.load(deps.storage, edition_number)?;
+    let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
+    let mut drop_params = DROPS.load(deps.storage, drop_id)?;
 
     // Check if sender is admin
-    if info.sender != edition_params.config.admin {
+    if info.sender != drop_params.config.admin {
         return Err(ContractError::Unauthorized {});
     }
-    edition_params.config.mint_price = mint_price.clone();
+    drop_params.config.mint_price = mint_price.clone();
 
-    EDITIONS.save(deps.storage, edition_number, &edition_params)?;
+    DROPS.save(deps.storage, drop_id, &drop_params)?;
 
     let res = Response::new()
         .add_attribute("action", "update_mint_price")
@@ -563,14 +564,17 @@ pub fn execute_update_whitelist_address(
     _env: Env,
     info: MessageInfo,
     address: String,
+    drop_id: Option<u32>,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
-    let edition_number = CURRENT_EDITION.load(deps.storage)?;
-    let mut edition_params = EDITIONS.load(deps.storage, edition_number)?;
-    if info.sender != edition_params.config.admin {
+    let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
+    let mut drop_params = DROPS.load(deps.storage, drop_id)?;
+
+    if info.sender != drop_params.config.admin {
         return Err(ContractError::Unauthorized {});
     }
-    let whitelist_address = edition_params.config.whitelist_address.clone();
+    let whitelist_address = drop_params.config.whitelist_address.clone();
+
     // Check if whitelist already active
     match whitelist_address {
         Some(whitelist_address) => {
@@ -587,8 +591,8 @@ pub fn execute_update_whitelist_address(
     if is_active {
         return Err(ContractError::WhitelistAlreadyActive {});
     }
-    edition_params.config.whitelist_address = Some(address.clone());
-    EDITIONS.save(deps.storage, edition_number, &edition_params)?;
+    drop_params.config.whitelist_address = Some(address.clone());
+    DROPS.save(deps.storage, drop_id, &drop_params)?;
 
     let res = Response::new()
         .add_attribute("action", "update_whitelist_address")
@@ -639,7 +643,7 @@ pub fn execute_set_pausers(
     Ok(res)
 }
 
-pub fn execute_new_edition(
+pub fn execute_new_drop(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
@@ -648,6 +652,7 @@ pub fn execute_new_edition(
     start_time: Timestamp,
     end_time: Option<Timestamp>,
     mint_price: Coin,
+    per_address_limit: u32,
     royalty_ratio: Option<String>,
     token_name: String,
     description: Option<String>,
@@ -660,10 +665,10 @@ pub fn execute_new_edition(
     data: Option<String>,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
-    let current_edition_number = CURRENT_EDITION.load(deps.storage)?;
-    let current_edition_params = EDITIONS.load(deps.storage, current_edition_number)?;
+    let current_drop_id = CURRENT_DROP_ID.load(deps.storage)?;
+    let current_drop_params = DROPS.load(deps.storage, current_drop_id)?;
 
-    if info.sender != current_edition_params.config.admin {
+    if info.sender != current_drop_params.config.admin {
         return Err(ContractError::Unauthorized {});
     }
     // Check if token limit is 0
@@ -682,48 +687,58 @@ pub fn execute_new_edition(
             return Err(ContractError::InvalidEndTime {});
         }
     }
+    // Check if any whitelist is present
+    if let Some(whitelist_address) = whitelist_address.clone() {
+        let is_active: bool = check_if_whitelist_is_active(
+            &deps.api.addr_validate(&whitelist_address)?,
+            deps.as_ref(),
+        )?;
+        if is_active {
+            return Err(ContractError::WhitelistAlreadyActive {});
+        }
+    }
     // Check royalty ratio we expect decimal number
     let royalty_ratio = Decimal::from_str(
-        &royalty_ratio.unwrap_or(current_edition_params.config.royalty_ratio.to_string()),
+        &royalty_ratio.unwrap_or(current_drop_params.config.royalty_ratio.to_string()),
     )?;
 
     let config = Config {
-        per_address_limit: current_edition_params.config.per_address_limit,
-        payment_collector: current_edition_params.config.payment_collector,
+        per_address_limit: per_address_limit,
+        payment_collector: current_drop_params.config.payment_collector,
         start_time,
         royalty_ratio,
-        admin: current_edition_params.config.admin,
+        admin: current_drop_params.config.admin,
         mint_price,
         whitelist_address: maybe_addr(deps.api, whitelist_address)?,
         end_time,
         token_limit,
     };
     let collection = CollectionDetails {
-        name: current_edition_params.collection.name,
-        description: description.unwrap_or(current_edition_params.collection.description),
-        preview_uri: preview_uri.unwrap_or(current_edition_params.collection.preview_uri),
-        schema: current_edition_params.collection.schema,
-        symbol: current_edition_params.collection.symbol,
-        id: current_edition_params.collection.id,
-        extensible: extensible.unwrap_or(current_edition_params.collection.extensible),
-        nsfw: nsfw.unwrap_or(current_edition_params.collection.nsfw),
-        base_uri: base_uri.unwrap_or(current_edition_params.collection.base_uri),
-        uri: current_edition_params.collection.uri,
-        uri_hash: uri_hash.unwrap_or(current_edition_params.collection.uri_hash),
-        data: data.unwrap_or(current_edition_params.collection.data),
+        name: current_drop_params.collection.name,
+        description: description.unwrap_or(current_drop_params.collection.description),
+        preview_uri: preview_uri.unwrap_or(current_drop_params.collection.preview_uri),
+        schema: current_drop_params.collection.schema,
+        symbol: current_drop_params.collection.symbol,
+        id: current_drop_params.collection.id,
+        extensible: extensible.unwrap_or(current_drop_params.collection.extensible),
+        nsfw: nsfw.unwrap_or(current_drop_params.collection.nsfw),
+        base_uri: base_uri.unwrap_or(current_drop_params.collection.base_uri),
+        uri: current_drop_params.collection.uri,
+        uri_hash: uri_hash.unwrap_or(current_drop_params.collection.uri_hash),
+        data: data.unwrap_or(current_drop_params.collection.data),
         token_name,
-        transferable: transferable.unwrap_or(current_edition_params.collection.transferable),
-        royalty_receivers: current_edition_params.collection.royalty_receivers,
+        transferable: transferable.unwrap_or(current_drop_params.collection.transferable),
+        royalty_receivers: current_drop_params.collection.royalty_receivers,
     };
-    let edition_params = EditionParams { config, collection };
-    let new_edition_number = current_edition_number + 1;
-    EDITIONS.save(deps.storage, new_edition_number, &edition_params)?;
-    CURRENT_EDITION.save(deps.storage, &new_edition_number)?;
-    MINTED_COUNT.save(deps.storage, new_edition_number, &0)?;
+    let drop_params = DropParams { config, collection };
+    let new_drop_id = current_drop_id + 1;
+    DROPS.save(deps.storage, new_drop_id, &drop_params)?;
+    CURRENT_DROP_ID.save(deps.storage, &new_drop_id)?;
+    MINTED_COUNT.save(deps.storage, new_drop_id, &0)?;
 
     let res = Response::new()
         .add_attribute("action", "new_edition")
-        .add_attribute("edition_number", new_edition_number.to_string());
+        .add_attribute("new_drop_number", new_drop_id.to_string());
 
     Ok(res)
 }
@@ -734,34 +749,19 @@ pub fn execute_update_royalty_receivers(
     receivers: Vec<WeightedAddress>,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
-    let current_edition_number = CURRENT_EDITION.load(deps.storage)?;
-    let edition_params = EDITIONS.load(deps.storage, current_edition_number)?;
-    for edition_number in 1..=current_edition_number {
-        let edition_params = EDITIONS.load(deps.storage, edition_number)?;
-        let mut collection = edition_params.collection;
-        let config = edition_params.config;
+    let current_drop_id = CURRENT_DROP_ID.load(deps.storage)?;
+    let drop_params = DROPS.load(deps.storage, current_drop_id)?;
 
-        if info.sender != config.admin {
-            return Err(ContractError::Unauthorized {});
-        }
-        collection.royalty_receivers = Some(receivers.clone());
-        EDITIONS.save(
-            deps.storage,
-            edition_number,
-            &EditionParams {
-                config: config,
-                collection: collection,
-            },
-        )?;
-    }
-
+    // TODO:
+    // This update does not happening inside drops
+    // Consider updating the collection in all drops
     let update_msg: CosmosMsg = MsgUpdateDenom {
         sender: env.contract.address.into_string(),
         royalty_receivers: receivers,
-        id: edition_params.collection.id,
-        description: edition_params.collection.description,
-        name: edition_params.collection.name,
-        preview_uri: edition_params.collection.preview_uri,
+        id: drop_params.collection.id,
+        description: "[do-not-modify]".to_string(),
+        name: "[do-not-modify]".to_string(),
+        preview_uri: "[do-not-modify]".to_string(),
     }
     .into();
 
@@ -779,23 +779,10 @@ pub fn execute_update_denom(
     description: Option<String>,
     preview_uri: Option<String>,
 ) -> Result<Response, ContractError> {
-    let current_edition_number = CURRENT_EDITION.load(deps.storage)?;
-    let edition_params = EDITIONS.load(deps.storage, current_edition_number)?;
-    let onft_querier = OnftQuerier::new(&deps.querier);
-    let minted_nfties_res = onft_querier.collection(edition_params.collection.clone().id, None)?;
-    let minted_nfties = minted_nfties_res
-        .collection
-        .unwrap_or(Collection::default())
-        .onfts;
-
-    if !minted_nfties.is_empty() {
-        // If there is any nft minted for the collection update denoms should not work
-        return Err(ContractError::MintingAlreadyStarted {});
-    }
-
-    // We would have to update name and description in the collection of all editions
-    for edition_number in 1..=current_edition_number {
-        let edition_params = EDITIONS.load(deps.storage, edition_number)?;
+    let current_drop_id = CURRENT_DROP_ID.load(deps.storage)?;
+    // We would have to update name and description in the collection of all drops
+    for edition_number in 1..=current_drop_id {
+        let edition_params = DROPS.load(deps.storage, edition_number)?;
         let mut collection = edition_params.collection;
         let config = edition_params.config;
 
@@ -805,28 +792,29 @@ pub fn execute_update_denom(
         collection.name = name.clone().unwrap_or(collection.name);
         collection.description = description.clone().unwrap_or(collection.description);
         collection.preview_uri = preview_uri.clone().unwrap_or(collection.preview_uri);
-        EDITIONS.save(
+        DROPS.save(
             deps.storage,
             edition_number,
-            &EditionParams {
+            &DropParams {
                 config: config,
                 collection: collection,
             },
         )?;
     }
-
+    let current_drop_params = DROPS.load(deps.storage, current_drop_id)?;
     let update_msg: CosmosMsg = MsgUpdateDenom {
         sender: env.contract.address.into_string(),
-        id: edition_params.collection.id,
-        description: description.unwrap_or(edition_params.collection.description),
-        name: name.unwrap_or(edition_params.collection.name),
-        preview_uri: preview_uri.unwrap_or(edition_params.collection.preview_uri),
-        royalty_receivers: edition_params.collection.royalty_receivers.unwrap_or(vec![
-            WeightedAddress {
-                address: edition_params.config.payment_collector.into_string(),
+        id: current_drop_params.collection.id,
+        description: description.unwrap_or("[do-not-modify]".to_string()),
+        name: name.unwrap_or("[do-not-modify]".to_string()),
+        preview_uri: preview_uri.unwrap_or("[do-not-modify]".to_string()),
+        royalty_receivers: current_drop_params
+            .collection
+            .royalty_receivers
+            .unwrap_or(vec![WeightedAddress {
+                address: current_drop_params.config.payment_collector.into_string(),
                 weight: Decimal::one().to_string(),
-            },
-        ]),
+            }]),
     }
     .into();
 
@@ -840,13 +828,14 @@ fn execute_purge_denom(
     _env: Env,
     info: MessageInfo,
 ) -> Result<Response, ContractError> {
-    let current_edition_number = CURRENT_EDITION.load(deps.storage)?;
-    let edition_params = EDITIONS.load(deps.storage, current_edition_number)?;
-    if edition_params.config.admin != info.sender {
+    let current_drop_id = CURRENT_DROP_ID.load(deps.storage)?;
+    let current_drop_params = DROPS.load(deps.storage, current_drop_id)?;
+    if current_drop_params.config.admin != info.sender {
         return Err(ContractError::Unauthorized {});
     }
     let onft_querier = OnftQuerier::new(&deps.querier);
-    let minted_nfties_res = onft_querier.collection(edition_params.collection.clone().id, None)?;
+    let minted_nfties_res =
+        onft_querier.collection(current_drop_params.collection.clone().id, None)?;
     let minted_nfties = minted_nfties_res
         .collection
         .unwrap_or(Collection::default())
@@ -858,7 +847,7 @@ fn execute_purge_denom(
     }
 
     let purge_msg: CosmosMsg = MsgPurgeDenom {
-        id: edition_params.collection.id,
+        id: current_drop_params.collection.id,
         sender: info.sender.into_string(),
     }
     .into();
@@ -872,40 +861,37 @@ fn execute_purge_denom(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
-        QueryMsg::Collection { edition } => to_json_binary(&query_collection(deps, env, edition)?),
-        QueryMsg::Config { edition } => to_json_binary(&query_config(deps, env, edition)?),
-        QueryMsg::MintedTokens { address, edition } => {
-            to_json_binary(&query_minted_tokens(deps, env, address, edition)?)
+        QueryMsg::Collection { drop_id } => to_json_binary(&query_collection(deps, env, drop_id)?),
+        QueryMsg::Config { drop_id } => to_json_binary(&query_config(deps, env, drop_id)?),
+        QueryMsg::MintedTokens { address, drop_id } => {
+            to_json_binary(&query_minted_tokens(deps, env, address, drop_id)?)
         }
-        QueryMsg::TotalMintedCount { edition } => {
-            to_json_binary(&query_total_tokens_minted(deps, env, edition)?)
+        QueryMsg::TotalMintedCount { drop_id } => {
+            to_json_binary(&query_total_tokens_minted(deps, env, drop_id)?)
         }
-        QueryMsg::TokensRemaining { edition } => {
-            to_json_binary(&query_tokens_remaining(deps, env, edition)?)
+        QueryMsg::TokensRemaining { drop_id } => {
+            to_json_binary(&query_tokens_remaining(deps, env, drop_id)?)
         }
         QueryMsg::IsPaused {} => to_json_binary(&query_is_paused(deps, env)?),
         QueryMsg::Pausers {} => to_json_binary(&query_pausers(deps, env)?),
-        QueryMsg::CurrentEditionNumber {} => {
-            to_json_binary(&query_current_edition_number(deps, env)?)
-        }
+        QueryMsg::CurrentDropNumber {} => to_json_binary(&query_current_drop_number(deps, env)?),
     }
 }
 
 fn query_collection(
     deps: Deps,
     _env: Env,
-    edition: Option<u32>,
+    drop_id: Option<u32>,
 ) -> Result<CollectionDetails, ContractError> {
-    let edition = edition.unwrap_or(CURRENT_EDITION.load(deps.storage)?);
-    let edition_params = EDITIONS.load(deps.storage, edition)?;
-    let collection = edition_params.collection;
+    let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
+    let collection = DROPS.load(deps.storage, drop_id)?.collection;
     Ok(collection)
 }
 
-fn query_config(deps: Deps, _env: Env, edition: Option<u32>) -> Result<Config, ContractError> {
-    let edition = edition.unwrap_or(CURRENT_EDITION.load(deps.storage)?);
-    let edition_params = EDITIONS.load(deps.storage, edition)?;
-    let config = edition_params.config;
+fn query_config(deps: Deps, _env: Env, drop_id: Option<u32>) -> Result<Config, ContractError> {
+    let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
+    let drop_params = DROPS.load(deps.storage, drop_id)?;
+    let config = drop_params.config;
     Ok(config)
 }
 
@@ -913,36 +899,36 @@ fn query_minted_tokens(
     deps: Deps,
     _env: Env,
     address: String,
-    edition: Option<u32>,
+    drop_id: Option<u32>,
 ) -> Result<UserDetails, ContractError> {
     let address = deps.api.addr_validate(&address)?;
-    let edition = edition.unwrap_or(CURRENT_EDITION.load(deps.storage)?);
+    let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
     let minted_tokens = MintedTokens::new(MINTED_TOKENS_KEY);
-    let user_details = minted_tokens
-        .load(deps.storage, edition, address)
-        .unwrap_or_default();
+    let user_details = minted_tokens.load(deps.storage, drop_id, address)?;
     Ok(user_details)
 }
 
 fn query_total_tokens_minted(
     deps: Deps,
     _env: Env,
-    edition: Option<u32>,
+    drop_id: Option<u32>,
 ) -> Result<u32, ContractError> {
-    let edition = edition.unwrap_or(CURRENT_EDITION.load(deps.storage)?);
-    let minted_count = MINTED_COUNT.load(deps.storage, edition).unwrap_or(0);
+    let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
+    let minted_count = MINTED_COUNT.load(deps.storage, drop_id).unwrap_or(0);
     Ok(minted_count)
 }
 
 fn query_tokens_remaining(
     deps: Deps,
     _env: Env,
-    edition: Option<u32>,
+    drop_id: Option<u32>,
 ) -> Result<u32, ContractError> {
-    let edition = edition.unwrap_or(CURRENT_EDITION.load(deps.storage)?);
-    let edition_params = EDITIONS.load(deps.storage, edition)?;
-    let config = edition_params.config;
-    let minted_count = MINTED_COUNT.load(deps.storage, edition).unwrap_or(0);
+    let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
+    let drop_params = DROPS.load(deps.storage, drop_id)?;
+    let config = drop_params.config;
+    let minted_count = MINTED_COUNT.load(deps.storage, drop_id).unwrap_or(0);
+    // TODO : This is not the correct way to calculate the remaining tokens
+    // If the token limit is not set then we should return error
     let tokens_remaining = config.token_limit.unwrap_or(u32::MAX) - minted_count;
     Ok(tokens_remaining)
 }
@@ -959,7 +945,7 @@ fn query_pausers(deps: Deps, _env: Env) -> Result<Vec<Addr>, ContractError> {
     Ok(pausers)
 }
 
-fn query_current_edition_number(deps: Deps, _env: Env) -> Result<u32, ContractError> {
-    let current_edition = CURRENT_EDITION.load(deps.storage).unwrap_or(1);
+fn query_current_drop_number(deps: Deps, _env: Env) -> Result<u32, ContractError> {
+    let current_edition = CURRENT_DROP_ID.load(deps.storage).unwrap_or(1);
     Ok(current_edition)
 }
