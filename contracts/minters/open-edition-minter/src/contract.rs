@@ -1,3 +1,4 @@
+use std::ptr::null;
 use std::str::FromStr;
 
 //use crate::msg::ExecuteMsg;
@@ -629,17 +630,6 @@ pub fn execute_update_denom(
     if info.sender != config.admin {
         return Err(ContractError::Unauthorized {});
     }
-    let onft_querier = OnftQuerier::new(&deps.querier);
-    let minted_nfties_res = onft_querier.collection(collection.clone().id, None)?;
-    let minted_nfties = minted_nfties_res
-        .collection
-        .unwrap_or(Collection::default())
-        .onfts;
-
-    if !minted_nfties.is_empty() {
-        // If there is any nft minted for the collection update denoms should not work
-        return Err(ContractError::MintingAlreadyStarted {});
-    }
     collection.name = name.clone().unwrap_or(collection.name);
     collection.description = description.clone().unwrap_or(collection.description);
     collection.preview_uri = preview_uri.clone().unwrap_or(collection.preview_uri);
@@ -648,15 +638,10 @@ pub fn execute_update_denom(
     let update_msg: CosmosMsg = MsgUpdateDenom {
         sender: env.contract.address.into_string(),
         id: collection.id,
-        description: description.unwrap_or(collection.description),
-        name: name.unwrap_or(collection.name),
-        preview_uri: preview_uri.unwrap_or(collection.preview_uri),
-        royalty_receivers: collection
-            .royalty_receivers
-            .unwrap_or(vec![WeightedAddress {
-                address: config.payment_collector.into_string(),
-                weight: Decimal::one().to_string(),
-            }]),
+        description: description.unwrap_or("[do-not-modify]".to_string()),
+        name: name.unwrap_or("[do-not-modify]".to_string()),
+        preview_uri: preview_uri.unwrap_or("[do-not-modify]".to_string()),
+        royalty_receivers: collection.royalty_receivers.unwrap_or(vec![]),
     }
     .into();
 
@@ -675,17 +660,6 @@ fn execute_purge_denom(
     let config = CONFIG.load(deps.storage)?;
     if info.sender != config.admin {
         return Err(ContractError::Unauthorized {});
-    }
-    let onft_querier = OnftQuerier::new(&deps.querier);
-    let minted_nfties_res = onft_querier.collection(collection.clone().id, None)?;
-    let minted_nfties = minted_nfties_res
-        .collection
-        .unwrap_or(Collection::default())
-        .onfts;
-
-    if !minted_nfties.is_empty() {
-        // If there is any nft minted for the collection purge denoms should not work
-        return Err(ContractError::MintingAlreadyStarted {});
     }
     let purge_msg: CosmosMsg = MsgPurgeDenom {
         sender: env.contract.address.into_string(),
