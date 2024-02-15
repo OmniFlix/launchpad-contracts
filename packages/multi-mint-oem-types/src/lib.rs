@@ -24,4 +24,12 @@ pub enum QueryMsg {
     Pausers {},
     #[returns(u32)]
     CurrentDropNumber {},
+    #[returns(Vec<(u32,DropParams)>)]
+    AllDrops {},
+}
+
+#[cw_serde]
+pub struct DropParams {
+    pub config: Config,
+    pub collection: CollectionDetails,
 }

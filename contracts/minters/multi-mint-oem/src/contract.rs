@@ -11,7 +11,6 @@ use cw_utils::{maybe_addr, must_pay, nonpayable};
 use minter_types::{generate_mint_message, CollectionDetails, Config, Token, UserDetails};
 use multi_mint_open_edition_minter_types::QueryMsg;
 use pauser::PauseState;
-use sha2::digest::typenum::Cube;
 
 use crate::error::ContractError;
 use crate::msg::ExecuteMsg;
@@ -875,6 +874,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::IsPaused {} => to_json_binary(&query_is_paused(deps, env)?),
         QueryMsg::Pausers {} => to_json_binary(&query_pausers(deps, env)?),
         QueryMsg::CurrentDropNumber {} => to_json_binary(&query_current_drop_number(deps, env)?),
+        QueryMsg::AllDrops {} => to_json_binary(&query_all_drops(deps, env)?),
     }
 }
 
@@ -948,4 +948,14 @@ fn query_pausers(deps: Deps, _env: Env) -> Result<Vec<Addr>, ContractError> {
 fn query_current_drop_number(deps: Deps, _env: Env) -> Result<u32, ContractError> {
     let current_edition = CURRENT_DROP_ID.load(deps.storage).unwrap_or(1);
     Ok(current_edition)
+}
+
+fn query_all_drops(deps: Deps, _env: Env) -> Result<Vec<(u32, DropParams)>, ContractError> {
+    let current_edition = CURRENT_DROP_ID.load(deps.storage).unwrap_or(1);
+    let mut drops: Vec<(u32, DropParams)> = vec![];
+    for edition_number in 1..=current_edition {
+        let drop_params = DROPS.load(deps.storage, edition_number)?;
+        drops.push((edition_number, drop_params));
+    }
+    Ok(drops)
 }
