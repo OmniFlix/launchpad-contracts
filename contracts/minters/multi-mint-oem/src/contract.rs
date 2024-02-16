@@ -205,7 +205,10 @@ pub fn instantiate(
 
     let res = Response::new()
         .add_message(nft_creation_msg)
-        .add_attribute("action", "instantiate");
+        .add_attribute("action", "instantiate")
+        .add_attribute("contract_version", CONTRACT_VERSION)
+        .add_attribute("contract_name", CONTRACT_NAME)
+        .add_attribute("drop_id", "1");
 
     Ok(res)
 }
@@ -736,8 +739,8 @@ pub fn execute_new_drop(
     MINTED_COUNT.save(deps.storage, new_drop_id, &0)?;
 
     let res = Response::new()
-        .add_attribute("action", "new_edition")
-        .add_attribute("new_drop_number", new_drop_id.to_string());
+        .add_attribute("action", "new_drop")
+        .add_attribute("new_drop_id", new_drop_id.to_string());
 
     Ok(res)
 }
