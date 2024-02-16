@@ -31,7 +31,7 @@ use whitelist_types::{
 };
 
 // version info for migration info
-const CONTRACT_NAME: &str = "crates.io:omniflix-multi-mint-open-edition-minter";
+const CONTRACT_NAME: &str = "omniflix-multi-mint-open-edition-minter";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[cfg(not(test))]
@@ -424,7 +424,8 @@ pub fn execute_mint(
         .add_messages(messages)
         .add_attribute("action", "mint")
         .add_attribute("token_id", token_id.to_string())
-        .add_attribute("collection_id", collection.id);
+        .add_attribute("collection_id", collection.id)
+        .add_attribute("drop_id", drop_id.to_string());
 
     Ok(res)
 }
@@ -501,7 +502,8 @@ pub fn execute_mint_admin(
         .add_message(mint_msg)
         .add_attribute("action", "mint")
         .add_attribute("token_id", token_id.to_string())
-        .add_attribute("denom_id", collection.id);
+        .add_attribute("denom_id", collection.id)
+        .add_attribute("drop_id", drop_id.to_string());
     Ok(res)
 }
 
@@ -532,7 +534,8 @@ pub fn execute_update_royalty_ratio(
 
     let res = Response::new()
         .add_attribute("action", "update_royalty_ratio")
-        .add_attribute("ratio", ratio.to_string());
+        .add_attribute("ratio", ratio.to_string())
+        .add_attribute("drop_id", drop_id.to_string());
     Ok(res)
 }
 
@@ -557,7 +560,8 @@ pub fn execute_update_mint_price(
     let res = Response::new()
         .add_attribute("action", "update_mint_price")
         .add_attribute("mint_price_denom", mint_price.denom.to_string())
-        .add_attribute("mint_price_amount", mint_price.amount.to_string());
+        .add_attribute("mint_price_amount", mint_price.amount.to_string())
+        .add_attribute("drop_id", drop_id.to_string());
     Ok(res)
 }
 
@@ -598,7 +602,8 @@ pub fn execute_update_whitelist_address(
 
     let res = Response::new()
         .add_attribute("action", "update_whitelist_address")
-        .add_attribute("address", address.to_string());
+        .add_attribute("address", address.to_string())
+        .add_attribute("drop_id", drop_id.to_string());
     Ok(res)
 }
 pub fn execute_pause(
