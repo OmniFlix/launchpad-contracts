@@ -216,7 +216,7 @@ mod scenarios {
                 nsfw: false,
                 base_uri: "base_uri".to_string(),
                 uri: "uri".to_string(),
-                uri_hash: "uri_hash".to_string(),
+                uri_hash: Some("uri_hash".to_string()),
                 data: "data".to_string(),
                 token_name: "token_name".to_string(),
                 transferable: true,

@@ -186,7 +186,7 @@ pub fn instantiate(
         symbol: collection.symbol,
         data: collection.data,
         uri: collection.uri,
-        uri_hash: collection.uri_hash,
+        uri_hash: collection.uri_hash.unwrap_or("".to_string()),
         creation_fee: Some(
             Coin {
                 denom: creation_fee_denom,
@@ -731,7 +731,7 @@ pub fn execute_new_drop(
         nsfw: nsfw.unwrap_or(current_drop_params.collection.nsfw),
         base_uri: base_uri.unwrap_or(current_drop_params.collection.base_uri),
         uri: current_drop_params.collection.uri,
-        uri_hash: uri_hash.unwrap_or(current_drop_params.collection.uri_hash),
+        uri_hash: uri_hash,
         data: data.unwrap_or(current_drop_params.collection.data),
         token_name,
         transferable: transferable.unwrap_or(current_drop_params.collection.transferable),

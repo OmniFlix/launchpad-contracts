@@ -189,7 +189,7 @@ pub fn instantiate(
         symbol: collection.symbol,
         data: collection.data,
         uri: collection.uri,
-        uri_hash: collection.uri_hash,
+        uri_hash: collection.uri_hash.unwrap_or("".to_string()),
         creation_fee: Some(
             Coin {
                 denom: creation_fee_denom,

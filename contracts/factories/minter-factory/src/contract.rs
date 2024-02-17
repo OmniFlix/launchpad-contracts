@@ -261,7 +261,7 @@ mod tests {
             nsfw: false,
             base_uri: "https://example.com/base".to_string(),
             uri: "https://example.com/collection".to_string(),
-            uri_hash: "hash123".to_string(),
+            uri_hash: Some("".to_string()),
             data: "Additional data for the collection".to_string(),
             transferable: true,
             token_name: "token_name".to_string(),

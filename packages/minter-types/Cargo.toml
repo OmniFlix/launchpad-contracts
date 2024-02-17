@@ -33,4 +33,4 @@ cw-utils        = { workspace = true }
 thiserror       = { workspace = true }
 serde           = { workspace = true }
 cw-storage-plus = { workspace = true }
-omniflix-std    = { workspace=true }
+omniflix-std    = { workspace = true }

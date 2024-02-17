@@ -42,7 +42,8 @@ pub fn instantiate(
         minter_creation_fee: msg.minter_creation_fee,
     };
     PARAMS.save(deps.storage, &params)?;
-    Ok(Response::default())
+
+    Ok(Response::default().add_attribute("action", "instantiate"))
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -261,7 +262,7 @@ mod tests {
             nsfw: false,
             base_uri: "https://example.com/base".to_string(),
             uri: "https://example.com/collection".to_string(),
-            uri_hash: "hash123".to_string(),
+            uri_hash: Some("hash123".to_string()),
             data: "Additional data for the collection".to_string(),
             transferable: true,
             token_name: "token_name".to_string(),

@@ -1,4 +1,4 @@
-use std::fmt::format;
+use std::{fmt::format, ptr::NonNull};
 
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Addr, Coin, Decimal, StdError, Storage, Timestamp};
@@ -18,7 +18,7 @@ pub struct CollectionDetails {
     pub nsfw: bool,
     pub base_uri: String,
     pub uri: String,
-    pub uri_hash: String,
+    pub uri_hash: Option<String>,
     pub data: String,
     pub transferable: bool,
     // FE: Collection:"Badkids" each token name "BadKid" #token_id
@@ -103,7 +103,7 @@ pub fn generate_mint_message(
                 description: collection.description.clone(),
                 media_uri: format!("{}/{}", collection.base_uri, token_id),
                 preview_uri: collection.preview_uri.clone(),
-                uri_hash: collection.uri_hash.clone(),
+                uri_hash: collection.uri_hash.clone().unwrap_or("".to_string()),
             };
 
             MsgMintOnft {
@@ -129,7 +129,7 @@ pub fn generate_mint_message(
                 description: collection.description.clone(),
                 media_uri: collection.base_uri.clone(),
                 preview_uri: collection.preview_uri.clone(),
-                uri_hash: collection.uri_hash.clone(),
+                uri_hash: "".to_string(),
             };
 
             MsgMintOnft {
