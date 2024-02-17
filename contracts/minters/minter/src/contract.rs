@@ -8,7 +8,7 @@ use cosmwasm_std::{
     to_json_binary, Addr, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo, Order,
     Response, StdResult, Uint128, WasmMsg,
 };
-use cw_utils::{maybe_addr, must_pay, nonpayable};
+use cw_utils::{may_pay, maybe_addr, must_pay, nonpayable};
 use minter_types::{generate_mint_message, CollectionDetails};
 use omniflix_minter_factory::msg::QueryMsg::Params as QueryFactoryParams;
 use omniflix_minter_factory::msg::{CreateMinterMsg, ParamsResponse};
@@ -338,7 +338,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     MINTED_TOKENS.save(deps.storage, info.sender.clone(), &user_details)?;
 
     // Check the payment
-    let amount = must_pay(&info, &mint_price.denom)?;
+    let amount = may_pay(&info, &mint_price.denom)?;
     // Exact amount must be paid
     if amount != mint_price.amount {
         return Err(ContractError::IncorrectPaymentAmount {
@@ -371,17 +371,20 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     )
     .into();
 
-    // Create the Bank send message
-    let bank_msg: CosmosMsg = CosmosMsg::Bank(cosmwasm_std::BankMsg::Send {
-        to_address: payment_collector.into_string(),
-        amount: vec![Coin {
-            denom: mint_price.denom,
-            amount: mint_price.amount,
-        }],
-    });
+    if !mint_price.amount.is_zero() {
+        // Create the Bank send message
+        let bank_msg: CosmosMsg = CosmosMsg::Bank(cosmwasm_std::BankMsg::Send {
+            to_address: payment_collector.into_string(),
+            amount: vec![Coin {
+                denom: mint_price.denom,
+                amount: mint_price.amount,
+            }],
+        });
+
+        messages.push(bank_msg.clone());
+    }
 
     messages.push(mint_msg.clone());
-    messages.push(bank_msg.clone());
 
     let res = Response::new()
         .add_messages(messages)

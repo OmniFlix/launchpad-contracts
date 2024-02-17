@@ -7,7 +7,7 @@ use cosmwasm_std::{
     to_json_binary, Addr, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo,
     Response, StdResult, Timestamp, Uint128, WasmMsg,
 };
-use cw_utils::{maybe_addr, must_pay, nonpayable};
+use cw_utils::{may_pay, maybe_addr, must_pay, nonpayable};
 use minter_types::{generate_mint_message, CollectionDetails, Config, Token, UserDetails};
 use multi_mint_open_edition_minter_types::QueryMsg;
 use pauser::PauseState;
@@ -382,7 +382,8 @@ pub fn execute_mint(
     minted_tokens.save(deps.storage, drop_id, info.sender.clone(), &user_details);
 
     // Check the payment
-    let amount = must_pay(&info, &mint_price.denom)?;
+    // Can be set to zero so use may_pay
+    let amount = may_pay(&info, &mint_price.denom)?;
     // Exact amount must be paid
     if amount != mint_price.amount {
         return Err(ContractError::IncorrectPaymentAmount {
@@ -408,17 +409,18 @@ pub fn execute_mint(
     )
     .into();
 
-    // Create the Bank send message
-    let bank_msg: CosmosMsg = CosmosMsg::Bank(cosmwasm_std::BankMsg::Send {
-        to_address: payment_collector.into_string(),
-        amount: vec![Coin {
-            denom: mint_price.denom,
-            amount: mint_price.amount,
-        }],
-    });
+    if !mint_price.amount.is_zero() {
+        let bank_msg: CosmosMsg = CosmosMsg::Bank(cosmwasm_std::BankMsg::Send {
+            to_address: payment_collector.into_string(),
+            amount: vec![Coin {
+                denom: mint_price.denom,
+                amount: mint_price.amount,
+            }],
+        });
+        messages.push(bank_msg.clone());
+    }
 
     messages.push(mint_msg.clone());
-    messages.push(bank_msg.clone());
 
     let res = Response::new()
         .add_messages(messages)
