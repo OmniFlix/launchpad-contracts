@@ -1,9 +1,10 @@
-use std::fmt::format;
-
-use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Addr, Coin, Decimal, StdError, Storage, Timestamp};
+use cosmwasm_std::{Addr, StdError, Storage};
 use cw_storage_plus::Item;
 use thiserror::Error;
+
+pub const PAUSED_KEY: &str = "paused";
+pub const PAUSERS_KEY: &str = "pausers";
+
 #[derive(Error, Debug, PartialEq)]
 pub enum PauseError {
     #[error(transparent)]

@@ -1,4 +1,3 @@
-use std::ptr::null;
 use std::str::FromStr;
 
 //use crate::msg::ExecuteMsg;
@@ -11,7 +10,6 @@ use cosmwasm_std::{
 use cw_utils::{may_pay, maybe_addr, must_pay, nonpayable};
 use minter_types::{generate_mint_message, CollectionDetails, Config, Token, UserDetails};
 use open_edition_minter_types::QueryMsg;
-use pauser::PauseState;
 
 use crate::error::ContractError;
 use crate::msg::ExecuteMsg;
@@ -22,12 +20,11 @@ use omniflix_open_edition_minter_factory::msg::{
 };
 use omniflix_round_whitelist::msg::ExecuteMsg as RoundWhitelistExecuteMsg;
 use omniflix_std::types::omniflix::onft::v1beta1::{
-    Collection, Metadata, MsgCreateDenom, MsgMintOnft, MsgPurgeDenom, MsgUpdateDenom, OnftQuerier,
-    WeightedAddress,
+    MsgCreateDenom, MsgPurgeDenom, MsgUpdateDenom, OnftQuerier, WeightedAddress,
 };
+use pauser::{PauseState, PAUSED_KEY, PAUSERS_KEY};
 use whitelist_types::{
     check_if_address_is_member, check_if_whitelist_is_active, check_whitelist_price,
-    IsActiveResponse, IsMemberResponse, MintPriceResponse, RoundWhitelistQueryMsgs,
 };
 
 // version info for migration info
@@ -45,9 +42,6 @@ const CREATION_FEE_DENOM: &str = "";
 const CREATION_FEE: Uint128 = Uint128::new(100_000_000);
 #[cfg(test)]
 const CREATION_FEE_DENOM: &str = "uflix";
-
-const PAUSED_KEY: &str = "paused";
-const PAUSERS_KEY: &str = "pausers";
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(

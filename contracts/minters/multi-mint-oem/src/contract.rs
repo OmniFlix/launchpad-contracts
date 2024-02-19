@@ -1,6 +1,3 @@
-use std::str::FromStr;
-
-//use crate::msg::ExecuteMsg;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
@@ -10,7 +7,8 @@ use cosmwasm_std::{
 use cw_utils::{may_pay, maybe_addr, must_pay, nonpayable};
 use minter_types::{generate_mint_message, CollectionDetails, Config, Token, UserDetails};
 use multi_mint_open_edition_minter_types::QueryMsg;
-use pauser::PauseState;
+use pauser::{PauseState, PAUSED_KEY, PAUSERS_KEY};
+use std::str::FromStr;
 
 use crate::error::ContractError;
 use crate::msg::ExecuteMsg;
@@ -45,9 +43,6 @@ const CREATION_FEE_DENOM: &str = "";
 const CREATION_FEE: Uint128 = Uint128::new(100_000_000);
 #[cfg(test)]
 const CREATION_FEE_DENOM: &str = "uflix";
-
-const PAUSED_KEY: &str = "paused";
-const PAUSERS_KEY: &str = "pausers";
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(

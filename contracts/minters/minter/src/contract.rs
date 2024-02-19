@@ -23,7 +23,7 @@ use crate::utils::{
     collect_mintable_tokens, generate_tokens, randomize_token_list, return_random_token,
 };
 use minter_types::{Config, QueryMsg, Token, UserDetails};
-use pauser::PauseState;
+use pauser::{PauseState, PAUSED_KEY, PAUSERS_KEY};
 
 use cw2::set_contract_version;
 use omniflix_std::types::omniflix::onft::v1beta1::{
@@ -45,9 +45,6 @@ const CREATION_FEE_DENOM: &str = "";
 const CREATION_FEE: Uint128 = Uint128::new(100_000_000);
 #[cfg(test)]
 const CREATION_FEE_DENOM: &str = "uflix";
-
-const PAUSED_KEY: &str = "paused";
-const PAUSERS_KEY: &str = "pausers";
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
