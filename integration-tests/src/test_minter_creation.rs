@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod test_minter_creation {
 
+    use cosmwasm_std::Empty;
     use cosmwasm_std::{
         coin, to_json_binary, Addr, Decimal, QueryRequest, Timestamp, Uint128, WasmQuery,
     };
@@ -244,7 +245,7 @@ mod test_minter_creation {
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
-                msg: to_json_binary(&QueryMsg::Config {}).unwrap(),
+                msg: to_json_binary(&QueryMsg::<Empty>::Config {}).unwrap(),
             }))
             .unwrap();
         assert_eq!(config_data.per_address_limit, 1);
@@ -263,7 +264,10 @@ mod test_minter_creation {
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
-                msg: to_json_binary(&QueryMsg::MintableTokens {}).unwrap(),
+                msg: to_json_binary(&QueryMsg::Extension(
+                    omniflix_minter::msg::MinterExtensionQueryMsg::MintableTokens {},
+                ))
+                .unwrap(),
             }))
             .unwrap();
         assert_eq!(mintable_tokens_data.len(), 1000);
@@ -275,7 +279,10 @@ mod test_minter_creation {
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
-                msg: to_json_binary(&QueryMsg::TotalTokens {}).unwrap(),
+                msg: to_json_binary(&QueryMsg::Extension(
+                    omniflix_minter::msg::MinterExtensionQueryMsg::TotalTokensRemaining {},
+                ))
+                .unwrap(),
             }))
             .unwrap();
         assert_eq!(total_tokens_remaining_data, 1000);

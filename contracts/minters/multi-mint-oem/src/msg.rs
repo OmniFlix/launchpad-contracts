@@ -1,5 +1,7 @@
-use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Coin, Timestamp};
+use cosmwasm_schema::{cw_serde, QueryResponses};
+use cosmwasm_std::{Addr, Coin, Timestamp};
+use minter_types::{CollectionDetails, Config, QueryMsg as BaseMinterQueryMsg, UserDetails};
+use multi_mint_open_edition_minter_types::DropParams;
 use omniflix_std::types::omniflix::onft::v1beta1::WeightedAddress;
 
 #[cw_serde]
@@ -55,4 +57,24 @@ pub enum ExecuteMsg {
         preview_uri: Option<String>,
     },
     PurgeDenom {},
+}
+
+#[cw_serde]
+#[derive(QueryResponses)]
+pub enum QueryMsgExtention {
+    #[returns(CollectionDetails)]
+    Collection { drop_id: Option<u32> },
+    #[returns(Config)]
+    Config { drop_id: Option<u32> },
+    #[returns(UserDetails)]
+    MintedTokens {
+        address: String,
+        drop_id: Option<u32>,
+    },
+    #[returns(u32)]
+    TokensRemaining { drop_id: Option<u32> },
+    #[returns(u32)]
+    CurrentDropNumber {},
+    #[returns(Vec<(u32,DropParams)>)]
+    AllDrops {},
 }

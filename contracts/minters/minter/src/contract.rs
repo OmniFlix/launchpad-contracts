@@ -1,7 +1,7 @@
 use std::env;
 use std::str::FromStr;
 
-use crate::msg::ExecuteMsg;
+use crate::msg::{ExecuteMsg, MinterExtensionQueryMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
@@ -9,7 +9,7 @@ use cosmwasm_std::{
     Response, StdResult, Uint128, WasmMsg,
 };
 use cw_utils::{may_pay, maybe_addr, must_pay, nonpayable};
-use minter_types::{generate_mint_message, CollectionDetails};
+use minter_types::{generate_mint_message, CollectionDetails, QueryMsg as BaseMinterQueryMsg};
 use omniflix_minter_factory::msg::QueryMsg::Params as QueryFactoryParams;
 use omniflix_minter_factory::msg::{CreateMinterMsg, ParamsResponse};
 use omniflix_round_whitelist::msg::ExecuteMsg::PrivateMint;
@@ -22,7 +22,7 @@ use crate::state::{COLLECTION, CONFIG, MINTABLE_TOKENS, MINTED_TOKENS, TOTAL_TOK
 use crate::utils::{
     collect_mintable_tokens, generate_tokens, randomize_token_list, return_random_token,
 };
-use minter_types::{Config, QueryMsg, Token, UserDetails};
+use minter_types::{Config, Token, UserDetails};
 use pauser::{PauseState, PAUSED_KEY, PAUSERS_KEY};
 
 use cw2::set_contract_version;
@@ -777,17 +777,30 @@ fn execute_purge_denom(
 
 // Implement Queries
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
+pub fn query(
+    deps: Deps,
+    env: Env,
+    msg: BaseMinterQueryMsg<MinterExtensionQueryMsg>,
+) -> StdResult<Binary> {
     match msg {
-        QueryMsg::Collection {} => to_json_binary(&query_collection(deps, env)?),
-        QueryMsg::Config {} => to_json_binary(&query_config(deps, env)?),
-        QueryMsg::MintableTokens {} => to_json_binary(&query_mintable_tokens(deps, env)?),
-        QueryMsg::MintedTokens { address } => {
+        BaseMinterQueryMsg::Collection {} => to_json_binary(&query_collection(deps, env)?),
+        BaseMinterQueryMsg::Config {} => to_json_binary(&query_config(deps, env)?),
+        BaseMinterQueryMsg::MintedTokens { address } => {
             to_json_binary(&query_minted_tokens(deps, env, address)?)
         }
-        QueryMsg::TotalTokens {} => to_json_binary(&query_total_tokens(deps, env)?),
-        QueryMsg::IsPaused {} => to_json_binary(&query_is_paused(deps, env)?),
-        QueryMsg::Pausers {} => to_json_binary(&query_pausers(deps, env)?),
+        BaseMinterQueryMsg::IsPaused {} => to_json_binary(&query_is_paused(deps, env)?),
+        BaseMinterQueryMsg::Pausers {} => to_json_binary(&query_pausers(deps, env)?),
+        BaseMinterQueryMsg::TotalMintedCount {} => {
+            to_json_binary(&query_total_minted_count(deps, env)?)
+        }
+        BaseMinterQueryMsg::Extension(ext) => match ext {
+            MinterExtensionQueryMsg::MintableTokens {} => {
+                to_json_binary(&query_mintable_tokens(deps, env)?)
+            }
+            MinterExtensionQueryMsg::TotalTokensRemaining {} => {
+                to_json_binary(&query_total_tokens(deps, env)?)
+            }
+        },
     }
 }
 
@@ -837,4 +850,9 @@ fn query_pausers(deps: Deps, _env: Env) -> Result<Vec<Addr>, ContractError> {
     let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
     let pausers = pause_state.pausers.load(deps.storage).unwrap_or(vec![]);
     Ok(pausers)
+}
+fn query_total_minted_count(deps: Deps, _env: Env) -> Result<u32, ContractError> {
+    let config = CONFIG.load(deps.storage)?;
+    let total_tokens = config.token_limit.unwrap();
+    Ok(total_tokens - TOTAL_TOKENS_REMAINING.load(deps.storage)?)
 }

@@ -5,17 +5,20 @@ use cosmwasm_std::{
     Response, StdResult, Timestamp, Uint128, WasmMsg,
 };
 use cw_utils::{may_pay, maybe_addr, must_pay, nonpayable};
-use minter_types::{generate_mint_message, CollectionDetails, Config, Token, UserDetails};
-use multi_mint_open_edition_minter_types::QueryMsg;
+use minter_types::{
+    generate_mint_message, CollectionDetails, Config, QueryMsg as MinterQueryMsg, Token,
+    UserDetails,
+};
 use pauser::{PauseState, PAUSED_KEY, PAUSERS_KEY};
 use std::str::FromStr;
 
 use crate::error::ContractError;
-use crate::msg::ExecuteMsg;
+use crate::msg::{ExecuteMsg, QueryMsgExtention};
 use crate::state::{
-    DropParams, MintedTokens, CURRENT_DROP_ID, DROPS, LAST_MINTED_TOKEN_ID, MINTED_COUNT,
+    DropParams, UserMintedTokens, CURRENT_DROP_ID, DROPS, LAST_MINTED_TOKEN_ID, MINTED_COUNT,
     MINTED_TOKENS_KEY,
 };
+
 use cw2::set_contract_version;
 use omniflix_open_edition_minter_factory::msg::{
     OpenEditionMinterCreateMsg, ParamsResponse, QueryMsg as OpenEditionMinterFactoryQueryMsg,
@@ -311,7 +314,7 @@ pub fn execute_mint(
             return Err(ContractError::PublicMintingEnded {});
         }
     };
-    let minted_tokens = MintedTokens::new(MINTED_TOKENS_KEY);
+    let minted_tokens = UserMintedTokens::new(MINTED_TOKENS_KEY);
 
     let mut user_details = minted_tokens
         .load(deps.storage, drop_id, info.sender.clone())
@@ -466,7 +469,7 @@ pub fn execute_mint_admin(
     let last_token_id = LAST_MINTED_TOKEN_ID.load(deps.storage)?;
     let token_id = last_token_id + 1;
 
-    let minted_tokens = MintedTokens::new(MINTED_TOKENS_KEY);
+    let minted_tokens = UserMintedTokens::new(MINTED_TOKENS_KEY);
 
     let mut user_details = minted_tokens
         .load(deps.storage, drop_id, recipient.clone())
@@ -861,25 +864,37 @@ fn execute_purge_denom(
         .add_message(purge_msg))
 }
 
-// Implement Queries
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
+pub fn query(deps: Deps, env: Env, msg: MinterQueryMsg<QueryMsgExtention>) -> StdResult<Binary> {
     match msg {
-        QueryMsg::Collection { drop_id } => to_json_binary(&query_collection(deps, env, drop_id)?),
-        QueryMsg::Config { drop_id } => to_json_binary(&query_config(deps, env, drop_id)?),
-        QueryMsg::MintedTokens { address, drop_id } => {
-            to_json_binary(&query_minted_tokens(deps, env, address, drop_id)?)
+        MinterQueryMsg::Collection {} => to_json_binary(&query_collection(deps, env, None)?),
+        MinterQueryMsg::Config {} => to_json_binary(&query_config(deps, env, None)?),
+        MinterQueryMsg::MintedTokens { address } => {
+            to_json_binary(&query_minted_tokens(deps, env, address, None)?)
         }
-        QueryMsg::TotalMintedCount { drop_id } => {
-            to_json_binary(&query_total_tokens_minted(deps, env, drop_id)?)
+        MinterQueryMsg::TotalMintedCount {} => {
+            to_json_binary(&query_total_tokens_minted(deps, env)?)
         }
-        QueryMsg::TokensRemaining { drop_id } => {
-            to_json_binary(&query_tokens_remaining(deps, env, drop_id)?)
-        }
-        QueryMsg::IsPaused {} => to_json_binary(&query_is_paused(deps, env)?),
-        QueryMsg::Pausers {} => to_json_binary(&query_pausers(deps, env)?),
-        QueryMsg::CurrentDropNumber {} => to_json_binary(&query_current_drop_number(deps, env)?),
-        QueryMsg::AllDrops {} => to_json_binary(&query_all_drops(deps, env)?),
+        MinterQueryMsg::IsPaused {} => to_json_binary(&query_is_paused(deps, env)?),
+        MinterQueryMsg::Pausers {} => to_json_binary(&query_pausers(deps, env)?),
+        MinterQueryMsg::Extension(ext) => match ext {
+            QueryMsgExtention::CurrentDropNumber {} => {
+                to_json_binary(&query_current_drop_number(deps, env)?)
+            }
+            QueryMsgExtention::AllDrops {} => to_json_binary(&query_all_drops(deps, env)?),
+            QueryMsgExtention::Collection { drop_id } => {
+                to_json_binary(&query_collection(deps, env, drop_id)?)
+            }
+            QueryMsgExtention::Config { drop_id } => {
+                to_json_binary(&query_config(deps, env, drop_id)?)
+            }
+            QueryMsgExtention::MintedTokens { address, drop_id } => {
+                to_json_binary(&query_minted_tokens(deps, env, address, drop_id)?)
+            }
+            QueryMsgExtention::TokensRemaining { drop_id } => {
+                to_json_binary(&query_tokens_remaining(deps, env, drop_id)?)
+            }
+        },
     }
 }
 
@@ -908,19 +923,14 @@ fn query_minted_tokens(
 ) -> Result<UserDetails, ContractError> {
     let address = deps.api.addr_validate(&address)?;
     let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
-    let minted_tokens = MintedTokens::new(MINTED_TOKENS_KEY);
+    let minted_tokens = UserMintedTokens::new(MINTED_TOKENS_KEY);
     let user_details = minted_tokens.load(deps.storage, drop_id, address)?;
     Ok(user_details)
 }
 
-fn query_total_tokens_minted(
-    deps: Deps,
-    _env: Env,
-    drop_id: Option<u32>,
-) -> Result<u32, ContractError> {
-    let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
-    let minted_count = MINTED_COUNT.load(deps.storage, drop_id).unwrap_or(0);
-    Ok(minted_count)
+fn query_total_tokens_minted(deps: Deps, _env: Env) -> Result<u32, ContractError> {
+    let total_minted_count = LAST_MINTED_TOKEN_ID.load(deps.storage)?;
+    Ok(total_minted_count)
 }
 
 fn query_tokens_remaining(

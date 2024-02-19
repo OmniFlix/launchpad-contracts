@@ -2,7 +2,9 @@
 
 mod test_pause {
 
-    use cosmwasm_std::{coin, to_json_binary, Addr, BlockInfo, QueryRequest, Timestamp, WasmQuery};
+    use cosmwasm_std::{
+        coin, to_json_binary, Addr, BlockInfo, Empty, QueryRequest, Timestamp, WasmQuery,
+    };
     use cw_multi_test::Executor;
     use pauser::PauseError;
 
@@ -69,7 +71,7 @@ mod test_pause {
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
-                msg: to_json_binary(&QueryMsg::IsPaused {}).unwrap(),
+                msg: to_json_binary(&QueryMsg::<Empty>::IsPaused {}).unwrap(),
             }))
             .unwrap();
         assert_eq!(is_paused, false);
@@ -79,7 +81,7 @@ mod test_pause {
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
-                msg: to_json_binary(&QueryMsg::Pausers {}).unwrap(),
+                msg: to_json_binary(&QueryMsg::<Empty>::Pausers {}).unwrap(),
             }))
             .unwrap();
         assert_eq!(pausers.len(), 1);
@@ -120,7 +122,7 @@ mod test_pause {
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
-                msg: to_json_binary(&QueryMsg::IsPaused {}).unwrap(),
+                msg: to_json_binary(&QueryMsg::<Empty>::IsPaused {}).unwrap(),
             }))
             .unwrap();
         assert_eq!(is_paused, true);
@@ -193,7 +195,7 @@ mod test_pause {
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
-                msg: to_json_binary(&QueryMsg::IsPaused {}).unwrap(),
+                msg: to_json_binary(&QueryMsg::<Empty>::IsPaused {}).unwrap(),
             }))
             .unwrap();
         assert_eq!(is_paused, false);
@@ -227,7 +229,7 @@ mod test_pause {
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
-                msg: to_json_binary(&QueryMsg::Pausers {}).unwrap(),
+                msg: to_json_binary(&QueryMsg::<Empty>::Pausers {}).unwrap(),
             }))
             .unwrap();
         assert_eq!(pausers.len(), 1);
@@ -268,7 +270,7 @@ mod test_pause {
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
-                msg: to_json_binary(&QueryMsg::IsPaused {}).unwrap(),
+                msg: to_json_binary(&QueryMsg::<Empty>::IsPaused {}).unwrap(),
             }))
             .unwrap();
         assert_eq!(is_paused, true);

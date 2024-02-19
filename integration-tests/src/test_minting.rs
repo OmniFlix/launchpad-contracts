@@ -2,14 +2,14 @@
 mod test_minting {
 
     use cosmwasm_std::{
-        coin, coins, to_json_binary, Addr, BlockInfo, QueryRequest, Timestamp, Uint128, WasmQuery,
+        coin, coins, to_json_binary, Addr, BlockInfo, Empty, QueryRequest, Timestamp, Uint128,
+        WasmQuery,
     };
     use cw_multi_test::{BankSudo, Executor, SudoMsg};
-    use minter_types::Token;
     use minter_types::UserDetails;
+    use minter_types::{QueryMsg as MinterQueryMsg, Token};
 
-    use minter_types::QueryMsg;
-    use omniflix_minter::msg::ExecuteMsg as MinterExecuteMsg;
+    use omniflix_minter::msg::{ExecuteMsg as MinterExecuteMsg, MinterExtensionQueryMsg};
     use omniflix_minter_factory::msg::{
         ExecuteMsg as FactoryExecuteMsg, InstantiateMsg as FactoryInstantiateMsg,
     };
@@ -107,8 +107,8 @@ mod test_minting {
         let error = res.downcast_ref::<MinterContractError>().unwrap();
         assert_eq!(
             error,
-            &MinterContractError::PaymentError(cw_utils::PaymentError::MissingDenom(
-                "uflix".to_string()
+            &MinterContractError::PaymentError(cw_utils::PaymentError::ExtraDenom(
+                "incorrect_denom".to_string()
             ))
         );
 
@@ -199,9 +199,11 @@ mod test_minting {
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
-                msg: to_json_binary(&QueryMsg::MintedTokens {
-                    address: collector.clone().into_string(),
-                })
+                msg: to_json_binary::<MinterQueryMsg<MinterExtensionQueryMsg>>(
+                    &MinterQueryMsg::MintedTokens {
+                        address: collector.clone().into_string(),
+                    },
+                )
                 .unwrap(),
             }))
             .unwrap();
@@ -212,7 +214,10 @@ mod test_minting {
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
-                msg: to_json_binary(&QueryMsg::MintableTokens {}).unwrap(),
+                msg: to_json_binary(&MinterQueryMsg::Extension(
+                    omniflix_minter::msg::MinterExtensionQueryMsg::MintableTokens {},
+                ))
+                .unwrap(),
             }))
             .unwrap();
         assert_eq!(total_tokens_remaining_data.len(), 999);
@@ -257,7 +262,10 @@ mod test_minting {
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
-                msg: to_json_binary(&QueryMsg::MintableTokens {}).unwrap(),
+                msg: to_json_binary(&MinterQueryMsg::Extension(
+                    omniflix_minter::msg::MinterExtensionQueryMsg::MintableTokens {},
+                ))
+                .unwrap(),
             }))
             .unwrap();
         assert_eq!(mintable_tokens_data.len(), 0);
@@ -267,7 +275,10 @@ mod test_minting {
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
-                msg: to_json_binary(&QueryMsg::TotalTokens {}).unwrap(),
+                msg: to_json_binary(&MinterQueryMsg::Extension(
+                    omniflix_minter::msg::MinterExtensionQueryMsg::TotalTokensRemaining {},
+                ))
+                .unwrap(),
             }))
             .unwrap();
         assert_eq!(total_tokens_remaining_data, 0);
@@ -281,9 +292,11 @@ mod test_minting {
                 .wrap()
                 .query(&QueryRequest::Wasm(WasmQuery::Smart {
                     contract_addr: minter_address.clone(),
-                    msg: to_json_binary(&QueryMsg::MintedTokens {
-                        address: Addr::unchecked(format!("{}{}", collector, i)).into_string(),
-                    })
+                    msg: to_json_binary::<MinterQueryMsg<MinterExtensionQueryMsg>>(
+                        &MinterQueryMsg::MintedTokens {
+                            address: Addr::unchecked(format!("{}{}", collector, i)).to_string(),
+                        },
+                    )
                     .unwrap(),
                 }))
                 .unwrap();
@@ -446,7 +459,7 @@ mod test_minting {
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
-                msg: to_json_binary(&QueryMsg::MintedTokens {
+                msg: to_json_binary(&MinterQueryMsg::<Empty>::MintedTokens {
                     address: "gift_recipient".to_string(),
                 })
                 .unwrap(),
@@ -459,7 +472,10 @@ mod test_minting {
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
-                msg: to_json_binary(&QueryMsg::MintableTokens {}).unwrap(),
+                msg: to_json_binary(&MinterQueryMsg::Extension(
+                    MinterExtensionQueryMsg::MintableTokens {},
+                ))
+                .unwrap(),
             }))
             .unwrap();
         assert_eq!(total_tokens_remaining_data.len(), 999);
@@ -502,7 +518,7 @@ mod test_minting {
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
-                msg: to_json_binary(&QueryMsg::MintedTokens {
+                msg: to_json_binary(&MinterQueryMsg::<Empty>::MintedTokens {
                     address: "gift_recipient".to_string(),
                 })
                 .unwrap(),
@@ -672,8 +688,8 @@ mod test_minting {
         let error = res.downcast_ref::<MinterContractError>().unwrap();
         assert_eq!(
             error,
-            &MinterContractError::PaymentError(cw_utils::PaymentError::MissingDenom(
-                "diffirent_denom".to_string()
+            &MinterContractError::PaymentError(cw_utils::PaymentError::ExtraDenom(
+                "uflix".to_string()
             ))
         );
         // Try minting round one with wrong amount

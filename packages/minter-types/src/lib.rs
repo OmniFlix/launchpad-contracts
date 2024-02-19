@@ -56,21 +56,21 @@ pub struct Token {
 
 #[cw_serde]
 #[derive(QueryResponses)]
-pub enum QueryMsg {
+pub enum QueryMsg<T> {
     #[returns(CollectionDetails)]
     Collection {},
     #[returns(Config)]
     Config {},
-    #[returns(Vec<Token>)]
-    MintableTokens {},
     #[returns(UserDetails)]
     MintedTokens { address: String },
-    #[returns(u32)]
-    TotalTokens {},
     #[returns(bool)]
     IsPaused {},
     #[returns(Vec<Addr>)]
     Pausers {},
+    #[returns(u32)]
+    Extension(T),
+    #[returns(u32)]
+    TotalMintedCount {},
 }
 
 #[cw_serde]

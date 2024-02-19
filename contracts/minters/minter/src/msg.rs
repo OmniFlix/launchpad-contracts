@@ -37,3 +37,8 @@ pub enum ExecuteMsg {
     },
     PurgeDenom {},
 }
+#[cw_serde]
+pub enum MinterExtensionQueryMsg {
+    MintableTokens {},
+    TotalTokensRemaining {},
+}

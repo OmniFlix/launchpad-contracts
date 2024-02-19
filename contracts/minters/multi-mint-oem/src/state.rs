@@ -18,11 +18,11 @@ pub struct DropParams {
 }
 pub const DROPS: Map<DropID, DropParams> = Map::new("editions");
 
-pub struct MintedTokens<'a>(Map<'a, (DropID, Addr), UserDetails>);
+pub struct UserMintedTokens<'a>(Map<'a, (DropID, Addr), UserDetails>);
 
-impl<'a> MintedTokens<'a> {
+impl<'a> UserMintedTokens<'a> {
     pub const fn new(storage_key: &'a str) -> Self {
-        MintedTokens(Map::new(storage_key))
+        UserMintedTokens(Map::new(storage_key))
     }
 
     pub fn load(

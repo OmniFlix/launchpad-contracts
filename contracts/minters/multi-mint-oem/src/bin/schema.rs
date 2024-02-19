@@ -1,8 +1,8 @@
 use cosmwasm_schema::write_api;
 
-use multi_mint_open_edition_minter_types::QueryMsg;
+use minter_types::QueryMsg;
 
-use omniflix_multi_mint_open_edition_minter::msg::ExecuteMsg;
+use omniflix_multi_mint_open_edition_minter::msg::{ExecuteMsg, QueryMsgExtention};
 
 use omniflix_open_edition_minter_factory::msg::OpenEditionMinterCreateMsg;
 
@@ -10,6 +10,6 @@ fn main() {
     write_api! {
         instantiate: OpenEditionMinterCreateMsg,
         execute: ExecuteMsg,
-        query: QueryMsg,
+        query: QueryMsg<QueryMsgExtention>,
     }
 }

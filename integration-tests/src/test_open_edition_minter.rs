@@ -14,7 +14,8 @@ mod test_open_edition_minter_creation {
 
     use crate::{setup::setup, utils::query_onft_collection};
 
-    use open_edition_minter_types::QueryMsg as OpenEditionMinterQueryMsg;
+    use minter_types::QueryMsg as OpenEditionMinterQueryMsg;
+    use omniflix_open_edition_minter::msg::OEMQueryExtension;
 
     use omniflix_open_edition_minter::error::ContractError as OpenEditionMinterError;
 
@@ -273,12 +274,12 @@ mod test_open_edition_minter_creation {
         // We are collecting fee as expected
         assert_eq!(uflix_after - uflix_before, Uint128::from(1000000u128));
 
-        // Query the minter
-        let query_msg = OpenEditionMinterQueryMsg::Config {};
-
         let config_res: Config = app
             .wrap()
-            .query_wasm_smart(open_edition_minter_address.clone(), &query_msg)
+            .query_wasm_smart(
+                open_edition_minter_address.clone(),
+                &OpenEditionMinterQueryMsg::<OEMQueryExtension>::Config {},
+            )
             .unwrap();
         assert_eq!(
             config_res,
@@ -299,7 +300,7 @@ mod test_open_edition_minter_creation {
         );
 
         // Query the minter
-        let query_msg = OpenEditionMinterQueryMsg::TokensRemaining {};
+        let query_msg = OpenEditionMinterQueryMsg::Extension(OEMQueryExtension::TokensRemaining {});
 
         let tokens_remaining_res: u32 = app
             .wrap()
@@ -309,7 +310,7 @@ mod test_open_edition_minter_creation {
         assert_eq!(tokens_remaining_res, 1000);
 
         // Query the minter
-        let query_msg = OpenEditionMinterQueryMsg::TotalMintedCount {};
+        let query_msg = OpenEditionMinterQueryMsg::<OEMQueryExtension>::TotalMintedCount {};
 
         let total_minted_count_res: u32 = app
             .wrap()
@@ -319,7 +320,7 @@ mod test_open_edition_minter_creation {
         assert_eq!(total_minted_count_res, 0);
 
         // Query the minter
-        let query_msg = OpenEditionMinterQueryMsg::Collection {};
+        let query_msg = OpenEditionMinterQueryMsg::<OEMQueryExtension>::Collection {};
 
         let collection_res: CollectionDetails = app
             .wrap()

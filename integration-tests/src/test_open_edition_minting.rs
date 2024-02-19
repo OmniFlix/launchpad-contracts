@@ -4,11 +4,10 @@ mod test_open_edition_minter_minting {
     use cosmwasm_std::{coin, coins, Addr, BlockInfo, Coin, Timestamp, Uint128};
 
     use cw_multi_test::{BankSudo, Executor, SudoMsg};
-    use minter_types::{CollectionDetails, UserDetails};
+    use minter_types::{CollectionDetails, QueryMsg, UserDetails};
     use omniflix_open_edition_minter_factory::msg::{
         ExecuteMsg as OpenEditionMinterFactoryExecuteMsg,
         InstantiateMsg as OpenEditionMinterFactoryInstantiateMsg, OpenEditionMinterCreateMsg,
-        OpenEditionMinterInitExtention,
     };
 
     use crate::utils::{
@@ -17,9 +16,10 @@ mod test_open_edition_minter_minting {
 
     use crate::{setup::setup, utils::query_onft_collection};
 
-    use omniflix_open_edition_minter::msg::ExecuteMsg as OpenEditionMinterExecuteMsg;
-
-    use open_edition_minter_types::QueryMsg as OpenEditionMinterQueryMsg;
+    use omniflix_open_edition_minter::msg::{
+        ExecuteMsg as OpenEditionMinterExecuteMsg, OEMQueryExtension,
+    };
+    type OpenEditionMinterQueryMsg = QueryMsg<OEMQueryExtension>;
 
     use omniflix_open_edition_minter::error::ContractError as OpenEditionMinterError;
 
@@ -113,8 +113,8 @@ mod test_open_edition_minter_minting {
         let error = err.downcast_ref::<OpenEditionMinterError>().unwrap();
         assert_eq!(
             error,
-            &OpenEditionMinterError::PaymentError(cw_utils::PaymentError::MissingDenom(
-                "uflix".to_string()
+            &OpenEditionMinterError::PaymentError(cw_utils::PaymentError::ExtraDenom(
+                "incorrect_denom".to_string()
             ))
         );
 
@@ -211,7 +211,7 @@ mod test_open_edition_minter_minting {
             "token_name # 1".to_string()
         );
         //     Query minter
-        let query_msg = OpenEditionMinterQueryMsg::TokensRemaining {};
+        let query_msg = OpenEditionMinterQueryMsg::Extension(OEMQueryExtension::TokensRemaining {});
         let res: u32 = app
             .wrap()
             .query_wasm_smart(Addr::unchecked(minter_address.clone()), &query_msg)
@@ -258,7 +258,7 @@ mod test_open_edition_minter_minting {
         }
 
         // Query minter
-        let query_msg = OpenEditionMinterQueryMsg::TokensRemaining {};
+        let query_msg = OpenEditionMinterQueryMsg::Extension(OEMQueryExtension::TokensRemaining {});
         let res: u32 = app
             .wrap()
             .query_wasm_smart(Addr::unchecked(minter_address.clone()), &query_msg)
