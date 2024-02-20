@@ -91,20 +91,20 @@ fn create_minter(
         &info.funds,
         &[nft_creation_fee.clone(), params.minter_creation_fee.clone()],
     )?;
-
-    let msgs: Vec<CosmosMsg> = vec![
-        CosmosMsg::Wasm(WasmMsg::Instantiate {
-            admin: Some(params.admin.to_string()),
-            code_id: params.minter_code_id,
-            msg: to_json_binary(&msg)?,
-            funds: vec![nft_creation_fee],
-            label: "omniflix-nft-minter".to_string(),
-        }),
-        CosmosMsg::Bank(BankMsg::Send {
+    let mut msgs = Vec::<CosmosMsg>::new();
+    msgs.push(CosmosMsg::Wasm(WasmMsg::Instantiate {
+        admin: Some(msg.init.admin.to_string()),
+        code_id: params.minter_code_id,
+        msg: to_json_binary(&msg)?,
+        funds: vec![nft_creation_fee],
+        label: "omniflix-nft-minter".to_string(),
+    }));
+    if params.minter_creation_fee.amount > Uint128::new(0) {
+        msgs.push(CosmosMsg::Bank(BankMsg::Send {
             amount: vec![params.minter_creation_fee],
             to_address: params.fee_collector_address.to_string(),
-        }),
-    ];
+        }));
+    }
     let res = Response::new()
         .add_messages(msgs)
         .add_attribute("action", "create_minter");
@@ -425,7 +425,7 @@ mod tests {
         assert_eq!(
             res.messages[0].msg,
             CosmosMsg::Wasm(WasmMsg::Instantiate {
-                admin: Some("creator".to_string()),
+                admin: Some("admin".to_string()),
                 code_id: 1,
                 msg: to_json_binary(&CreateMinterMsg {
                     collection_details: collection_details.clone(),

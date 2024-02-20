@@ -7,7 +7,7 @@ use cosmwasm_std::{
     to_json_binary, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response,
     StdResult, WasmMsg,
 };
-use cw_utils::maybe_addr;
+use cw_utils::{may_pay, maybe_addr};
 
 use whitelist_types::InstantiateMsg as WhitelistInstantiateMsg;
 
@@ -63,13 +63,17 @@ pub fn create_whitelist(
     let whitelist_code_id = params.whitelist_code_id;
     let mut messages: Vec<CosmosMsg> = vec![];
 
-    if [creation_fee.clone()].to_vec() != info.funds {
+    let amount = may_pay(&info, &creation_fee.clone().denom)?;
+
+    if amount != creation_fee.amount {
         return Err(ContractError::MissingCreationFee {});
     }
-    messages.push(CosmosMsg::Bank(BankMsg::Send {
-        to_address: fee_collector_address.to_string(),
-        amount: vec![creation_fee],
-    }));
+    if !creation_fee.amount.is_zero() {
+        messages.push(CosmosMsg::Bank(BankMsg::Send {
+            to_address: fee_collector_address.to_string(),
+            amount: vec![creation_fee],
+        }));
+    }
     messages.push(CosmosMsg::Wasm(WasmMsg::Instantiate {
         admin: None,
         code_id: whitelist_code_id,

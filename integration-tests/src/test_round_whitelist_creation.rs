@@ -70,7 +70,9 @@ mod test_round_whitelist_creation {
             .unwrap();
         assert_eq!(
             error,
-            &RoundWhitelistFactoryContractError::MissingCreationFee {}
+            &RoundWhitelistFactoryContractError::PaymentError(cw_utils::PaymentError::ExtraDenom(
+                "diffirent_denom".to_string()
+            ))
         );
 
         // Send more than fee amount

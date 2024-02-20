@@ -1,19 +1,26 @@
-use cosmwasm_std::Coin;
+use cosmwasm_std::{Coin, Uint128};
 
 use crate::error::ContractError;
 
 pub fn check_payment(sent_funds: &[Coin], expected_funds: &[Coin]) -> Result<(), ContractError> {
+    // Remove 0 amounts
+    let expected_funds = expected_funds
+        .iter()
+        .filter(|coin| coin.amount > Uint128::zero())
+        .cloned() // Clone the elements
+        .collect::<Vec<_>>();
+
     // Check length
     if sent_funds.len() > expected_funds.len() {
         return Err(ContractError::IncorrectFunds {
-            expected: expected_funds.to_vec(),
+            expected: expected_funds.clone().to_vec(),
             actual: sent_funds.to_vec(),
         });
     }
 
     let mut mut_sent_funds = sent_funds.to_vec(); // Create a mutable copy
 
-    for expected in expected_funds {
+    for expected in expected_funds.clone() {
         if let Some(sent_index) = mut_sent_funds
             .iter()
             .position(|sent| expected.denom == sent.denom)
@@ -110,5 +117,10 @@ mod tests {
         ];
         let res = check_payment(&sent_funds, &expected_funds);
         assert!(res.is_err());
+
+        let sent_funds = vec![coin(1100, "uluna")];
+        let expected_funds = vec![coin(0, "something"), coin(1100, "uluna")];
+        let res = check_payment(&sent_funds, &expected_funds);
+        assert!(res.is_ok());
     }
 }
