@@ -486,10 +486,6 @@ pub fn execute_update_mint_price(
     if info.sender != config.admin {
         return Err(ContractError::Unauthorized {});
     }
-    // Check if trading has started
-    if env.block.time > config.start_time {
-        return Err(ContractError::MintingAlreadyStarted {});
-    }
     config.mint_price = mint_price.clone();
 
     CONFIG.save(deps.storage, &config)?;
