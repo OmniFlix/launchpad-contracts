@@ -52,4 +52,5 @@ cw-utils             = { workspace = true }
 serde = { workspace = true }
 open-edition-minter-types = {workspace = true}
 minter-types = {workspace = true}
+factory-types = {workspace = true}
 

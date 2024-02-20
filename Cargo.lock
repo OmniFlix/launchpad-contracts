@@ -553,6 +553,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "factory-types"
+version = "0.0.1"
+dependencies = [
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cw-storage-plus 1.2.0",
+ "cw-utils 1.0.3",
+ "cw721-base 0.18.0",
+ "omniflix-std",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "ff"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -640,6 +654,7 @@ dependencies = [
  "cw-utils 1.0.3",
  "cw2 1.1.1",
  "derivative",
+ "factory-types",
  "itertools 0.12.0",
  "minter-types",
  "omniflix-minter",
@@ -776,6 +791,7 @@ dependencies = [
  "cw-storage-plus 1.2.0",
  "cw-utils 1.0.3",
  "cw2 1.1.1",
+ "factory-types",
  "minter-types",
  "omniflix-std",
  "serde",
@@ -841,6 +857,7 @@ dependencies = [
  "cw-storage-plus 1.2.0",
  "cw-utils 1.0.3",
  "cw2 1.1.1",
+ "factory-types",
  "minter-types",
  "omniflix-std",
  "open-edition-minter-types",

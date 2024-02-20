@@ -4,6 +4,7 @@ mod test_open_edition_minter_creation {
     use cosmwasm_std::{coin, Addr, Coin, Decimal, Timestamp, Uint128};
 
     use cw_multi_test::Executor;
+    use factory_types::CustomPaymentError;
     use minter_types::{CollectionDetails, Config};
     use omniflix_open_edition_minter_factory::msg::{
         ExecuteMsg as OpenEditionMinterFactoryExecuteMsg,
@@ -73,7 +74,7 @@ mod test_open_edition_minter_creation {
         let err = res.source().unwrap();
         let error = err.downcast_ref::<OpenEditionMinterFactoryError>().unwrap();
         assert_eq!(
-            OpenEditionMinterFactoryError::IncorrectFunds {
+            OpenEditionMinterFactoryError::PaymentError(CustomPaymentError::InsufficientFunds {
                 expected: [
                     Coin {
                         denom: "uflix".to_string(),
@@ -86,7 +87,7 @@ mod test_open_edition_minter_creation {
                 ]
                 .to_vec(),
                 actual: vec![]
-            },
+            }),
             *error
         );
 
@@ -102,7 +103,8 @@ mod test_open_edition_minter_creation {
         let err = res.source().unwrap();
         let error = err.downcast_ref::<OpenEditionMinterFactoryError>().unwrap();
         assert_eq!(
-            OpenEditionMinterFactoryError::IncorrectFunds {
+            *error,
+            OpenEditionMinterFactoryError::PaymentError(CustomPaymentError::InsufficientFunds {
                 expected: [
                     Coin {
                         denom: "uflix".to_string(),
@@ -114,9 +116,8 @@ mod test_open_edition_minter_creation {
                     }
                 ]
                 .to_vec(),
-                actual: vec![coin(1000000, "incorrect_denom")]
-            },
-            *error
+                actual: vec![coin(1000000, "incorrect_denom"),]
+            }),
         );
 
         // Send incorrect amount
@@ -131,7 +132,8 @@ mod test_open_edition_minter_creation {
         let err = res.source().unwrap();
         let error = err.downcast_ref::<OpenEditionMinterFactoryError>().unwrap();
         assert_eq!(
-            OpenEditionMinterFactoryError::IncorrectFunds {
+            *error,
+            OpenEditionMinterFactoryError::PaymentError(CustomPaymentError::InsufficientFunds {
                 expected: [
                     Coin {
                         denom: "uflix".to_string(),
@@ -143,9 +145,8 @@ mod test_open_edition_minter_creation {
                     }
                 ]
                 .to_vec(),
-                actual: vec![coin(1000000, "uflix")]
-            },
-            *error
+                actual: vec![coin(1000000, "uflix"),]
+            }),
         );
 
         // Send zero token limit

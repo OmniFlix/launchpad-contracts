@@ -51,4 +51,5 @@ cw-storage-plus      = { workspace = true }
 cw-utils             = { workspace = true }
 serde = { workspace = true }
 minter-types = {workspace = true}
+factory-types = {workspace = true}
 

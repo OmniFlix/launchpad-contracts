@@ -3,7 +3,6 @@ use crate::msg::{
     ExecuteMsg, InstantiateMsg, OpenEditionMinterCreateMsg, ParamsResponse, QueryMsg,
 };
 use crate::state::{Params, PARAMS};
-use crate::utils::check_payment;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
@@ -11,6 +10,7 @@ use cosmwasm_std::{
     StdResult, Uint128, WasmMsg,
 };
 use cw_utils::maybe_addr;
+use factory_types::check_payment;
 use omniflix_std::types::omniflix::onft::v1beta1::OnftQuerier;
 use std::str::FromStr;
 #[cfg(not(test))]
@@ -205,6 +205,7 @@ mod tests {
         testing::{mock_dependencies, mock_env, mock_info},
         Addr, Decimal, Timestamp,
     };
+    use factory_types::CustomPaymentError;
     use minter_types::CollectionDetails;
 
     #[test]
@@ -310,7 +311,7 @@ mod tests {
         let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
         assert_eq!(
             res,
-            ContractError::IncorrectFunds {
+            ContractError::PaymentError(CustomPaymentError::InsufficientFunds {
                 expected: vec![
                     Coin {
                         amount: Uint128::new(100_000_000),
@@ -334,8 +335,8 @@ mod tests {
                         amount: Uint128::new(100),
                         denom: "additional".to_string(),
                     },
-                ],
-            }
+                ]
+            })
         );
 
         // Missing funds
@@ -369,7 +370,7 @@ mod tests {
         let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
         assert_eq!(
             res,
-            ContractError::IncorrectFunds {
+            ContractError::PaymentError(CustomPaymentError::InsufficientFunds {
                 expected: vec![
                     Coin {
                         amount: Uint128::new(100_000_000),
@@ -383,8 +384,8 @@ mod tests {
                 actual: vec![Coin {
                     amount: Uint128::new(100_000_000),
                     denom: "uflix".to_string(),
-                },],
-            }
+                },]
+            })
         );
 
         // Happy path

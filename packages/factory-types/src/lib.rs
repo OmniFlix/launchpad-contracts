@@ -1,8 +1,22 @@
+use cosmwasm_std::{Addr, StdError, Storage};
 use cosmwasm_std::{Coin, Uint128};
+use cw_storage_plus::Item;
+use thiserror::Error;
 
-use crate::error::ContractError;
-
-pub fn check_payment(sent_funds: &[Coin], expected_funds: &[Coin]) -> Result<(), ContractError> {
+#[derive(Error, Debug, PartialEq)]
+pub enum CustomPaymentError {
+    #[error(transparent)]
+    Std(#[from] StdError),
+    #[error("Insufficient funds sent")]
+    InsufficientFunds {
+        expected: Vec<Coin>,
+        actual: Vec<Coin>,
+    },
+}
+pub fn check_payment(
+    sent_funds: &[Coin],
+    expected_funds: &[Coin],
+) -> Result<(), CustomPaymentError> {
     // Remove 0 amounts
     let expected_funds = expected_funds
         .iter()
@@ -12,8 +26,8 @@ pub fn check_payment(sent_funds: &[Coin], expected_funds: &[Coin]) -> Result<(),
 
     // Check length
     if sent_funds.len() > expected_funds.len() {
-        return Err(ContractError::IncorrectFunds {
-            expected: expected_funds.clone().to_vec(),
+        return Err(CustomPaymentError::InsufficientFunds {
+            expected: expected_funds.to_vec(),
             actual: sent_funds.to_vec(),
         });
     }
@@ -27,7 +41,7 @@ pub fn check_payment(sent_funds: &[Coin], expected_funds: &[Coin]) -> Result<(),
         {
             let sent = &mut mut_sent_funds[sent_index];
             if expected.amount > sent.amount {
-                return Err(ContractError::IncorrectFunds {
+                return Err(CustomPaymentError::InsufficientFunds {
                     expected: expected_funds.to_vec(),
                     actual: sent_funds.to_vec(),
                 });
@@ -35,7 +49,7 @@ pub fn check_payment(sent_funds: &[Coin], expected_funds: &[Coin]) -> Result<(),
                 sent.amount = sent.amount.checked_sub(expected.amount).unwrap();
             }
         } else {
-            return Err(ContractError::IncorrectFunds {
+            return Err(CustomPaymentError::InsufficientFunds {
                 expected: expected_funds.to_vec(),
                 actual: sent_funds.to_vec(),
             });

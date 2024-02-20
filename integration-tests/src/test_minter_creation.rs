@@ -6,6 +6,7 @@ mod test_minter_creation {
         coin, to_json_binary, Addr, Decimal, QueryRequest, Timestamp, Uint128, WasmQuery,
     };
     use cw_multi_test::Executor;
+    use factory_types::CustomPaymentError;
     use minter_types::Token;
 
     use minter_types::Config as MinterConfig;
@@ -72,10 +73,10 @@ mod test_minter_creation {
         let error = res.downcast_ref::<MinterFactoryError>().unwrap();
         assert_eq!(
             error,
-            &MinterFactoryError::IncorrectFunds {
+            &MinterFactoryError::PaymentError(CustomPaymentError::InsufficientFunds {
                 expected: [coin(1000000, "uflix"), coin(1000000, "uflix")].to_vec(),
                 actual: [].to_vec()
-            }
+            })
         );
         // Send incorrect denom
         let error = app
@@ -91,10 +92,10 @@ mod test_minter_creation {
         let error = res.downcast_ref::<MinterFactoryError>().unwrap();
         assert_eq!(
             error,
-            &MinterFactoryError::IncorrectFunds {
+            &MinterFactoryError::PaymentError(CustomPaymentError::InsufficientFunds {
                 expected: [coin(1000000, "uflix"), coin(1000000, "uflix")].to_vec(),
                 actual: [coin(1000000, "diffirent_denom")].to_vec()
-            }
+            })
         );
         // Send correct denom incorrect amount
         let error = app
@@ -110,10 +111,10 @@ mod test_minter_creation {
         let error = res.downcast_ref::<MinterFactoryError>().unwrap();
         assert_eq!(
             error,
-            &MinterFactoryError::IncorrectFunds {
+            &MinterFactoryError::PaymentError(CustomPaymentError::InsufficientFunds {
                 expected: [coin(1000000, "uflix"), coin(1000000, "uflix")].to_vec(),
                 actual: [coin(1000000, "uflix")].to_vec()
-            }
+            })
         );
 
         // Send 0 num tokens
