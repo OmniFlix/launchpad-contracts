@@ -942,10 +942,12 @@ fn query_tokens_remaining(
     let drop_params = DROPS.load(deps.storage, drop_id)?;
     let config = drop_params.config;
     let minted_count = MINTED_COUNT.load(deps.storage, drop_id).unwrap_or(0);
-    // TODO : This is not the correct way to calculate the remaining tokens
-    // If the token limit is not set then we should return error
-    let tokens_remaining = config.token_limit.unwrap_or(u32::MAX) - minted_count;
-    Ok(tokens_remaining)
+    if let Some(token_limit) = config.token_limit {
+        let tokens_remaining = token_limit - minted_count;
+        return Ok(tokens_remaining);
+    } else {
+        return Err(ContractError::TokenLimitNotSet {});
+    }
 }
 
 fn query_is_paused(deps: Deps, _env: Env) -> Result<bool, ContractError> {
