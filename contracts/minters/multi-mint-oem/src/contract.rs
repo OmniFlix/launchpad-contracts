@@ -758,6 +758,9 @@ pub fn execute_update_royalty_receivers(
     // Check if sender is admin
     let current_drop_id = CURRENT_DROP_ID.load(deps.storage)?;
     let drop_params = DROPS.load(deps.storage, current_drop_id)?;
+    if info.sender != drop_params.config.admin {
+        return Err(ContractError::Unauthorized {});
+    }
 
     // TODO:
     // This update does not happening inside drops
