@@ -38,15 +38,17 @@ pub struct TokenDetails {
 #[cw_serde]
 pub struct Config {
     pub per_address_limit: u32,
-
-    pub admin: Addr,
-    pub payment_collector: Addr,
     pub start_time: Timestamp,
     pub end_time: Option<Timestamp>,
     pub mint_price: Coin,
-
     pub whitelist_address: Option<Addr>,
     pub num_tokens: Option<u32>,
+}
+
+#[cw_serde]
+pub struct AuthDetails {
+    pub admin: Addr,
+    pub payment_collector: Addr,
 }
 
 #[cw_serde]

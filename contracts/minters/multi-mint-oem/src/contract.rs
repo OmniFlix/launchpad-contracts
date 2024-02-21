@@ -6,17 +6,18 @@ use cosmwasm_std::{
 };
 use cw_utils::{may_pay, maybe_addr, must_pay, nonpayable};
 use minter_types::{
-    generate_create_denom_msg, generate_mint_message, CollectionDetails, Config,
+    generate_create_denom_msg, generate_mint_message, AuthDetails, CollectionDetails, Config,
     QueryMsg as MinterQueryMsg, Token, TokenDetails, UserDetails,
 };
+use omniflix_std::types::cosmos::auth;
 use pauser::{PauseState, PAUSED_KEY, PAUSERS_KEY};
 use std::str::FromStr;
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, QueryMsgExtension};
 use crate::state::{
-    DropParams, UserMintedTokens, CURRENT_DROP_ID, DROPS, DROP_MINTED_COUNT, LAST_MINTED_TOKEN_ID,
-    USER_MINTED_TOKENS_KEY,
+    DropParams, UserMintedTokens, AUTH_DETAILS, CURRENT_DROP_ID, DROPS, DROP_MINTED_COUNT,
+    LAST_MINTED_TOKEN_ID, USER_MINTED_TOKENS_KEY,
 };
 
 use cw2::set_contract_version;
@@ -133,9 +134,7 @@ pub fn instantiate(
 
     let config = Config {
         per_address_limit: msg.init.per_address_limit,
-        payment_collector,
         start_time: msg.init.start_time,
-        admin: admin.clone(),
         mint_price: msg.init.mint_price,
         whitelist_address: maybe_addr(deps.api, msg.init.whitelist_address.clone())?,
         end_time: msg.init.end_time,
@@ -147,6 +146,10 @@ pub fn instantiate(
 
     let collection_details = msg.collection_details.clone();
     let token_details = msg.token_details.clone();
+    let auth_details = AuthDetails {
+        admin: admin.clone(),
+        payment_collector: payment_collector.clone(),
+    };
 
     // Save the collection as drop 1
     let drop_params = DropParams {
@@ -159,6 +162,7 @@ pub fn instantiate(
     CURRENT_DROP_ID.save(deps.storage, &1)?;
     DROP_MINTED_COUNT.save(deps.storage, 1, &0)?;
     LAST_MINTED_TOKEN_ID.save(deps.storage, &0)?;
+    AUTH_DETAILS.save(deps.storage, &auth_details)?;
     let nft_creation_fee = Coin {
         denom: creation_fee_denom,
         amount: creation_fee_amount,
@@ -239,6 +243,7 @@ pub fn execute_mint(
     let config = drop_params.config;
     let collection_details = drop_params.collection_details;
     let token_details = drop_params.token_details;
+    let auth_details = AUTH_DETAILS.load(deps.storage)?;
     // Check if any token limit set and if it is reached
     if let Some(num_tokens) = config.num_tokens {
         if DROP_MINTED_COUNT.load(deps.storage, drop_id).unwrap_or(0) >= num_tokens {
@@ -328,7 +333,7 @@ pub fn execute_mint(
         });
     }
     // Get the payment collector address
-    let payment_collector = config.payment_collector;
+    let payment_collector = auth_details.payment_collector;
 
     let mut drop_minted_count = DROP_MINTED_COUNT.load(deps.storage, drop_id)?;
     drop_minted_count += 1;
@@ -384,9 +389,9 @@ pub fn execute_mint_admin(
     let config = drop_params.config;
     let collection_details = drop_params.collection_details;
     let token_details = drop_params.token_details;
-
-    // Check if sender is admin
-    if info.sender != config.admin {
+    let auth_details = AUTH_DETAILS.load(deps.storage)?;
+    // Check if admin
+    if info.sender != auth_details.admin {
         return Err(ContractError::Unauthorized {});
     }
     // Check if any token left for current drop
@@ -458,11 +463,12 @@ pub fn execute_update_royalty_ratio(
 ) -> Result<Response, ContractError> {
     let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
     let mut drop_params = DROPS.load(deps.storage, drop_id)?;
-
+    let auth_details = AUTH_DETAILS.load(deps.storage)?;
     // Check if sender is admin
-    if info.sender != drop_params.config.admin {
+    if info.sender != auth_details.admin {
         return Err(ContractError::Unauthorized {});
     }
+
     // Check if ratio is decimal number
     let ratio = Decimal::from_str(&ratio)?;
 
@@ -490,9 +496,10 @@ pub fn execute_update_mint_price(
 ) -> Result<Response, ContractError> {
     let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
     let mut drop_params = DROPS.load(deps.storage, drop_id)?;
+    let auth_details = AUTH_DETAILS.load(deps.storage)?;
 
     // Check if sender is admin
-    if info.sender != drop_params.config.admin {
+    if info.sender != auth_details.admin {
         return Err(ContractError::Unauthorized {});
     }
     drop_params.config.mint_price = mint_price.clone();
@@ -517,10 +524,12 @@ pub fn execute_update_whitelist_address(
     // Check if sender is admin
     let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
     let mut drop_params = DROPS.load(deps.storage, drop_id)?;
-
-    if info.sender != drop_params.config.admin {
+    let auth_details = AUTH_DETAILS.load(deps.storage)?;
+    // Check if sender is admin
+    if info.sender != auth_details.admin {
         return Err(ContractError::Unauthorized {});
     }
+
     let whitelist_address = drop_params.config.whitelist_address.clone();
 
     // Check if whitelist already active
@@ -602,8 +611,9 @@ pub fn execute_new_drop(
     // Check if sender is admin
     let current_drop_id = CURRENT_DROP_ID.load(deps.storage)?;
     let current_drop_params = DROPS.load(deps.storage, current_drop_id)?;
+    let auth_details = AUTH_DETAILS.load(deps.storage)?;
 
-    if info.sender != current_drop_params.config.admin {
+    if info.sender != auth_details.admin {
         return Err(ContractError::Unauthorized {});
     }
     // Check if token limit is 0
@@ -660,7 +670,9 @@ pub fn execute_update_royalty_receivers(
     // Check if sender is admin
     let current_drop_id = CURRENT_DROP_ID.load(deps.storage)?;
     let drop_params = DROPS.load(deps.storage, current_drop_id)?;
-    if info.sender != drop_params.config.admin {
+    let auth_details = AUTH_DETAILS.load(deps.storage)?;
+    // Check if sender is admin
+    if info.sender != auth_details.admin {
         return Err(ContractError::Unauthorized {});
     }
 
@@ -690,7 +702,8 @@ pub fn execute_update_denom(
 ) -> Result<Response, ContractError> {
     let current_drop_id = CURRENT_DROP_ID.load(deps.storage)?;
     let current_drop_params = DROPS.load(deps.storage, current_drop_id)?;
-    let admin = current_drop_params.config.admin;
+    let auth_details = AUTH_DETAILS.load(deps.storage)?;
+    let admin = auth_details.admin;
     // Current drops admin can update the denom
     if info.sender != admin {
         return Err(ContractError::Unauthorized {});
@@ -729,7 +742,9 @@ fn execute_purge_denom(
 ) -> Result<Response, ContractError> {
     let current_drop_id = CURRENT_DROP_ID.load(deps.storage)?;
     let current_drop_params = DROPS.load(deps.storage, current_drop_id)?;
-    if current_drop_params.config.admin != info.sender {
+    let auth_details = AUTH_DETAILS.load(deps.storage)?;
+
+    if auth_details.admin != info.sender {
         return Err(ContractError::Unauthorized {});
     }
 

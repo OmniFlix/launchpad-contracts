@@ -3,11 +3,12 @@ use cosmwasm_std::{Addr, StdError, Storage};
 use cw_storage_plus::{Item, Map};
 use std::u32;
 
-use minter_types::{CollectionDetails, Config, TokenDetails, UserDetails};
+use minter_types::{AuthDetails, CollectionDetails, Config, TokenDetails, UserDetails};
 
 pub const DROP_MINTED_COUNT: Map<DropID, u32> = Map::new("drop_minted_count");
 pub const CURRENT_DROP_ID: Item<u32> = Item::new("current_edition");
 pub const LAST_MINTED_TOKEN_ID: Item<u32> = Item::new("last_minted_token_id");
+pub const AUTH_DETAILS: Item<AuthDetails> = Item::new("auth_details");
 
 pub type DropID = u32;
 #[cw_serde]

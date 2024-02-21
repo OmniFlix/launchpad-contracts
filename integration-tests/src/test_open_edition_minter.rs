@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod test_open_edition_minter_creation {
 
-    use cosmwasm_std::{coin, Addr, Coin, Decimal, Timestamp, Uint128};
+    use cosmwasm_std::{coin, Coin, Decimal, Timestamp, Uint128};
 
     use cw_multi_test::Executor;
     use factory_types::CustomPaymentError;
@@ -287,8 +287,6 @@ mod test_open_edition_minter_creation {
         assert_eq!(
             config_res,
             Config {
-                admin: Addr::unchecked(creator.clone()),
-                payment_collector: Addr::unchecked(creator.clone()),
                 end_time: Some(Timestamp::from_nanos(2_000_000_000)),
                 start_time: Timestamp::from_nanos(1_000_000_000),
                 mint_price: Coin {

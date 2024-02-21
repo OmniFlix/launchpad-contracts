@@ -6,14 +6,17 @@ use cosmwasm_std::{
 };
 use cw_utils::{may_pay, maybe_addr, must_pay, nonpayable};
 use minter_types::{
-    generate_create_denom_msg, generate_mint_message, CollectionDetails, Config, QueryMsg, Token,
-    TokenDetails, UserDetails,
+    generate_create_denom_msg, generate_mint_message, AuthDetails, CollectionDetails, Config,
+    QueryMsg, Token, TokenDetails, UserDetails,
 };
+use omniflix_std::types::cosmos::auth;
 use std::str::FromStr;
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, OEMQueryExtension};
-use crate::state::{last_token_id, COLLECTION, CONFIG, MINTED_COUNT, MINTED_TOKENS, TOKEN_DETAILS};
+use crate::state::{
+    last_token_id, AUTH_DETAILS, COLLECTION, CONFIG, MINTED_COUNT, MINTED_TOKENS, TOKEN_DETAILS,
+};
 use cw2::set_contract_version;
 use omniflix_open_edition_minter_factory::msg::{
     OpenEditionMinterCreateMsg, ParamsResponse, QueryMsg as OpenEditionMinterFactoryQueryMsg,
@@ -128,17 +131,20 @@ pub fn instantiate(
 
     let config = Config {
         per_address_limit: msg.init.per_address_limit,
-        payment_collector,
         start_time: msg.init.start_time,
-        admin: admin.clone(),
         mint_price: msg.init.mint_price,
         whitelist_address: maybe_addr(deps.api, msg.init.whitelist_address.clone())?,
         end_time: msg.init.end_time,
         num_tokens: msg.init.num_tokens,
     };
+    let auth_details = AuthDetails {
+        admin: admin.clone(),
+        payment_collector: payment_collector.clone(),
+    };
 
     CONFIG.save(deps.storage, &config)?;
     MINTED_COUNT.save(deps.storage, &0)?;
+    AUTH_DETAILS.save(deps.storage, &auth_details)?;
 
     let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
     pause_state.set_pausers(deps.storage, info.sender.clone(), vec![admin.clone()])?;
@@ -208,6 +214,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     pause_state.error_if_paused(deps.storage)?;
 
     let config = CONFIG.load(deps.storage)?;
+    let auth_details = AUTH_DETAILS.load(deps.storage)?;
     // Check if any token limit set and if it is reached
     if let Some(num_tokens) = config.num_tokens {
         if MINTED_COUNT.load(deps.storage)? >= num_tokens {
@@ -290,7 +297,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
         });
     }
     // Get the payment collector address
-    let payment_collector = config.payment_collector;
+    let payment_collector = auth_details.payment_collector;
     let collection = COLLECTION.load(deps.storage)?;
     let token_details = TOKEN_DETAILS.load(deps.storage)?;
 
@@ -349,9 +356,10 @@ pub fn execute_mint_admin(
     pause_state.error_if_paused(deps.storage)?;
     let collection = COLLECTION.load(deps.storage)?;
     let token_details = TOKEN_DETAILS.load(deps.storage)?;
+    let auth_details = AUTH_DETAILS.load(deps.storage)?;
 
     // Check if sender is admin
-    if info.sender != config.admin {
+    if info.sender != auth_details.admin {
         return Err(ContractError::Unauthorized {});
     }
     // Check if any token limit set and if it is reached
@@ -409,7 +417,9 @@ pub fn execute_burn_remaining_tokens(
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
     let config = CONFIG.load(deps.storage)?;
-    if info.sender != config.admin {
+    let auth_details = AUTH_DETAILS.load(deps.storage)?;
+    // Check if admin
+    if info.sender != auth_details.admin {
         return Err(ContractError::Unauthorized {});
     }
     // We cannot burn open edition minter but we can set token limit to 0
@@ -430,7 +440,9 @@ pub fn execute_update_royalty_ratio(
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
     let config = CONFIG.load(deps.storage)?;
-    if info.sender != config.admin {
+    let auth_details = AUTH_DETAILS.load(deps.storage)?;
+    // Check if admin
+    if info.sender != auth_details.admin {
         return Err(ContractError::Unauthorized {});
     }
     // Check if ratio is decimal number
@@ -458,7 +470,9 @@ pub fn execute_update_mint_price(
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
     let mut config = CONFIG.load(deps.storage)?;
-    if info.sender != config.admin {
+    let auth_details = AUTH_DETAILS.load(deps.storage)?;
+    // Check if admin
+    if info.sender != auth_details.admin {
         return Err(ContractError::Unauthorized {});
     }
     config.mint_price = mint_price.clone();
@@ -480,7 +494,9 @@ pub fn execute_update_whitelist_address(
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
     let mut config = CONFIG.load(deps.storage)?;
-    if info.sender != config.admin {
+    let auth_details = AUTH_DETAILS.load(deps.storage)?;
+    // Check if admin
+    if info.sender != auth_details.admin {
         return Err(ContractError::Unauthorized {});
     }
     // Current whitelist can not be active if we are updating it
@@ -558,7 +574,9 @@ pub fn execute_update_royalty_receivers(
     // Check if sender is admin
     let mut collection = COLLECTION.load(deps.storage)?;
     let config = CONFIG.load(deps.storage)?;
-    if info.sender != config.admin {
+    let auth_details = AUTH_DETAILS.load(deps.storage)?;
+    // Check if admin
+    if info.sender != auth_details.admin {
         return Err(ContractError::Unauthorized {});
     }
     collection.royalty_receivers = Some(receivers.clone());
@@ -592,7 +610,9 @@ pub fn execute_update_denom(
     // Check if sender is admin
     let mut collection = COLLECTION.load(deps.storage)?;
     let config = CONFIG.load(deps.storage)?;
-    if info.sender != config.admin {
+    let auth_details = AUTH_DETAILS.load(deps.storage)?;
+    // Check if admin
+    if info.sender != auth_details.admin {
         return Err(ContractError::Unauthorized {});
     }
     collection.collection_name = collection_name
@@ -625,7 +645,9 @@ fn execute_purge_denom(
     // Check if sender is admin
     let collection = COLLECTION.load(deps.storage)?;
     let config = CONFIG.load(deps.storage)?;
-    if info.sender != config.admin {
+    let auth_details = AUTH_DETAILS.load(deps.storage)?;
+    // Check if admin
+    if info.sender != auth_details.admin {
         return Err(ContractError::Unauthorized {});
     }
     let purge_msg: CosmosMsg = MsgPurgeDenom {

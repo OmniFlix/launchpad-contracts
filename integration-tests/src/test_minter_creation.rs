@@ -253,8 +253,6 @@ mod test_minter_creation {
         assert_eq!(config_data.mint_price.denom, "uflix".to_string());
         assert_eq!(config_data.start_time, Timestamp::from_nanos(1000000000));
         assert_eq!(config_data.mint_price.amount, Uint128::from(1000000u128));
-        assert_eq!(config_data.admin, Addr::unchecked("creator"));
-        assert_eq!(config_data.payment_collector, Addr::unchecked("creator"));
 
         let token_details: TokenDetails = app
             .wrap()
