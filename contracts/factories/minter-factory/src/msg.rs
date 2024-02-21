@@ -21,7 +21,6 @@ pub struct MinterInitExtention {
     pub per_address_limit: u32,
     // We expect user to send a string between 0 and 1
     // FE "0.1"
-    pub royalty_ratio: String,
     pub payment_collector: Option<String>,
     // Whitelist address if any
     pub whitelist_address: Option<String>,

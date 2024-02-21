@@ -9,7 +9,9 @@ use cosmwasm_std::{
     Response, StdResult, Uint128, WasmMsg,
 };
 use cw_utils::{may_pay, maybe_addr, must_pay, nonpayable};
-use minter_types::{generate_mint_message, CollectionDetails, QueryMsg as BaseMinterQueryMsg};
+use minter_types::{
+    generate_mint_message, CollectionDetails, QueryMsg as BaseMinterQueryMsg, TokenDetails,
+};
 use omniflix_minter_factory::msg::QueryMsg::Params as QueryFactoryParams;
 use omniflix_minter_factory::msg::{CreateMinterMsg, ParamsResponse};
 use omniflix_round_whitelist::msg::ExecuteMsg::PrivateMint;
@@ -18,7 +20,9 @@ use whitelist_types::{
 };
 
 use crate::error::ContractError;
-use crate::state::{COLLECTION, CONFIG, MINTABLE_TOKENS, MINTED_TOKENS, TOTAL_TOKENS_REMAINING};
+use crate::state::{
+    COLLECTION, CONFIG, MINTABLE_TOKENS, MINTED_TOKENS, TOKEN_DETAILS, TOTAL_TOKENS_REMAINING,
+};
 use crate::utils::{
     collect_mintable_tokens, generate_tokens, randomize_token_list, return_random_token,
 };
@@ -76,6 +80,7 @@ pub fn instantiate(
     } else {
         CREATION_FEE_DENOM.to_string()
     };
+
     let amount = must_pay(&info, &creation_fee_denom)?;
     // Exact amount must be paid
     if amount != creation_fee_amount {
@@ -104,7 +109,7 @@ pub fn instantiate(
     }
 
     // Check royalty ratio we expect decimal number
-    let royalty_ratio = Decimal::from_str(&msg.init.royalty_ratio)?;
+    let royalty_ratio = msg.token_details.royalty_ratio;
     if royalty_ratio < Decimal::zero() || royalty_ratio > Decimal::one() {
         return Err(ContractError::InvalidRoyaltyRatio {});
     }
@@ -123,43 +128,30 @@ pub fn instantiate(
     if msg.init.mint_price.amount == Uint128::new(0) {
         return Err(ContractError::InvalidMintPrice {});
     }
+
     let admin = deps.api.addr_validate(&msg.init.admin)?;
 
     let payment_collector =
-        maybe_addr(deps.api, msg.init.payment_collector.clone())?.unwrap_or(info.sender.clone());
+        maybe_addr(deps.api, msg.init.payment_collector.clone())?.unwrap_or(admin.clone());
+
     let num_tokens = msg.init.num_tokens;
 
     let config = Config {
         per_address_limit: msg.init.per_address_limit,
         payment_collector: payment_collector.clone(),
         start_time: msg.init.start_time,
-        royalty_ratio,
         admin: admin.clone(),
         mint_price: msg.init.mint_price,
         whitelist_address: maybe_addr(deps.api, msg.init.whitelist_address.clone())?,
         end_time: msg.init.end_time,
-        token_limit: Some(num_tokens),
+        num_tokens: Some(num_tokens),
     };
     CONFIG.save(deps.storage, &config)?;
 
-    let collection = CollectionDetails {
-        name: msg.collection_details.name,
-        description: msg.collection_details.description,
-        preview_uri: msg.collection_details.preview_uri,
-        schema: msg.collection_details.schema,
-        symbol: msg.collection_details.symbol,
-        id: msg.collection_details.id,
-        extensible: msg.collection_details.extensible,
-        nsfw: msg.collection_details.nsfw,
-        base_uri: msg.collection_details.base_uri,
-        uri: msg.collection_details.uri,
-        uri_hash: msg.collection_details.uri_hash,
-        data: msg.collection_details.data,
-        token_name: msg.collection_details.token_name,
-        transferable: msg.collection_details.transferable,
-        royalty_receivers: msg.collection_details.royalty_receivers,
-    };
-    COLLECTION.save(deps.storage, &collection)?;
+    let collection_details = msg.collection_details;
+    let token_details = msg.token_details;
+    COLLECTION.save(deps.storage, &collection_details.clone())?;
+    TOKEN_DETAILS.save(deps.storage, &token_details)?;
 
     // Generate tokens
     let tokens = generate_tokens(num_tokens);
@@ -172,21 +164,23 @@ pub fn instantiate(
 
     // Save total tokens
     TOTAL_TOKENS_REMAINING.save(deps.storage, &num_tokens)?;
+
     // Initialize pause state and set admin as pauser
     let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
     pause_state.set_pausers(deps.storage, info.sender.clone(), [admin.clone()].to_vec())?;
 
-    let nft_creation_msg: CosmosMsg = MsgCreateDenom {
-        description: collection.description,
-        id: collection.id,
-        name: collection.name,
-        preview_uri: collection.preview_uri,
-        schema: collection.schema,
+    let collection_creation_msg: CosmosMsg = MsgCreateDenom {
+        // Option
+        description: collection_details.description.unwrap_or("".to_string()),
+        id: collection_details.id,
+        name: collection_details.collection_name,
+        preview_uri: collection_details.preview_uri.unwrap_or("".to_string()),
+        schema: collection_details.schema.unwrap_or("".to_string()),
         sender: env.contract.address.into_string(),
-        symbol: collection.symbol,
-        data: collection.data,
-        uri: collection.uri,
-        uri_hash: collection.uri_hash.unwrap_or("".to_string()),
+        symbol: collection_details.symbol,
+        data: collection_details.data.unwrap_or("".to_string()),
+        uri: collection_details.uri.unwrap_or("".to_string()),
+        uri_hash: collection_details.uri_hash.unwrap_or("".to_string()),
         creation_fee: Some(
             Coin {
                 denom: creation_fee_denom,
@@ -194,7 +188,7 @@ pub fn instantiate(
             }
             .into(),
         ),
-        royalty_receivers: collection
+        royalty_receivers: collection_details
             .royalty_receivers
             .unwrap_or(vec![WeightedAddress {
                 address: payment_collector.clone().into_string(),
@@ -204,7 +198,7 @@ pub fn instantiate(
     .into();
 
     let res = Response::new()
-        .add_message(nft_creation_msg)
+        .add_message(collection_creation_msg)
         .add_attribute("action", "instantiate");
 
     Ok(res)
@@ -346,6 +340,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     // Get the payment collector address
     let payment_collector = config.payment_collector;
     let collection = COLLECTION.load(deps.storage)?;
+    let token_details = TOKEN_DETAILS.load(deps.storage)?;
     // Update storage
     // Remove the token from the mintable tokens
     MINTABLE_TOKENS.remove(deps.storage, random_token.0);
@@ -359,12 +354,12 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
 
     let mint_msg: CosmosMsg = generate_mint_message(
         &collection,
-        config.royalty_ratio,
-        &info.sender,
-        &env.contract.address,
-        false,
+        &token_details,
         token_id.clone(),
+        env.contract.address,
+        info.sender,
         None,
+        false,
     )
     .into();
 
@@ -454,12 +449,12 @@ pub fn execute_mint_admin(
 
     let mint_msg: CosmosMsg = generate_mint_message(
         &collection,
-        config.royalty_ratio,
-        &recipient,
-        &env.contract.address,
-        false,
+        &TOKEN_DETAILS.load(deps.storage)?,
         token_id.clone(),
+        env.contract.address,
+        recipient.clone(),
         None,
+        false,
     )
     .into();
 
@@ -477,6 +472,7 @@ pub fn execute_burn_remaining_tokens(
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
     let config = CONFIG.load(deps.storage)?;
+
     if info.sender != config.admin {
         return Err(ContractError::Unauthorized {});
     }
@@ -512,7 +508,9 @@ pub fn execute_update_royalty_ratio(
     if ratio < Decimal::zero() || ratio > Decimal::one() {
         return Err(ContractError::InvalidRoyaltyRatio {});
     }
-    config.royalty_ratio = ratio;
+    let mut token_details = TOKEN_DETAILS.load(deps.storage)?;
+    token_details.royalty_ratio = ratio;
+    TOKEN_DETAILS.save(deps.storage, &token_details)?;
 
     CONFIG.save(deps.storage, &config)?;
 
@@ -680,9 +678,9 @@ pub fn execute_update_royalty_receivers(
         sender: env.contract.address.into_string(),
         royalty_receivers: receivers,
         id: collection.id,
-        description: collection.description,
-        name: collection.name,
-        preview_uri: collection.preview_uri,
+        description: "[do-not-modify]".to_string(),
+        name: "[do-not-modify]".to_string(),
+        preview_uri: "[do-not-modify]".to_string(),
     }
     .into();
 
@@ -706,34 +704,19 @@ pub fn execute_update_denom(
     if info.sender != config.admin {
         return Err(ContractError::Unauthorized {});
     }
-    let onft_querier = OnftQuerier::new(&deps.querier);
-    let minted_nfties_res = onft_querier.collection(collection.clone().id, None)?;
-    let minted_nfties = minted_nfties_res
-        .collection
-        .unwrap_or(Collection::default())
-        .onfts;
-    if !minted_nfties.is_empty() {
-        // If there is any nft minted for the collection update denoms should not work
-        return Err(ContractError::MintingAlreadyStarted {});
-    }
 
-    collection.name = name.clone().unwrap_or(collection.name);
-    collection.description = description.clone().unwrap_or(collection.description);
-    collection.preview_uri = preview_uri.clone().unwrap_or(collection.preview_uri);
+    collection.collection_name = name.clone().unwrap_or(collection.collection_name);
+    collection.description = description.clone();
+    collection.preview_uri = preview_uri.clone();
     COLLECTION.save(deps.storage, &collection)?;
 
     let update_msg: CosmosMsg = MsgUpdateDenom {
         sender: env.contract.address.into_string(),
         id: collection.id,
-        description: description.unwrap_or(collection.description),
-        name: name.unwrap_or(collection.name),
-        preview_uri: preview_uri.unwrap_or(collection.preview_uri),
-        royalty_receivers: collection
-            .royalty_receivers
-            .unwrap_or(vec![WeightedAddress {
-                address: config.payment_collector.into_string(),
-                weight: Decimal::one().to_string(),
-            }]),
+        description: description.unwrap_or("[do-not-modify]".to_string()),
+        name: name.unwrap_or("[do-not-modify]".to_string()),
+        preview_uri: preview_uri.unwrap_or("[do-not-modify]".to_string()),
+        royalty_receivers: [].to_vec(),
     }
     .into();
 
@@ -793,6 +776,7 @@ pub fn query(
         BaseMinterQueryMsg::TotalMintedCount {} => {
             to_json_binary(&query_total_minted_count(deps, env)?)
         }
+        BaseMinterQueryMsg::TokenDetails {} => to_json_binary(&query_token_details(deps, env)?),
         BaseMinterQueryMsg::Extension(ext) => match ext {
             MinterExtensionQueryMsg::MintableTokens {} => {
                 to_json_binary(&query_mintable_tokens(deps, env)?)
@@ -807,6 +791,10 @@ pub fn query(
 fn query_collection(deps: Deps, _env: Env) -> Result<CollectionDetails, ContractError> {
     let collection = COLLECTION.load(deps.storage)?;
     Ok(collection)
+}
+fn query_token_details(deps: Deps, _env: Env) -> Result<TokenDetails, ContractError> {
+    let token_details = TOKEN_DETAILS.load(deps.storage)?;
+    Ok(token_details)
 }
 
 fn query_config(deps: Deps, _env: Env) -> Result<Config, ContractError> {
@@ -853,6 +841,6 @@ fn query_pausers(deps: Deps, _env: Env) -> Result<Vec<Addr>, ContractError> {
 }
 fn query_total_minted_count(deps: Deps, _env: Env) -> Result<u32, ContractError> {
     let config = CONFIG.load(deps.storage)?;
-    let total_tokens = config.token_limit.unwrap();
+    let total_tokens = config.num_tokens.unwrap_or(0);
     Ok(total_tokens - TOTAL_TOKENS_REMAINING.load(deps.storage)?)
 }

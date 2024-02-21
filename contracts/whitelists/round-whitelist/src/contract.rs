@@ -39,7 +39,7 @@ pub fn instantiate(
     }
     let rounds_state = Rounds::new(ROUNDS_KEY);
     rounds_state.check_round_overlaps(deps.storage, Some(rounds.clone()))?;
-    // Save the rounds
+    //  Save the rounds
     rounds.clone().into_iter().for_each(|round| {
         let _ = rounds_state.save(deps.storage, &round);
     });
