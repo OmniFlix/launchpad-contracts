@@ -13,7 +13,7 @@ use pauser::{PauseState, PAUSED_KEY, PAUSERS_KEY};
 use std::str::FromStr;
 
 use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, QueryMsgExtention};
+use crate::msg::{ExecuteMsg, QueryMsgExtension};
 use crate::state::{
     DropParams, UserMintedTokens, CURRENT_DROP_ID, DROPS, DROP_MINTED_COUNT, LAST_MINTED_TOKEN_ID,
     USER_MINTED_TOKENS_KEY,
@@ -745,7 +745,7 @@ fn execute_purge_denom(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(deps: Deps, env: Env, msg: MinterQueryMsg<QueryMsgExtention>) -> StdResult<Binary> {
+pub fn query(deps: Deps, env: Env, msg: MinterQueryMsg<QueryMsgExtension>) -> StdResult<Binary> {
     match msg {
         MinterQueryMsg::Collection {} => to_json_binary(&query_collection(deps, env, None)?),
         MinterQueryMsg::TokenDetails {} => to_json_binary(&query_token_details(deps, env, None)?),
@@ -759,23 +759,23 @@ pub fn query(deps: Deps, env: Env, msg: MinterQueryMsg<QueryMsgExtention>) -> St
         MinterQueryMsg::IsPaused {} => to_json_binary(&query_is_paused(deps, env)?),
         MinterQueryMsg::Pausers {} => to_json_binary(&query_pausers(deps, env)?),
         MinterQueryMsg::Extension(ext) => match ext {
-            QueryMsgExtention::CurrentDropNumber {} => {
+            QueryMsgExtension::CurrentDropNumber {} => {
                 to_json_binary(&query_current_drop_number(deps, env)?)
             }
-            QueryMsgExtention::AllDrops {} => to_json_binary(&query_all_drops(deps, env)?),
-            QueryMsgExtention::Collection { drop_id } => {
+            QueryMsgExtension::AllDrops {} => to_json_binary(&query_all_drops(deps, env)?),
+            QueryMsgExtension::Collection { drop_id } => {
                 to_json_binary(&query_collection(deps, env, drop_id)?)
             }
-            QueryMsgExtention::Config { drop_id } => {
+            QueryMsgExtension::Config { drop_id } => {
                 to_json_binary(&query_config(deps, env, drop_id)?)
             }
-            QueryMsgExtention::MintedTokens { address, drop_id } => {
+            QueryMsgExtension::MintedTokens { address, drop_id } => {
                 to_json_binary(&query_minted_tokens(deps, env, address, drop_id)?)
             }
-            QueryMsgExtention::TokensRemaining { drop_id } => {
+            QueryMsgExtension::TokensRemaining { drop_id } => {
                 to_json_binary(&query_tokens_remaining(deps, env, drop_id)?)
             }
-            QueryMsgExtention::TokenDetails { drop_id } => {
+            QueryMsgExtension::TokenDetails { drop_id } => {
                 to_json_binary(&query_token_details(deps, env, drop_id)?)
             }
         },

@@ -429,7 +429,7 @@ pub fn execute_update_royalty_ratio(
     ratio: String,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
-    let mut config = CONFIG.load(deps.storage)?;
+    let config = CONFIG.load(deps.storage)?;
     if info.sender != config.admin {
         return Err(ContractError::Unauthorized {});
     }
@@ -452,7 +452,7 @@ pub fn execute_update_royalty_ratio(
 
 pub fn execute_update_mint_price(
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     info: MessageInfo,
     mint_price: Coin,
 ) -> Result<Response, ContractError> {

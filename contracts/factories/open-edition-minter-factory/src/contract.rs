@@ -274,6 +274,7 @@ mod tests {
             nsfw: false,
             royalty_ratio: Decimal::percent(10),
             transferable: true,
+            data: Some("Additional data for the token".to_string()),
         };
         // Send additional funds
         let msg = ExecuteMsg::CreateMinter {

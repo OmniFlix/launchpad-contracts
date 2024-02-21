@@ -228,6 +228,7 @@ mod scenarios {
                 extensible: true,
                 nsfw: false,
                 royalty_ratio: Decimal::percent(10),
+                data: None,
             },
             init: MinterInitExtention {
                 admin: creator.to_string(),

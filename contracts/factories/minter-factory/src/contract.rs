@@ -272,6 +272,7 @@ mod tests {
             nsfw: false,
             royalty_ratio: Decimal::percent(10),
             preview_uri: Some("https://example.com/preview".to_string()),
+            data: Some("Additional data for the token".to_string()),
         };
         // Send additional funds
         let msg = ExecuteMsg::CreateMinter {

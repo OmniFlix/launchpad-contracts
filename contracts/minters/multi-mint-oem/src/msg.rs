@@ -49,7 +49,7 @@ pub enum ExecuteMsg {
 
 #[cw_serde]
 #[derive(QueryResponses)]
-pub enum QueryMsgExtention {
+pub enum QueryMsgExtension {
     #[returns(CollectionDetails)]
     Collection { drop_id: Option<u32> },
     #[returns(TokenDetails)]

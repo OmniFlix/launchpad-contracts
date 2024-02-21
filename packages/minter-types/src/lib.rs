@@ -23,6 +23,7 @@ pub struct CollectionDetails {
 #[cw_serde]
 pub struct TokenDetails {
     // FE: Collection:"Badkids" description: "Collection of Badkids", token{ description: "Badkid from badkids collection", name: "Badkid", symbol: "BKID", uri: "https://badkids.com/1", uri_hash: "QmZG9Z3Y9Z3Y}
+    pub data: Option<String>,
     pub token_name: String,
     pub description: Option<String>,
     pub transferable: bool,
@@ -37,11 +38,13 @@ pub struct TokenDetails {
 #[cw_serde]
 pub struct Config {
     pub per_address_limit: u32,
+
+    pub admin: Addr,
     pub payment_collector: Addr,
     pub start_time: Timestamp,
     pub end_time: Option<Timestamp>,
     pub mint_price: Coin,
-    pub admin: Addr,
+
     pub whitelist_address: Option<Addr>,
     pub num_tokens: Option<u32>,
 }
@@ -114,7 +117,7 @@ pub fn generate_mint_message(
                 media_uri: format!("{}/{}", token_details.base_token_uri.clone(), token_id),
                 preview_uri: format!(
                     "{}/{}",
-                    collection
+                    token_details
                         .preview_uri
                         .clone()
                         .unwrap_or(token_details.base_token_uri.clone()),
@@ -124,7 +127,7 @@ pub fn generate_mint_message(
             };
 
             MsgMintOnft {
-                data: collection.data.clone().unwrap_or("".to_string()),
+                data: token_details.data.clone().unwrap_or("".to_string()),
                 id: token_id,
                 metadata: Some(metadata),
                 denom_id: collection.id.clone(),
@@ -153,7 +156,7 @@ pub fn generate_mint_message(
             };
 
             MsgMintOnft {
-                data: collection.data.clone().unwrap_or("".to_string()),
+                data: token_details.data.clone().unwrap_or("".to_string()),
                 id: token_id,
                 metadata: Some(metadata),
                 denom_id: collection.id.clone(),

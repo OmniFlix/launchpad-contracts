@@ -50,6 +50,7 @@ pub fn return_minter_instantiate_msg() -> CreateMinterMsg {
         royalty_ratio: Decimal::percent(10),
         extensible: true,
         nsfw: false,
+        data: None,
     };
     let init = CreateMinterMsg {
         collection_details: collection_details,
@@ -100,6 +101,7 @@ pub fn return_open_edition_minter_inst_msg() -> OpenEditionMinterCreateMsg {
         royalty_ratio: Decimal::percent(10),
         extensible: true,
         nsfw: false,
+        data: None,
     };
     let open_edition_minter_inst_msg = OpenEditionMinterCreateMsg {
         collection_details: collection_details,
