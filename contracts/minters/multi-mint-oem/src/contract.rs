@@ -2,7 +2,7 @@
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     to_json_binary, Addr, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo,
-    Response, StdResult, Timestamp, Uint128, WasmMsg,
+    Response, StdResult, Uint128, WasmMsg,
 };
 use cw_utils::{may_pay, maybe_addr, must_pay, nonpayable};
 use minter_types::{
@@ -25,7 +25,7 @@ use omniflix_open_edition_minter_factory::msg::{
 };
 use omniflix_round_whitelist::msg::ExecuteMsg as RoundWhitelistExecuteMsg;
 use omniflix_std::types::omniflix::onft::v1beta1::{
-    Collection, MsgCreateDenom, MsgPurgeDenom, MsgUpdateDenom, OnftQuerier, WeightedAddress,
+    MsgPurgeDenom, MsgUpdateDenom, OnftQuerier, WeightedAddress,
 };
 use whitelist_types::{
     check_if_address_is_member, check_if_whitelist_is_active, check_whitelist_price,

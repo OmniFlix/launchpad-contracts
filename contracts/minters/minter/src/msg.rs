@@ -1,5 +1,6 @@
-use cosmwasm_schema::cw_serde;
+use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::Coin;
+use minter_types::Token;
 use omniflix_std::types::omniflix::onft::v1beta1::WeightedAddress;
 
 #[cw_serde]
@@ -38,7 +39,10 @@ pub enum ExecuteMsg {
     PurgeDenom {},
 }
 #[cw_serde]
+#[derive(QueryResponses)]
 pub enum MinterExtensionQueryMsg {
+    #[returns(Vec<Token>)]
     MintableTokens {},
+    #[returns(u32)]
     TotalTokensRemaining {},
 }

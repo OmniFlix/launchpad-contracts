@@ -1,4 +1,4 @@
-use cosmwasm_schema::cw_serde;
+use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Coin, Uint128};
 use omniflix_std::types::omniflix::onft::v1beta1::WeightedAddress;
 
@@ -34,6 +34,8 @@ pub enum ExecuteMsg {
 }
 
 #[cw_serde]
+#[derive(QueryResponses)]
 pub enum OEMQueryExtension {
+    #[returns(Uint128)]
     TokensRemaining {},
 }
