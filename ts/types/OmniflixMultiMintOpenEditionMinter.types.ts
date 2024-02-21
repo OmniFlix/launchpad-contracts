@@ -47,6 +47,7 @@ export interface Coin {
 }
 export interface TokenDetails {
   base_token_uri: string;
+  data?: string | null;
   description?: string | null;
   extensible: boolean;
   nsfw: boolean;
@@ -107,11 +108,9 @@ export type ExecuteMsg = {
 };
 export type Addr = string;
 export interface Config {
-  admin: Addr;
   end_time?: Timestamp | null;
   mint_price: Coin;
   num_tokens?: number | null;
-  payment_collector: Addr;
   per_address_limit: number;
   start_time: Timestamp;
   whitelist_address?: Addr | null;
@@ -131,11 +130,11 @@ export type QueryMsg = {
 } | {
   pausers: {};
 } | {
-  extension: QueryMsgExtention;
+  extension: QueryMsgExtension;
 } | {
   total_minted_count: {};
 };
-export type QueryMsgExtention = {
+export type QueryMsgExtension = {
   collection: {
     drop_id?: number | null;
   };

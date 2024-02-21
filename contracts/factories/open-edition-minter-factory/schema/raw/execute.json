@@ -293,6 +293,12 @@
         "base_token_uri": {
           "type": "string"
         },
+        "data": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "description": {
           "type": [
             "string",

@@ -186,6 +186,12 @@
           "base_token_uri": {
             "type": "string"
           },
+          "data": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "description": {
             "type": [
               "string",
@@ -553,16 +559,11 @@
       "Config": {
         "type": "object",
         "required": [
-          "admin",
           "mint_price",
-          "payment_collector",
           "per_address_limit",
           "start_time"
         ],
         "properties": {
-          "admin": {
-            "$ref": "#/definitions/Addr"
-          },
           "end_time": {
             "anyOf": [
               {
@@ -583,9 +584,6 @@
             ],
             "format": "uint32",
             "minimum": 0.0
-          },
-          "payment_collector": {
-            "$ref": "#/definitions/Addr"
           },
           "per_address_limit": {
             "type": "integer",
@@ -633,6 +631,12 @@
         "properties": {
           "base_token_uri": {
             "type": "string"
+          },
+          "data": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "description": {
             "type": [
@@ -786,7 +790,7 @@
         ],
         "properties": {
           "extension": {
-            "$ref": "#/definitions/QueryMsgExtention"
+            "$ref": "#/definitions/QueryMsgExtension"
           }
         },
         "additionalProperties": false
@@ -806,7 +810,7 @@
       }
     ],
     "definitions": {
-      "QueryMsgExtention": {
+      "QueryMsgExtension": {
         "oneOf": [
           {
             "type": "object",
@@ -1051,16 +1055,11 @@
       "title": "Config",
       "type": "object",
       "required": [
-        "admin",
         "mint_price",
-        "payment_collector",
         "per_address_limit",
         "start_time"
       ],
       "properties": {
-        "admin": {
-          "$ref": "#/definitions/Addr"
-        },
         "end_time": {
           "anyOf": [
             {
@@ -1081,9 +1080,6 @@
           ],
           "format": "uint32",
           "minimum": 0.0
-        },
-        "payment_collector": {
-          "$ref": "#/definitions/Addr"
         },
         "per_address_limit": {
           "type": "integer",
@@ -1227,6 +1223,12 @@
       "properties": {
         "base_token_uri": {
           "type": "string"
+        },
+        "data": {
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "description": {
           "type": [

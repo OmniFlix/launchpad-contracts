@@ -74,6 +74,7 @@ export interface MinterInitExtention {
 }
 export interface TokenDetails {
   base_token_uri: string;
+  data?: string | null;
   description?: string | null;
   extensible: boolean;
   nsfw: boolean;

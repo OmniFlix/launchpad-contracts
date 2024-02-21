@@ -47,6 +47,7 @@ export interface Coin {
 }
 export interface TokenDetails {
   base_token_uri: string;
+  data?: string | null;
   description?: string | null;
   extensible: boolean;
   nsfw: boolean;
@@ -118,11 +119,9 @@ export type OEMQueryExtension = {
 };
 export type Addr = string;
 export interface Config {
-  admin: Addr;
   end_time?: Timestamp | null;
   mint_price: Coin;
   num_tokens?: number | null;
-  payment_collector: Addr;
   per_address_limit: number;
   start_time: Timestamp;
   whitelist_address?: Addr | null;

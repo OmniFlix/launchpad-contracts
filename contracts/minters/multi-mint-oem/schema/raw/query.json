@@ -95,7 +95,7 @@
       ],
       "properties": {
         "extension": {
-          "$ref": "#/definitions/QueryMsgExtention"
+          "$ref": "#/definitions/QueryMsgExtension"
         }
       },
       "additionalProperties": false
@@ -115,7 +115,7 @@
     }
   ],
   "definitions": {
-    "QueryMsgExtention": {
+    "QueryMsgExtension": {
       "oneOf": [
         {
           "type": "object",

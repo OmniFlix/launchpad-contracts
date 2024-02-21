@@ -6,7 +6,7 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { StdFee } from "@cosmjs/amino";
-import { Timestamp, Uint64, Uint128, Decimal, InstantiateMsg, CollectionDetails, WeightedAddress, OpenEditionMinterInitExtention, Coin, TokenDetails, ExecuteMsg, Addr, Config, QueryMsg, QueryMsgExtention, Uint32, Boolean, UserDetails, Token, ArrayOfAddr } from "./OmniflixMultiMintOpenEditionMinter.types";
+import { Timestamp, Uint64, Uint128, Decimal, InstantiateMsg, CollectionDetails, WeightedAddress, OpenEditionMinterInitExtention, Coin, TokenDetails, ExecuteMsg, Addr, Config, QueryMsg, QueryMsgExtension, Uint32, Boolean, UserDetails, Token, ArrayOfAddr } from "./OmniflixMultiMintOpenEditionMinter.types";
 export interface OmniflixMultiMintOpenEditionMinterReadOnlyInterface {
   contractAddress: string;
   collection: () => Promise<CollectionDetails>;
@@ -19,7 +19,7 @@ export interface OmniflixMultiMintOpenEditionMinterReadOnlyInterface {
   }) => Promise<UserDetails>;
   isPaused: () => Promise<Boolean>;
   pausers: () => Promise<ArrayOfAddr>;
-  extension: (queryMsgExtention: QueryMsgExtention) => Promise<Uint32>;
+  extension: (queryMsgExtension: QueryMsgExtension) => Promise<Uint32>;
   totalMintedCount: () => Promise<Uint32>;
 }
 export class OmniflixMultiMintOpenEditionMinterQueryClient implements OmniflixMultiMintOpenEditionMinterReadOnlyInterface {
@@ -75,9 +75,9 @@ export class OmniflixMultiMintOpenEditionMinterQueryClient implements OmniflixMu
       pausers: {}
     });
   };
-  extension = async (queryMsgExtention: QueryMsgExtention): Promise<Uint32> => {
+  extension = async (queryMsgExtension: QueryMsgExtension): Promise<Uint32> => {
     return this.client.queryContractSmart(this.contractAddress, {
-      extension: queryMsgExtention
+      extension: queryMsgExtension
     });
   };
   totalMintedCount = async (): Promise<Uint32> => {
