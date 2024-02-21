@@ -151,7 +151,7 @@ mod test_open_edition_minter_creation {
 
         // Send zero token limit
         let mut open_edition_minter_instantiate_msg = return_open_edition_minter_inst_msg();
-        open_edition_minter_instantiate_msg.init.token_limit = Some(0);
+        open_edition_minter_instantiate_msg.init.num_tokens = Some(0);
         let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateMinter {
             msg: open_edition_minter_instantiate_msg,
         };
@@ -191,7 +191,9 @@ mod test_open_edition_minter_creation {
 
         // Send incorrect royalty ratio
         let mut open_edition_minter_instantiate_msg = return_open_edition_minter_inst_msg();
-        open_edition_minter_instantiate_msg.init.royalty_ratio = "1.1".to_string();
+        open_edition_minter_instantiate_msg
+            .token_details
+            .royalty_ratio = Decimal::percent(101);
         let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateMinter {
             msg: open_edition_minter_instantiate_msg,
         };
@@ -294,9 +296,8 @@ mod test_open_edition_minter_creation {
                     amount: Uint128::from(1000000u128)
                 },
                 per_address_limit: 1,
-                royalty_ratio: Decimal::percent(10),
                 whitelist_address: None,
-                token_limit: Some(1000),
+                num_tokens: Some(1000)
             }
         );
 
@@ -327,24 +328,18 @@ mod test_open_edition_minter_creation {
             .wrap()
             .query_wasm_smart(open_edition_minter_address.clone(), &query_msg)
             .unwrap();
-
         assert_eq!(
             collection_res,
             CollectionDetails {
-                name: "name".to_string(),
-                description: "description".to_string(),
-                preview_uri: "preview_uri".to_string(),
-                schema: "schema".to_string(),
+                collection_name: "name".to_string(),
+                description: Some("description".to_string()),
+                preview_uri: Some("preview_uri".to_string()),
+                schema: Some("schema".to_string()),
                 symbol: "symbol".to_string(),
                 id: "id".to_string(),
-                extensible: true,
-                nsfw: false,
-                base_uri: "base_uri".to_string(),
-                uri: "uri".to_string(),
+                uri: Some("uri".to_string()),
                 uri_hash: Some("uri_hash".to_string()),
-                data: "data".to_string(),
-                token_name: "token_name".to_string(),
-                transferable: true,
+                data: Some("data".to_string()),
                 royalty_receivers: None
             }
         );

@@ -7,7 +7,7 @@ mod test_minter_creation {
     };
     use cw_multi_test::Executor;
     use factory_types::CustomPaymentError;
-    use minter_types::Token;
+    use minter_types::{Token, TokenDetails};
 
     use minter_types::Config as MinterConfig;
     use minter_types::QueryMsg;
@@ -137,7 +137,7 @@ mod test_minter_creation {
 
         // Send royalty ratio more than 100%
         let mut minter_inst_msg = return_minter_instantiate_msg();
-        minter_inst_msg.init.royalty_ratio = "1.1".to_string();
+        minter_inst_msg.token_details.royalty_ratio = Decimal::percent(101);
         let create_minter_msg = FactoryExecuteMsg::CreateMinter {
             msg: minter_inst_msg,
         };
@@ -253,12 +253,17 @@ mod test_minter_creation {
         assert_eq!(config_data.mint_price.denom, "uflix".to_string());
         assert_eq!(config_data.start_time, Timestamp::from_nanos(1000000000));
         assert_eq!(config_data.mint_price.amount, Uint128::from(1000000u128));
-        assert_eq!(
-            config_data.royalty_ratio,
-            Decimal::from_ratio(1u128, 10u128)
-        );
         assert_eq!(config_data.admin, Addr::unchecked("creator"));
         assert_eq!(config_data.payment_collector, Addr::unchecked("creator"));
+
+        let token_details: TokenDetails = app
+            .wrap()
+            .query(&QueryRequest::Wasm(WasmQuery::Smart {
+                contract_addr: minter_address.clone(),
+                msg: to_json_binary(&QueryMsg::<Empty>::TokenDetails {}).unwrap(),
+            }))
+            .unwrap();
+        assert_eq!(token_details.royalty_ratio, Decimal::percent(10));
 
         // Query mintable tokens
         let mintable_tokens_data: Vec<Token> = app
