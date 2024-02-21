@@ -2,7 +2,9 @@ use std::fmt::format;
 
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Addr, Coin, Decimal, StdError, Storage, Timestamp};
-use omniflix_std::types::omniflix::onft::v1beta1::{Metadata, MsgMintOnft, WeightedAddress};
+use omniflix_std::types::omniflix::onft::v1beta1::{
+    Metadata, MsgCreateDenom, MsgMintOnft, WeightedAddress,
+};
 
 #[cw_serde]
 pub struct CollectionDetails {
@@ -165,4 +167,32 @@ pub fn generate_mint_message(
             }
         }
     }
+}
+pub fn generate_create_denom_msg(
+    collection: &CollectionDetails,
+    minter_address: Addr,
+    creation_fee: Coin,
+    admin: Addr,
+) -> Result<MsgCreateDenom, StdError> {
+    let create_denom_msg = MsgCreateDenom {
+        creation_fee: Some(creation_fee.into()),
+        id: collection.id.clone(),
+        symbol: collection.symbol.clone(),
+        name: collection.collection_name.clone(),
+        description: collection.description.clone().unwrap_or("".to_string()),
+        preview_uri: collection.preview_uri.clone().unwrap_or("".to_string()),
+        schema: collection.schema.clone().unwrap_or("".to_string()),
+        sender: minter_address.into_string(),
+        uri: collection.uri.clone().unwrap_or("".to_string()),
+        uri_hash: collection.uri_hash.clone().unwrap_or("".to_string()),
+        data: collection.data.clone().unwrap_or("".to_string()),
+        royalty_receivers: collection.royalty_receivers.clone().unwrap_or(
+            [WeightedAddress {
+                address: admin.into_string(),
+                weight: Decimal::one().to_string(),
+            }]
+            .to_vec(),
+        ),
+    };
+    Ok(create_denom_msg)
 }

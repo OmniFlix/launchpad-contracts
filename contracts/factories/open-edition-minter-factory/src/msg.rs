@@ -17,9 +17,8 @@ pub struct OpenEditionMinterInitExtention {
     pub mint_price: Coin,
     pub start_time: Timestamp,
     pub end_time: Option<Timestamp>,
-    pub token_limit: Option<u32>,
+    pub num_tokens: Option<u32>,
     pub per_address_limit: u32,
-    pub royalty_ratio: String,
     pub payment_collector: Option<String>,
     pub whitelist_address: Option<String>,
 }

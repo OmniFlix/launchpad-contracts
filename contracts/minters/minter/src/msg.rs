@@ -31,7 +31,7 @@ pub enum ExecuteMsg {
         receivers: Vec<WeightedAddress>,
     },
     UpdateDenom {
-        name: Option<String>,
+        collection_name: Option<String>,
         description: Option<String>,
         preview_uri: Option<String>,
     },

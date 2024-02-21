@@ -235,10 +235,10 @@ pub fn execute(
             execute_update_royalty_receivers(deps, env, info, receivers)
         }
         ExecuteMsg::UpdateDenom {
-            name,
+            collection_name,
             description,
             preview_uri,
-        } => execute_update_denom(deps, env, info, name, description, preview_uri),
+        } => execute_update_denom(deps, env, info, collection_name, description, preview_uri),
         ExecuteMsg::PurgeDenom {} => execute_purge_denom(deps, env, info),
     }
 }
@@ -694,7 +694,7 @@ pub fn execute_update_denom(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    name: Option<String>,
+    collection_name: Option<String>,
     description: Option<String>,
     preview_uri: Option<String>,
 ) -> Result<Response, ContractError> {
@@ -705,7 +705,9 @@ pub fn execute_update_denom(
         return Err(ContractError::Unauthorized {});
     }
 
-    collection.collection_name = name.clone().unwrap_or(collection.collection_name);
+    collection.collection_name = collection_name
+        .clone()
+        .unwrap_or(collection.collection_name);
     collection.description = description.clone();
     collection.preview_uri = preview_uri.clone();
     COLLECTION.save(deps.storage, &collection)?;
@@ -714,7 +716,7 @@ pub fn execute_update_denom(
         sender: env.contract.address.into_string(),
         id: collection.id,
         description: description.unwrap_or("[do-not-modify]".to_string()),
-        name: name.unwrap_or("[do-not-modify]".to_string()),
+        name: collection_name.unwrap_or("[do-not-modify]".to_string()),
         preview_uri: preview_uri.unwrap_or("[do-not-modify]".to_string()),
         royalty_receivers: [].to_vec(),
     }

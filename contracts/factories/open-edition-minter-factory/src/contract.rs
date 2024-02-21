@@ -206,7 +206,7 @@ mod tests {
         Addr, Decimal, Timestamp,
     };
     use factory_types::CustomPaymentError;
-    use minter_types::CollectionDetails;
+    use minter_types::{CollectionDetails, TokenDetails};
 
     #[test]
     fn test_instantiate() {
@@ -254,26 +254,32 @@ mod tests {
         let info = mock_info("creator", &[]);
         let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
         let collection_details = CollectionDetails {
-            name: "My Collection".to_string(),
-            description: "This is a collection of unique tokens.".to_string(),
-            preview_uri: "https://example.com/preview".to_string(),
-            schema: "https://example.com/schema".to_string(),
+            collection_name: "My Collection".to_string(),
+            description: Some("This is a collection of unique tokens.".to_string()),
+            preview_uri: Some("https://example.com/preview".to_string()),
+            schema: Some("https://example.com/schema".to_string()),
             symbol: "SYM".to_string(),
             id: "collection_id".to_string(),
+            uri: Some("https://example.com/collection".to_string()),
+            uri_hash: Some("hash123".to_string()),
+            data: Some("Additional data for the collection".to_string()),
+            royalty_receivers: None,
+        };
+        let token_details = TokenDetails {
+            token_name: "My Token".to_string(),
+            description: Some("This is a unique token.".to_string()),
+            base_token_uri: "https://example.com/token".to_string(),
+            preview_uri: Some("https://example.com/preview".to_string()),
             extensible: true,
             nsfw: false,
-            base_uri: "https://example.com/base".to_string(),
-            uri: "https://example.com/collection".to_string(),
-            uri_hash: Some("hash123".to_string()),
-            data: "Additional data for the collection".to_string(),
+            royalty_ratio: Decimal::percent(10),
             transferable: true,
-            token_name: "token_name".to_string(),
-            royalty_receivers: None,
         };
         // Send additional funds
         let msg = ExecuteMsg::CreateMinter {
             msg: OpenEditionMinterCreateMsg {
                 collection_details: collection_details.clone(),
+                token_details: token_details.clone(),
                 init: OpenEditionMinterInitExtention {
                     admin: "admin".to_string(),
                     whitelist_address: None,
@@ -282,11 +288,10 @@ mod tests {
                         denom: "uusd".to_string(),
                     },
                     start_time: Timestamp::from_seconds(0),
-                    royalty_ratio: Decimal::percent(10).to_string(),
                     payment_collector: None,
                     per_address_limit: 3,
                     end_time: None,
-                    token_limit: None,
+                    num_tokens: None,
                 },
             },
         };
@@ -343,6 +348,7 @@ mod tests {
         let msg = ExecuteMsg::CreateMinter {
             msg: OpenEditionMinterCreateMsg {
                 collection_details: collection_details.clone(),
+                token_details: token_details.clone(),
                 init: OpenEditionMinterInitExtention {
                     admin: "admin".to_string(),
                     whitelist_address: None,
@@ -351,11 +357,10 @@ mod tests {
                         denom: "uusd".to_string(),
                     },
                     start_time: Timestamp::from_seconds(0),
-                    royalty_ratio: Decimal::percent(10).to_string(),
                     payment_collector: None,
                     per_address_limit: 3,
                     end_time: None,
-                    token_limit: None,
+                    num_tokens: None,
                 },
             },
         };
@@ -392,6 +397,7 @@ mod tests {
         let msg = ExecuteMsg::CreateMinter {
             msg: OpenEditionMinterCreateMsg {
                 collection_details: collection_details.clone(),
+                token_details: token_details.clone(),
                 init: OpenEditionMinterInitExtention {
                     admin: "admin".to_string(),
                     whitelist_address: None,
@@ -400,11 +406,10 @@ mod tests {
                         denom: "uusd".to_string(),
                     },
                     start_time: Timestamp::from_seconds(0),
-                    royalty_ratio: Decimal::percent(10).to_string(),
                     payment_collector: None,
                     per_address_limit: 3,
                     end_time: None,
-                    token_limit: None,
+                    num_tokens: None,
                 },
             },
         };
@@ -432,6 +437,7 @@ mod tests {
                 code_id: 1,
                 msg: to_json_binary(&OpenEditionMinterCreateMsg {
                     collection_details: collection_details.clone(),
+                    token_details: token_details.clone(),
                     init: OpenEditionMinterInitExtention {
                         admin: "admin".to_string(),
                         whitelist_address: None,
@@ -440,11 +446,10 @@ mod tests {
                             denom: "uusd".to_string(),
                         },
                         start_time: Timestamp::from_seconds(0),
-                        royalty_ratio: Decimal::percent(10).to_string(),
                         payment_collector: None,
                         per_address_limit: 3,
                         end_time: None,
-                        token_limit: None,
+                        num_tokens: None,
                     },
                 })
                 .unwrap(),
