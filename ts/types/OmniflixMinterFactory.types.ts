@@ -39,26 +39,23 @@ export type ExecuteMsg = {
 };
 export type Timestamp = Uint64;
 export type Uint64 = string;
+export type Decimal = string;
 export interface MinterInstantiateMsgForMinterInitExtention {
   collection_details: CollectionDetails;
   init: MinterInitExtention;
+  token_details: TokenDetails;
 }
 export interface CollectionDetails {
-  base_uri: string;
-  data: string;
-  description: string;
-  extensible: boolean;
+  collection_name: string;
+  data?: string | null;
+  description?: string | null;
   id: string;
-  name: string;
-  nsfw: boolean;
-  preview_uri: string;
+  preview_uri?: string | null;
   royalty_receivers?: WeightedAddress[] | null;
-  schema: string;
+  schema?: string | null;
   symbol: string;
-  token_name: string;
-  transferable: boolean;
-  uri: string;
-  uri_hash: string;
+  uri?: string | null;
+  uri_hash?: string | null;
 }
 export interface WeightedAddress {
   address: string;
@@ -72,9 +69,18 @@ export interface MinterInitExtention {
   num_tokens: number;
   payment_collector?: string | null;
   per_address_limit: number;
-  royalty_ratio: string;
   start_time: Timestamp;
   whitelist_address?: string | null;
+}
+export interface TokenDetails {
+  base_token_uri: string;
+  description?: string | null;
+  extensible: boolean;
+  nsfw: boolean;
+  preview_uri?: string | null;
+  royalty_ratio: Decimal;
+  token_name: string;
+  transferable: boolean;
 }
 export type QueryMsg = {
   params: {};

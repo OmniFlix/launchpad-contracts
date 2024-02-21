@@ -7,26 +7,23 @@
 export type Timestamp = Uint64;
 export type Uint64 = string;
 export type Uint128 = string;
+export type Decimal = string;
 export interface InstantiateMsg {
   collection_details: CollectionDetails;
   init: OpenEditionMinterInitExtention;
+  token_details: TokenDetails;
 }
 export interface CollectionDetails {
-  base_uri: string;
-  data: string;
-  description: string;
-  extensible: boolean;
+  collection_name: string;
+  data?: string | null;
+  description?: string | null;
   id: string;
-  name: string;
-  nsfw: boolean;
-  preview_uri: string;
+  preview_uri?: string | null;
   royalty_receivers?: WeightedAddress[] | null;
-  schema: string;
+  schema?: string | null;
   symbol: string;
-  token_name: string;
-  transferable: boolean;
-  uri: string;
-  uri_hash: string;
+  uri?: string | null;
+  uri_hash?: string | null;
 }
 export interface WeightedAddress {
   address: string;
@@ -37,17 +34,26 @@ export interface OpenEditionMinterInitExtention {
   admin: string;
   end_time?: Timestamp | null;
   mint_price: Coin;
+  num_tokens?: number | null;
   payment_collector?: string | null;
   per_address_limit: number;
-  royalty_ratio: string;
   start_time: Timestamp;
-  token_limit?: number | null;
   whitelist_address?: string | null;
 }
 export interface Coin {
   amount: Uint128;
   denom: string;
   [k: string]: unknown;
+}
+export interface TokenDetails {
+  base_token_uri: string;
+  description?: string | null;
+  extensible: boolean;
+  nsfw: boolean;
+  preview_uri?: string | null;
+  royalty_ratio: Decimal;
+  token_name: string;
+  transferable: boolean;
 }
 export type ExecuteMsg = {
   mint: {};
@@ -81,8 +87,8 @@ export type ExecuteMsg = {
   };
 } | {
   update_denom: {
+    collection_name?: string | null;
     description?: string | null;
-    name?: string | null;
     preview_uri?: string | null;
   };
 } | {
@@ -91,33 +97,37 @@ export type ExecuteMsg = {
 export type QueryMsg = {
   collection: {};
 } | {
+  token_details: {};
+} | {
   config: {};
 } | {
   minted_tokens: {
     address: string;
   };
 } | {
-  total_minted_count: {};
-} | {
-  tokens_remaining: {};
-} | {
   is_paused: {};
 } | {
   pausers: {};
+} | {
+  extension: OEMQueryExtension;
+} | {
+  total_minted_count: {};
+};
+export type OEMQueryExtension = {
+  tokens_remaining: {};
 };
 export type Addr = string;
-export type Decimal = string;
 export interface Config {
   admin: Addr;
   end_time?: Timestamp | null;
   mint_price: Coin;
+  num_tokens?: number | null;
   payment_collector: Addr;
   per_address_limit: number;
-  royalty_ratio: Decimal;
   start_time: Timestamp;
-  token_limit?: number | null;
   whitelist_address?: Addr | null;
 }
+export type Uint32 = number;
 export type Boolean = boolean;
 export interface UserDetails {
   minted_tokens: Token[];
@@ -128,4 +138,3 @@ export interface Token {
   token_id: string;
 }
 export type ArrayOfAddr = Addr[];
-export type Uint32 = number;

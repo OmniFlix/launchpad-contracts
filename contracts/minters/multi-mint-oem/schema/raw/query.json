@@ -10,16 +10,19 @@
       "properties": {
         "collection": {
           "type": "object",
-          "properties": {
-            "drop_id": {
-              "type": [
-                "integer",
-                "null"
-              ],
-              "format": "uint32",
-              "minimum": 0.0
-            }
-          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "token_details"
+      ],
+      "properties": {
+        "token_details": {
+          "type": "object",
           "additionalProperties": false
         }
       },
@@ -33,16 +36,6 @@
       "properties": {
         "config": {
           "type": "object",
-          "properties": {
-            "drop_id": {
-              "type": [
-                "integer",
-                "null"
-              ],
-              "format": "uint32",
-              "minimum": 0.0
-            }
-          },
           "additionalProperties": false
         }
       },
@@ -62,60 +55,6 @@
           "properties": {
             "address": {
               "type": "string"
-            },
-            "drop_id": {
-              "type": [
-                "integer",
-                "null"
-              ],
-              "format": "uint32",
-              "minimum": 0.0
-            }
-          },
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "required": [
-        "total_minted_count"
-      ],
-      "properties": {
-        "total_minted_count": {
-          "type": "object",
-          "properties": {
-            "drop_id": {
-              "type": [
-                "integer",
-                "null"
-              ],
-              "format": "uint32",
-              "minimum": 0.0
-            }
-          },
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "required": [
-        "tokens_remaining"
-      ],
-      "properties": {
-        "tokens_remaining": {
-          "type": "object",
-          "properties": {
-            "drop_id": {
-              "type": [
-                "integer",
-                "null"
-              ],
-              "format": "uint32",
-              "minimum": 0.0
             }
           },
           "additionalProperties": false
@@ -152,15 +91,180 @@
     {
       "type": "object",
       "required": [
-        "current_drop_number"
+        "extension"
       ],
       "properties": {
-        "current_drop_number": {
+        "extension": {
+          "$ref": "#/definitions/QueryMsgExtention"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "total_minted_count"
+      ],
+      "properties": {
+        "total_minted_count": {
           "type": "object",
           "additionalProperties": false
         }
       },
       "additionalProperties": false
     }
-  ]
+  ],
+  "definitions": {
+    "QueryMsgExtention": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "collection"
+          ],
+          "properties": {
+            "collection": {
+              "type": "object",
+              "properties": {
+                "drop_id": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "format": "uint32",
+                  "minimum": 0.0
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "token_details"
+          ],
+          "properties": {
+            "token_details": {
+              "type": "object",
+              "properties": {
+                "drop_id": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "format": "uint32",
+                  "minimum": 0.0
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "config"
+          ],
+          "properties": {
+            "config": {
+              "type": "object",
+              "properties": {
+                "drop_id": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "format": "uint32",
+                  "minimum": 0.0
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "minted_tokens"
+          ],
+          "properties": {
+            "minted_tokens": {
+              "type": "object",
+              "required": [
+                "address"
+              ],
+              "properties": {
+                "address": {
+                  "type": "string"
+                },
+                "drop_id": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "format": "uint32",
+                  "minimum": 0.0
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "tokens_remaining"
+          ],
+          "properties": {
+            "tokens_remaining": {
+              "type": "object",
+              "properties": {
+                "drop_id": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "format": "uint32",
+                  "minimum": 0.0
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "current_drop_number"
+          ],
+          "properties": {
+            "current_drop_number": {
+              "type": "object",
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "all_drops"
+          ],
+          "properties": {
+            "all_drops": {
+              "type": "object",
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
 }

@@ -7,7 +7,7 @@
 import { MsgExecuteContractEncodeObject } from "@cosmjs/cosmwasm-stargate";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { toUtf8 } from "@cosmjs/encoding";
-import { Timestamp, Uint64, Uint128, InstantiateMsg, CollectionDetails, WeightedAddress, MinterInitExtention, Coin, ExecuteMsg, QueryMsg, Addr, Decimal, Config, Boolean, ArrayOfToken, Token, UserDetails, ArrayOfAddr, Uint32 } from "./OmniflixMinter.types";
+import { Timestamp, Uint64, Uint128, Decimal, InstantiateMsg, CollectionDetails, WeightedAddress, MinterInitExtention, Coin, TokenDetails, ExecuteMsg, QueryMsg, MinterExtensionQueryMsg, Addr, Config, Uint32, Boolean, UserDetails, Token, ArrayOfAddr } from "./OmniflixMinter.types";
 export interface OmniflixMinterMsg {
   contractAddress: string;
   sender: string;
@@ -49,12 +49,12 @@ export interface OmniflixMinterMsg {
     receivers: WeightedAddress[];
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   updateDenom: ({
+    collectionName,
     description,
-    name,
     previewUri
   }: {
+    collectionName?: string;
     description?: string;
-    name?: string;
     previewUri?: string;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   purgeDenom: (_funds?: Coin[]) => MsgExecuteContractEncodeObject;
@@ -264,12 +264,12 @@ export class OmniflixMinterMsgComposer implements OmniflixMinterMsg {
     };
   };
   updateDenom = ({
+    collectionName,
     description,
-    name,
     previewUri
   }: {
+    collectionName?: string;
     description?: string;
-    name?: string;
     previewUri?: string;
   }, _funds?: Coin[]): MsgExecuteContractEncodeObject => {
     return {
@@ -279,8 +279,8 @@ export class OmniflixMinterMsgComposer implements OmniflixMinterMsg {
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
           update_denom: {
+            collection_name: collectionName,
             description,
-            name,
             preview_uri: previewUri
           }
         })),

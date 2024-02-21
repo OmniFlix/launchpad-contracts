@@ -7,7 +7,7 @@
 import { MsgExecuteContractEncodeObject } from "@cosmjs/cosmwasm-stargate";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { toUtf8 } from "@cosmjs/encoding";
-import { Timestamp, Uint64, Uint128, InstantiateMsg, CollectionDetails, WeightedAddress, OpenEditionMinterInitExtention, Coin, ExecuteMsg, QueryMsg, Addr, Decimal, Config, Boolean, UserDetails, Token, ArrayOfAddr, Uint32 } from "./OmniflixOpenEditionMinter.types";
+import { Timestamp, Uint64, Uint128, Decimal, InstantiateMsg, CollectionDetails, WeightedAddress, OpenEditionMinterInitExtention, Coin, TokenDetails, ExecuteMsg, QueryMsg, OEMQueryExtension, Addr, Config, Uint32, Boolean, UserDetails, Token, ArrayOfAddr } from "./OmniflixOpenEditionMinter.types";
 export interface OmniflixOpenEditionMinterMsg {
   contractAddress: string;
   sender: string;
@@ -45,12 +45,12 @@ export interface OmniflixOpenEditionMinterMsg {
     receivers: WeightedAddress[];
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   updateDenom: ({
+    collectionName,
     description,
-    name,
     previewUri
   }: {
+    collectionName?: string;
     description?: string;
-    name?: string;
     previewUri?: string;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   purgeDenom: (_funds?: Coin[]) => MsgExecuteContractEncodeObject;
@@ -229,12 +229,12 @@ export class OmniflixOpenEditionMinterMsgComposer implements OmniflixOpenEdition
     };
   };
   updateDenom = ({
+    collectionName,
     description,
-    name,
     previewUri
   }: {
+    collectionName?: string;
     description?: string;
-    name?: string;
     previewUri?: string;
   }, _funds?: Coin[]): MsgExecuteContractEncodeObject => {
     return {
@@ -244,8 +244,8 @@ export class OmniflixOpenEditionMinterMsgComposer implements OmniflixOpenEdition
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
           update_denom: {
+            collection_name: collectionName,
             description,
-            name,
             preview_uri: previewUri
           }
         })),

@@ -214,13 +214,13 @@
         "update_denom": {
           "type": "object",
           "properties": {
-            "description": {
+            "collection_name": {
               "type": [
                 "string",
                 "null"
               ]
             },
-            "name": {
+            "description": {
               "type": [
                 "string",
                 "null"
