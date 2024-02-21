@@ -34,6 +34,17 @@ pub struct TokenDetails {
     // This is the base token uri. If provided, it will be used as the base_token_uri+token_id should be pointing at a json file.
     pub base_token_uri: String,
 }
+#[cw_serde]
+pub struct Config {
+    pub per_address_limit: u32,
+    pub payment_collector: Addr,
+    pub start_time: Timestamp,
+    pub end_time: Option<Timestamp>,
+    pub mint_price: Coin,
+    pub admin: Addr,
+    pub whitelist_address: Option<Addr>,
+    pub num_tokens: Option<u32>,
+}
 
 #[cw_serde]
 pub struct MinterInstantiateMsg<T> {
@@ -83,18 +94,6 @@ pub enum QueryMsg<T> {
     Extension(T),
     #[returns(u32)]
     TotalMintedCount {},
-}
-
-#[cw_serde]
-pub struct Config {
-    pub per_address_limit: u32,
-    pub payment_collector: Addr,
-    pub start_time: Timestamp,
-    pub end_time: Option<Timestamp>,
-    pub mint_price: Coin,
-    pub admin: Addr,
-    pub whitelist_address: Option<Addr>,
-    pub num_tokens: Option<u32>,
 }
 
 pub fn generate_mint_message(

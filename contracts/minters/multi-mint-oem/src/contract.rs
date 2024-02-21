@@ -6,8 +6,8 @@ use cosmwasm_std::{
 };
 use cw_utils::{may_pay, maybe_addr, must_pay, nonpayable};
 use minter_types::{
-    generate_mint_message, CollectionDetails, Config, QueryMsg as MinterQueryMsg, Token,
-    UserDetails,
+    generate_create_denom_msg, generate_mint_message, CollectionDetails, Config,
+    QueryMsg as MinterQueryMsg, Token, TokenDetails, UserDetails,
 };
 use pauser::{PauseState, PAUSED_KEY, PAUSERS_KEY};
 use std::str::FromStr;
@@ -15,8 +15,8 @@ use std::str::FromStr;
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, QueryMsgExtention};
 use crate::state::{
-    DropParams, UserMintedTokens, CURRENT_DROP_ID, DROPS, LAST_MINTED_TOKEN_ID, MINTED_COUNT,
-    MINTED_TOKENS_KEY,
+    DropParams, UserMintedTokens, CURRENT_DROP_ID, DROPS, DROP_MINTED_COUNT, LAST_MINTED_TOKEN_ID,
+    USER_MINTED_TOKENS_KEY,
 };
 
 use cw2::set_contract_version;
@@ -92,8 +92,8 @@ pub fn instantiate(
         return Err(ContractError::PerAddressLimitZero {});
     }
     // Check if token limit is 0
-    if let Some(token_limit) = msg.init.token_limit {
-        if token_limit == 0 {
+    if let Some(num_tokens) = msg.init.num_tokens {
+        if num_tokens == 0 {
             return Err(ContractError::InvalidNumTokens {});
         }
     }
@@ -110,7 +110,8 @@ pub fn instantiate(
     }
 
     // Check royalty ratio we expect decimal number
-    let royalty_ratio = Decimal::from_str(&msg.init.royalty_ratio)?;
+    let royalty_ratio = msg.token_details.royalty_ratio.clone();
+
     if royalty_ratio < Decimal::zero() || royalty_ratio > Decimal::one() {
         return Err(ContractError::InvalidRoyaltyRatio {});
     }
@@ -128,77 +129,46 @@ pub fn instantiate(
     let admin = deps.api.addr_validate(&msg.init.admin)?;
 
     let payment_collector =
-        maybe_addr(deps.api, msg.init.payment_collector.clone())?.unwrap_or(info.sender.clone());
+        maybe_addr(deps.api, msg.init.payment_collector.clone())?.unwrap_or(admin.clone());
 
     let config = Config {
         per_address_limit: msg.init.per_address_limit,
         payment_collector,
         start_time: msg.init.start_time,
-        royalty_ratio,
         admin: admin.clone(),
         mint_price: msg.init.mint_price,
         whitelist_address: maybe_addr(deps.api, msg.init.whitelist_address.clone())?,
         end_time: msg.init.end_time,
-        token_limit: msg.init.token_limit,
+        num_tokens: msg.init.num_tokens,
     };
     // Set the pause state
     let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
     pause_state.set_pausers(deps.storage, info.sender.clone(), vec![admin.clone()])?;
 
-    let collection = CollectionDetails {
-        name: msg.collection_details.name,
-        description: msg.collection_details.description,
-        preview_uri: msg.collection_details.preview_uri,
-        schema: msg.collection_details.schema,
-        symbol: msg.collection_details.symbol,
-        id: msg.collection_details.id,
-        extensible: msg.collection_details.extensible,
-        nsfw: msg.collection_details.nsfw,
-        base_uri: msg.collection_details.base_uri,
-        uri: msg.collection_details.uri,
-        uri_hash: msg.collection_details.uri_hash,
-        data: msg.collection_details.data,
-        token_name: msg.collection_details.token_name,
-        transferable: msg.collection_details.transferable,
-        royalty_receivers: msg.collection_details.royalty_receivers,
-    };
+    let collection_details = msg.collection_details.clone();
+    let token_details = msg.token_details.clone();
 
     // Save the collection as drop 1
     let drop_params = DropParams {
         config: config.clone(),
-        collection: collection.clone(),
+        collection_details: collection_details.clone(),
+        token_details: token_details,
     };
 
     DROPS.save(deps.storage, 1, &drop_params)?;
     CURRENT_DROP_ID.save(deps.storage, &1)?;
-    MINTED_COUNT.save(deps.storage, 1, &0)?;
+    DROP_MINTED_COUNT.save(deps.storage, 1, &0)?;
     LAST_MINTED_TOKEN_ID.save(deps.storage, &0)?;
-
-    let nft_creation_msg: CosmosMsg = MsgCreateDenom {
-        description: collection.description,
-        id: collection.id,
-        name: collection.name,
-        preview_uri: collection.preview_uri,
-        schema: collection.schema,
-        sender: env.contract.address.into_string(),
-        symbol: collection.symbol,
-        data: collection.data,
-        uri: collection.uri,
-        uri_hash: collection.uri_hash.unwrap_or("".to_string()),
-        creation_fee: Some(
-            Coin {
-                denom: creation_fee_denom,
-                amount: creation_fee_amount,
-            }
-            .into(),
-        ),
-        royalty_receivers: collection
-            .royalty_receivers
-            .unwrap_or(vec![WeightedAddress {
-                address: admin.clone().into_string(),
-                weight: Decimal::one().to_string(),
-            }]),
-    }
+    let nft_creation_fee = Coin {
+        denom: creation_fee_denom,
+        amount: creation_fee_amount,
+    };
+    let nft_creation_msg: CosmosMsg = generate_create_denom_msg(
+        &collection_details,
+        env.contract.address,
+        nft_creation_fee,
+        admin,
+    )?
     .into();
 
     let res = Response::new()
@@ -237,43 +207,10 @@ pub fn execute(
         ExecuteMsg::Unpause {} => execute_unpause(deps, env, info),
         ExecuteMsg::SetPausers { pausers } => execute_set_pausers(deps, env, info, pausers),
         ExecuteMsg::NewDrop {
-            whitelist_address,
-            token_limit,
-            start_time,
-            end_time,
-            mint_price,
-            royalty_ratio,
-            token_name,
-            description,
-            base_uri,
-            preview_uri,
-            uri_hash,
-            transferable,
-            extensible,
-            nsfw,
-            data,
-            per_address_limit,
-        } => execute_new_drop(
-            deps,
-            env,
-            info,
-            whitelist_address,
-            token_limit,
-            start_time,
-            end_time,
-            mint_price,
-            per_address_limit,
-            royalty_ratio,
-            token_name,
-            description,
-            base_uri,
-            preview_uri,
-            uri_hash,
-            transferable,
-            extensible,
-            nsfw,
-            data,
-        ),
+            new_config,
+            new_token_details,
+        } => execute_new_drop(deps, env, info, new_config, new_token_details),
+
         ExecuteMsg::UpdateRoyaltyReceivers { receivers } => {
             execute_update_royalty_receivers(deps, env, info, receivers)
         }
@@ -300,10 +237,11 @@ pub fn execute_mint(
     let drop_params = DROPS.load(deps.storage, drop_id)?;
 
     let config = drop_params.config;
-    let collection = drop_params.collection;
+    let collection_details = drop_params.collection_details;
+    let token_details = drop_params.token_details;
     // Check if any token limit set and if it is reached
-    if let Some(token_limit) = config.token_limit {
-        if MINTED_COUNT.load(deps.storage, drop_id).unwrap_or(0) >= token_limit {
+    if let Some(num_tokens) = config.num_tokens {
+        if DROP_MINTED_COUNT.load(deps.storage, drop_id).unwrap_or(0) >= num_tokens {
             return Err(ContractError::NoTokensLeftToMint {});
         }
     }
@@ -314,9 +252,9 @@ pub fn execute_mint(
             return Err(ContractError::PublicMintingEnded {});
         }
     };
-    let minted_tokens = UserMintedTokens::new(MINTED_TOKENS_KEY);
+    let user_minted_tokens = UserMintedTokens::new(USER_MINTED_TOKENS_KEY);
 
-    let mut user_details = minted_tokens
+    let mut user_details = user_minted_tokens
         .load(deps.storage, drop_id, info.sender.clone())
         .unwrap_or_default();
     // Load and increment the minted count
@@ -377,7 +315,7 @@ pub fn execute_mint(
         token_id: token_id.to_string(),
     });
     // Save the user details
-    minted_tokens.save(deps.storage, drop_id, info.sender.clone(), &user_details);
+    user_minted_tokens.save(deps.storage, drop_id, info.sender.clone(), &user_details);
 
     // Check the payment
     // Can be set to zero so use may_pay
@@ -392,18 +330,18 @@ pub fn execute_mint(
     // Get the payment collector address
     let payment_collector = config.payment_collector;
 
-    let mut minted_count = MINTED_COUNT.load(deps.storage, drop_id)?;
-    minted_count += 1;
-    MINTED_COUNT.save(deps.storage, drop_id, &minted_count)?;
+    let mut drop_minted_count = DROP_MINTED_COUNT.load(deps.storage, drop_id)?;
+    drop_minted_count += 1;
+    DROP_MINTED_COUNT.save(deps.storage, drop_id, &drop_minted_count)?;
 
     let mint_msg: CosmosMsg = generate_mint_message(
-        &collection,
-        config.royalty_ratio,
-        &info.sender,
-        &env.contract.address,
-        true,
+        &collection_details,
+        &token_details,
         token_id.to_string(),
-        Some(minted_count.to_string()),
+        env.contract.address,
+        info.sender,
+        Some((drop_minted_count).to_string()),
+        is_public,
     )
     .into();
 
@@ -424,7 +362,8 @@ pub fn execute_mint(
         .add_messages(messages)
         .add_attribute("action", "mint")
         .add_attribute("token_id", token_id.to_string())
-        .add_attribute("collection_id", collection.id)
+        .add_attribute("drop_token_id", drop_minted_count.to_string())
+        .add_attribute("collection_id", collection_details.id)
         .add_attribute("drop_id", drop_id.to_string());
 
     Ok(res)
@@ -443,15 +382,16 @@ pub fn execute_mint_admin(
     let drop_params = DROPS.load(deps.storage, drop_id)?;
 
     let config = drop_params.config;
-    let collection = drop_params.collection;
+    let collection_details = drop_params.collection_details;
+    let token_details = drop_params.token_details;
 
     // Check if sender is admin
     if info.sender != config.admin {
         return Err(ContractError::Unauthorized {});
     }
     // Check if any token left for current drop
-    if let Some(token_limit) = config.token_limit {
-        if MINTED_COUNT.load(deps.storage, drop_id).unwrap_or(0) >= token_limit {
+    if let Some(num_tokens) = config.num_tokens {
+        if DROP_MINTED_COUNT.load(deps.storage, drop_id).unwrap_or(0) >= num_tokens {
             return Err(ContractError::NoTokensLeftToMint {});
         }
     }
@@ -464,37 +404,38 @@ pub fn execute_mint_admin(
 
     let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
     pause_state.error_if_paused(deps.storage)?;
-    let recipient = deps.api.addr_validate(&recipient)?;
 
+    let recipient = deps.api.addr_validate(&recipient)?;
     let last_token_id = LAST_MINTED_TOKEN_ID.load(deps.storage)?;
     let token_id = last_token_id + 1;
 
-    let minted_tokens = UserMintedTokens::new(MINTED_TOKENS_KEY);
+    let user_minted_tokens = UserMintedTokens::new(USER_MINTED_TOKENS_KEY);
 
-    let mut user_details = minted_tokens
+    let mut user_details = user_minted_tokens
         .load(deps.storage, drop_id, recipient.clone())
         .unwrap_or_default();
-
+    // We are only updating these params but not checking the mint limit
     user_details.total_minted_count += 1;
     user_details.minted_tokens.push(Token {
         token_id: token_id.to_string(),
     });
 
     // Save the user details
-    minted_tokens.save(deps.storage, drop_id, recipient.clone(), &user_details);
+    user_minted_tokens.save(deps.storage, drop_id, recipient.clone(), &user_details);
 
     // Load current drops minted count and increment it
-    let minted_count = MINTED_COUNT.load(deps.storage, drop_id)?;
-    MINTED_COUNT.save(deps.storage, drop_id, &(minted_count.clone() + 1))?;
+    let mut drop_minted_count = DROP_MINTED_COUNT.load(deps.storage, drop_id)?;
+    drop_minted_count += 1;
+    DROP_MINTED_COUNT.save(deps.storage, drop_id, &drop_minted_count)?;
 
     let mint_msg: CosmosMsg = generate_mint_message(
-        &collection,
-        config.royalty_ratio,
-        &recipient,
-        &env.contract.address,
-        true,
+        &collection_details,
+        &token_details,
         token_id.to_string(),
-        Some((minted_count + 1).to_string()),
+        env.contract.address,
+        recipient.clone(),
+        Some((drop_minted_count).to_string()),
+        true,
     )
     .into();
 
@@ -502,7 +443,8 @@ pub fn execute_mint_admin(
         .add_message(mint_msg)
         .add_attribute("action", "mint")
         .add_attribute("token_id", token_id.to_string())
-        .add_attribute("denom_id", collection.id)
+        .add_attribute("denom_id", collection_details.id)
+        .add_attribute("drop_token_id", drop_minted_count.to_string())
         .add_attribute("drop_id", drop_id.to_string());
     Ok(res)
 }
@@ -528,7 +470,7 @@ pub fn execute_update_royalty_ratio(
         return Err(ContractError::InvalidRoyaltyRatio {});
     }
 
-    drop_params.config.royalty_ratio = ratio;
+    drop_params.token_details.royalty_ratio = ratio;
 
     DROPS.save(deps.storage, drop_id, &drop_params)?;
 
@@ -654,22 +596,8 @@ pub fn execute_new_drop(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    whitelist_address: Option<String>,
-    token_limit: Option<u32>,
-    start_time: Timestamp,
-    end_time: Option<Timestamp>,
-    mint_price: Coin,
-    per_address_limit: u32,
-    royalty_ratio: Option<String>,
-    token_name: String,
-    description: Option<String>,
-    base_uri: Option<String>,
-    preview_uri: Option<String>,
-    uri_hash: Option<String>,
-    transferable: Option<bool>,
-    extensible: Option<bool>,
-    nsfw: Option<bool>,
-    data: Option<String>,
+    config: Config,
+    token_details: TokenDetails,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
     let current_drop_id = CURRENT_DROP_ID.load(deps.storage)?;
@@ -679,25 +607,25 @@ pub fn execute_new_drop(
         return Err(ContractError::Unauthorized {});
     }
     // Check if token limit is 0
-    if let Some(token_limit) = token_limit {
-        if token_limit == 0 {
+    if let Some(num_tokens) = config.num_tokens {
+        if num_tokens == 0 {
             return Err(ContractError::InvalidNumTokens {});
         }
     }
     // Check start time
-    if start_time < env.block.time {
+    if config.start_time < env.block.time {
         return Err(ContractError::InvalidStartTime {});
     }
     // Check end time
-    if let Some(end_time) = end_time {
-        if end_time < start_time {
+    if let Some(end_time) = config.end_time {
+        if end_time < config.start_time {
             return Err(ContractError::InvalidEndTime {});
         }
     }
     // Check if any whitelist is present
-    if let Some(whitelist_address) = whitelist_address.clone() {
+    if let Some(whitelist_address) = config.whitelist_address.clone() {
         let is_active: bool = check_if_whitelist_is_active(
-            &deps.api.addr_validate(&whitelist_address)?,
+            &deps.api.addr_validate(&whitelist_address.into_string())?,
             deps.as_ref(),
         )?;
         if is_active {
@@ -705,43 +633,17 @@ pub fn execute_new_drop(
         }
     }
     // Check royalty ratio we expect decimal number
-    let royalty_ratio = Decimal::from_str(
-        &royalty_ratio.unwrap_or(current_drop_params.config.royalty_ratio.to_string()),
-    )?;
+    let royalty_ratio = token_details.royalty_ratio.clone();
 
-    let config = Config {
-        per_address_limit: per_address_limit,
-        payment_collector: current_drop_params.config.payment_collector,
-        start_time,
-        royalty_ratio,
-        admin: current_drop_params.config.admin,
-        mint_price,
-        whitelist_address: maybe_addr(deps.api, whitelist_address)?,
-        end_time,
-        token_limit,
+    let new_drop_params = DropParams {
+        config: config.clone(),
+        collection_details: current_drop_params.collection_details,
+        token_details: token_details,
     };
-    let collection = CollectionDetails {
-        name: current_drop_params.collection.name,
-        description: description.unwrap_or(current_drop_params.collection.description),
-        preview_uri: preview_uri.unwrap_or(current_drop_params.collection.preview_uri),
-        schema: current_drop_params.collection.schema,
-        symbol: current_drop_params.collection.symbol,
-        id: current_drop_params.collection.id,
-        extensible: extensible.unwrap_or(current_drop_params.collection.extensible),
-        nsfw: nsfw.unwrap_or(current_drop_params.collection.nsfw),
-        base_uri: base_uri.unwrap_or(current_drop_params.collection.base_uri),
-        uri: current_drop_params.collection.uri,
-        uri_hash: uri_hash,
-        data: data.unwrap_or(current_drop_params.collection.data),
-        token_name,
-        transferable: transferable.unwrap_or(current_drop_params.collection.transferable),
-        royalty_receivers: current_drop_params.collection.royalty_receivers,
-    };
-    let drop_params = DropParams { config, collection };
     let new_drop_id = current_drop_id + 1;
-    DROPS.save(deps.storage, new_drop_id, &drop_params)?;
+    DROPS.save(deps.storage, new_drop_id, &new_drop_params)?;
     CURRENT_DROP_ID.save(deps.storage, &new_drop_id)?;
-    MINTED_COUNT.save(deps.storage, new_drop_id, &0)?;
+    DROP_MINTED_COUNT.save(deps.storage, new_drop_id, &0)?;
 
     let res = Response::new()
         .add_attribute("action", "new_drop")
@@ -762,16 +664,13 @@ pub fn execute_update_royalty_receivers(
         return Err(ContractError::Unauthorized {});
     }
 
-    // TODO:
-    // This update does not happening inside drops
-    // Consider updating the collection in all drops
     let update_msg: CosmosMsg = MsgUpdateDenom {
         sender: env.contract.address.into_string(),
-        royalty_receivers: receivers,
-        id: drop_params.collection.id,
+        id: drop_params.collection_details.id,
         description: "[do-not-modify]".to_string(),
         name: "[do-not-modify]".to_string(),
         preview_uri: "[do-not-modify]".to_string(),
+        royalty_receivers: receivers,
     }
     .into();
 
@@ -790,41 +689,31 @@ pub fn execute_update_denom(
     preview_uri: Option<String>,
 ) -> Result<Response, ContractError> {
     let current_drop_id = CURRENT_DROP_ID.load(deps.storage)?;
+    let current_drop_params = DROPS.load(deps.storage, current_drop_id)?;
+    let admin = current_drop_params.config.admin;
+    // Current drops admin can update the denom
+    if info.sender != admin {
+        return Err(ContractError::Unauthorized {});
+    }
     // We would have to update name and description in the collection of all drops
     for edition_number in 1..=current_drop_id {
-        let edition_params = DROPS.load(deps.storage, edition_number)?;
-        let mut collection = edition_params.collection;
-        let config = edition_params.config;
+        let mut edition_params = DROPS.load(deps.storage, edition_number)?;
+        edition_params.collection_details.collection_name = name
+            .clone()
+            .unwrap_or(edition_params.collection_details.collection_name);
+        edition_params.collection_details.description = description.clone();
+        edition_params.collection_details.preview_uri = preview_uri.clone();
 
-        if info.sender != config.admin {
-            return Err(ContractError::Unauthorized {});
-        }
-        collection.name = name.clone().unwrap_or(collection.name);
-        collection.description = description.clone().unwrap_or(collection.description);
-        collection.preview_uri = preview_uri.clone().unwrap_or(collection.preview_uri);
-        DROPS.save(
-            deps.storage,
-            edition_number,
-            &DropParams {
-                config: config,
-                collection: collection,
-            },
-        )?;
+        DROPS.save(deps.storage, edition_number, &edition_params)?;
     }
-    let current_drop_params = DROPS.load(deps.storage, current_drop_id)?;
+
     let update_msg: CosmosMsg = MsgUpdateDenom {
         sender: env.contract.address.into_string(),
-        id: current_drop_params.collection.id,
+        id: current_drop_params.collection_details.id,
         description: description.unwrap_or("[do-not-modify]".to_string()),
         name: name.unwrap_or("[do-not-modify]".to_string()),
         preview_uri: preview_uri.unwrap_or("[do-not-modify]".to_string()),
-        royalty_receivers: current_drop_params
-            .collection
-            .royalty_receivers
-            .unwrap_or(vec![WeightedAddress {
-                address: current_drop_params.config.payment_collector.into_string(),
-                weight: Decimal::one().to_string(),
-            }]),
+        royalty_receivers: vec![],
     }
     .into();
 
@@ -835,7 +724,7 @@ pub fn execute_update_denom(
 }
 fn execute_purge_denom(
     deps: DepsMut,
-    _env: Env,
+    env: Env,
     info: MessageInfo,
 ) -> Result<Response, ContractError> {
     let current_drop_id = CURRENT_DROP_ID.load(deps.storage)?;
@@ -843,22 +732,10 @@ fn execute_purge_denom(
     if current_drop_params.config.admin != info.sender {
         return Err(ContractError::Unauthorized {});
     }
-    let onft_querier = OnftQuerier::new(&deps.querier);
-    let minted_nfties_res =
-        onft_querier.collection(current_drop_params.collection.clone().id, None)?;
-    let minted_nfties = minted_nfties_res
-        .collection
-        .unwrap_or(Collection::default())
-        .onfts;
-
-    if !minted_nfties.is_empty() {
-        // If there is any nft minted for the collection purge denoms should not work
-        return Err(ContractError::MintingAlreadyStarted {});
-    }
 
     let purge_msg: CosmosMsg = MsgPurgeDenom {
-        id: current_drop_params.collection.id,
-        sender: info.sender.into_string(),
+        id: current_drop_params.collection_details.id,
+        sender: env.contract.address.into_string(),
     }
     .into();
 
@@ -871,6 +748,7 @@ fn execute_purge_denom(
 pub fn query(deps: Deps, env: Env, msg: MinterQueryMsg<QueryMsgExtention>) -> StdResult<Binary> {
     match msg {
         MinterQueryMsg::Collection {} => to_json_binary(&query_collection(deps, env, None)?),
+        MinterQueryMsg::TokenDetails {} => to_json_binary(&query_token_details(deps, env, None)?),
         MinterQueryMsg::Config {} => to_json_binary(&query_config(deps, env, None)?),
         MinterQueryMsg::MintedTokens { address } => {
             to_json_binary(&query_minted_tokens(deps, env, address, None)?)
@@ -897,6 +775,9 @@ pub fn query(deps: Deps, env: Env, msg: MinterQueryMsg<QueryMsgExtention>) -> St
             QueryMsgExtention::TokensRemaining { drop_id } => {
                 to_json_binary(&query_tokens_remaining(deps, env, drop_id)?)
             }
+            QueryMsgExtention::TokenDetails { drop_id } => {
+                to_json_binary(&query_token_details(deps, env, drop_id)?)
+            }
         },
     }
 }
@@ -907,8 +788,17 @@ fn query_collection(
     drop_id: Option<u32>,
 ) -> Result<CollectionDetails, ContractError> {
     let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
-    let collection = DROPS.load(deps.storage, drop_id)?.collection;
+    let collection = DROPS.load(deps.storage, drop_id)?.collection_details;
     Ok(collection)
+}
+fn query_token_details(
+    deps: Deps,
+    _env: Env,
+    drop_id: Option<u32>,
+) -> Result<TokenDetails, ContractError> {
+    let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
+    let token_details = DROPS.load(deps.storage, drop_id)?.token_details;
+    Ok(token_details)
 }
 
 fn query_config(deps: Deps, _env: Env, drop_id: Option<u32>) -> Result<Config, ContractError> {
@@ -926,7 +816,7 @@ fn query_minted_tokens(
 ) -> Result<UserDetails, ContractError> {
     let address = deps.api.addr_validate(&address)?;
     let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
-    let minted_tokens = UserMintedTokens::new(MINTED_TOKENS_KEY);
+    let minted_tokens = UserMintedTokens::new(USER_MINTED_TOKENS_KEY);
     let user_details = minted_tokens.load(deps.storage, drop_id, address)?;
     Ok(user_details)
 }
@@ -944,9 +834,9 @@ fn query_tokens_remaining(
     let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
     let drop_params = DROPS.load(deps.storage, drop_id)?;
     let config = drop_params.config;
-    let minted_count = MINTED_COUNT.load(deps.storage, drop_id).unwrap_or(0);
-    if let Some(token_limit) = config.token_limit {
-        let tokens_remaining = token_limit - minted_count;
+    let drop_minted_count = DROP_MINTED_COUNT.load(deps.storage, drop_id).unwrap_or(0);
+    if let Some(num_tokens) = config.num_tokens {
+        let tokens_remaining = num_tokens - drop_minted_count;
         return Ok(tokens_remaining);
     } else {
         return Err(ContractError::TokenLimitNotSet {});

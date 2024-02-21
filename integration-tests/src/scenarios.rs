@@ -3,12 +3,14 @@ mod scenarios {
 
     use std::ops::Add;
 
+    use cosmwasm_std::Decimal;
     use cosmwasm_std::{
         coin, coins, to_json_binary, Addr, BlockInfo, QueryRequest, Timestamp, Uint128, WasmQuery,
     };
     use cw_multi_test::{BankSudo, Executor, SudoMsg};
     use minter_types::CollectionDetails;
     use minter_types::Token;
+    use minter_types::TokenDetails;
     use minter_types::UserDetails;
 
     use minter_types::QueryMsg;
@@ -206,21 +208,26 @@ mod scenarios {
 
         let minter_1_inst_message = CreateMinterMsg {
             collection_details: CollectionDetails {
-                name: "Test_collection_1".to_string(),
-                description: "description".to_string(),
-                preview_uri: "preview_uri".to_string(),
-                schema: "schema".to_string(),
+                collection_name: "Test_collection_1".to_string(),
+                description: Some("description".to_string()),
+                preview_uri: Some("preview_uri".to_string()),
+                schema: Some("schema".to_string()),
                 symbol: "symbol".to_string(),
                 id: "test1".to_string(),
+                uri: Some("uri".to_string()),
+                uri_hash: Some("uri_hash".to_string()),
+                data: Some("data".to_string()),
+                royalty_receivers: None,
+            },
+            token_details: TokenDetails {
+                transferable: true,
+                token_name: "token_name".to_string(),
+                description: Some("description".to_string()),
+                base_token_uri: "base_token_uri".to_string(),
+                preview_uri: Some("preview_uri".to_string()),
                 extensible: true,
                 nsfw: false,
-                base_uri: "base_uri".to_string(),
-                uri: "uri".to_string(),
-                uri_hash: Some("uri_hash".to_string()),
-                data: "data".to_string(),
-                token_name: "token_name".to_string(),
-                transferable: true,
-                royalty_receivers: None,
+                royalty_ratio: Decimal::percent(10),
             },
             init: MinterInitExtention {
                 admin: creator.to_string(),
@@ -228,7 +235,6 @@ mod scenarios {
                 start_time: Timestamp::from_nanos(1_000_000_000),
                 end_time: Some(Timestamp::from_nanos(2_000_000_000)),
                 per_address_limit: 1,
-                royalty_ratio: "0.1".to_string(),
                 payment_collector: Some(creator.to_string()),
                 whitelist_address: Some(round_whitelist_addr.clone()),
                 num_tokens: 100,
@@ -241,7 +247,7 @@ mod scenarios {
         minter_2_inst_msg.init.per_address_limit = 100;
         minter_2_inst_msg.init.num_tokens = 100;
         minter_2_inst_msg.collection_details.id = "test2".to_string();
-        minter_2_inst_msg.collection_details.name = "Test_collection_2".to_string();
+        minter_2_inst_msg.collection_details.collection_name = "Test_collection_2".to_string();
 
         // Instantiate minter_1
         let res = app
