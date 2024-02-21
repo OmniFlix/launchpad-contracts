@@ -496,7 +496,7 @@ pub fn execute_update_royalty_ratio(
     ratio: String,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
-    let mut config = CONFIG.load(deps.storage)?;
+    let config = CONFIG.load(deps.storage)?;
     if info.sender != config.admin {
         return Err(ContractError::Unauthorized {});
     }
