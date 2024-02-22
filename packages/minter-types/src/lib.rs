@@ -57,21 +57,14 @@ pub struct MinterInstantiateMsg<T> {
 }
 
 #[cw_serde]
+#[derive(Default)]
 pub struct UserDetails {
     pub minted_tokens: Vec<Token>,
     pub total_minted_count: u32,
     pub public_mint_count: u32,
 }
 
-impl Default for UserDetails {
-    fn default() -> Self {
-        UserDetails {
-            minted_tokens: Vec::new(),
-            total_minted_count: 0,
-            public_mint_count: 0,
-        }
-    }
-}
+
 
 #[cw_serde]
 pub struct Token {

@@ -41,7 +41,7 @@ impl<'a> PauseState<'a> {
         sender: Addr,
         pausers: Vec<Addr>,
     ) -> Result<(), PauseError> {
-        let mut current_pausers = self.pausers.load(storage).unwrap_or(vec![]);
+        let mut current_pausers = self.pausers.load(storage).unwrap_or_default();
         if current_pausers.is_empty() {
             current_pausers = pausers;
         } else {

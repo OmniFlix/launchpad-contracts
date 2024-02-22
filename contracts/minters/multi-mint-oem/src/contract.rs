@@ -112,7 +112,7 @@ pub fn instantiate(
     }
 
     // Check royalty ratio we expect decimal number
-    let royalty_ratio = msg.token_details.royalty_ratio.clone();
+    let royalty_ratio = msg.token_details.royalty_ratio;
 
     if royalty_ratio < Decimal::zero() || royalty_ratio > Decimal::one() {
         return Err(ContractError::InvalidRoyaltyRatio {});
@@ -156,7 +156,7 @@ pub fn instantiate(
     let drop_params = DropParams {
         config: config.clone(),
         collection_details: collection_details.clone(),
-        token_details: token_details,
+        token_details,
     };
 
     DROPS.save(deps.storage, 1, &drop_params)?;
@@ -698,7 +698,7 @@ pub fn execute_new_drop(
         }
     }
     // Check royalty ratio we expect decimal number
-    let royalty_ratio = token_details.royalty_ratio.clone();
+    let royalty_ratio = token_details.royalty_ratio;
 
     if royalty_ratio < Decimal::zero() || royalty_ratio > Decimal::one() {
         return Err(ContractError::InvalidRoyaltyRatio {});
@@ -707,7 +707,7 @@ pub fn execute_new_drop(
     let new_drop_params = DropParams {
         config: config.clone(),
         collection_details: current_drop_params.collection_details,
-        token_details: token_details,
+        token_details,
     };
     let new_drop_id = current_drop_id + 1;
     DROPS.save(deps.storage, new_drop_id, &new_drop_params)?;
@@ -912,9 +912,9 @@ fn query_tokens_remaining(
     let drop_minted_count = DROP_MINTED_COUNT.load(deps.storage, drop_id).unwrap_or(0);
     if let Some(num_tokens) = config.num_tokens {
         let tokens_remaining = num_tokens - drop_minted_count;
-        return Ok(tokens_remaining);
+        Ok(tokens_remaining)
     } else {
-        return Err(ContractError::TokenLimitNotSet {});
+        Err(ContractError::TokenLimitNotSet {})
     }
 }
 

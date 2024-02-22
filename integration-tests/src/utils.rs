@@ -52,9 +52,10 @@ pub fn return_minter_instantiate_msg() -> CreateMinterMsg {
         nsfw: false,
         data: None,
     };
-    let init = CreateMinterMsg {
-        collection_details: collection_details,
-        token_details: token_details,
+    
+    CreateMinterMsg {
+        collection_details,
+        token_details,
         init: MinterInitExtention {
             admin: "creator".to_string(),
             mint_price: Coin::new(1000000, "uflix"),
@@ -65,8 +66,7 @@ pub fn return_minter_instantiate_msg() -> CreateMinterMsg {
             whitelist_address: None,
             num_tokens: 1000,
         },
-    };
-    init
+    }
 }
 
 pub fn return_open_edition_minter_inst_msg() -> OpenEditionMinterCreateMsg {
@@ -103,12 +103,12 @@ pub fn return_open_edition_minter_inst_msg() -> OpenEditionMinterCreateMsg {
         nsfw: false,
         data: None,
     };
-    let open_edition_minter_inst_msg = OpenEditionMinterCreateMsg {
-        collection_details: collection_details,
-        init: init,
-        token_details: token_details,
-    };
-    open_edition_minter_inst_msg
+    
+    OpenEditionMinterCreateMsg {
+        collection_details,
+        init,
+        token_details,
+    }
 }
 
 pub fn return_rounds() -> Vec<whitelist_types::Round> {
@@ -144,6 +144,6 @@ pub fn return_factory_inst_message(code_id: u64) -> InstantiateMsg {
         product_label: "label".to_string(),
         init: Empty {},
     };
-    let inst_msg = InstantiateMsg { params };
-    inst_msg
+    
+    InstantiateMsg { params }
 }

@@ -69,7 +69,7 @@ mod test_pause {
                 msg: to_json_binary(&QueryMsg::<Empty>::IsPaused {}).unwrap(),
             }))
             .unwrap();
-        assert_eq!(is_paused, false);
+        assert!(!is_paused);
 
         // Query pausers
         let pausers: Vec<Addr> = app
@@ -120,7 +120,7 @@ mod test_pause {
                 msg: to_json_binary(&QueryMsg::<Empty>::IsPaused {}).unwrap(),
             }))
             .unwrap();
-        assert_eq!(is_paused, true);
+        assert!(is_paused);
 
         // Try pausing again
         let pause_msg = MinterExecuteMsg::Pause {};
@@ -193,7 +193,7 @@ mod test_pause {
                 msg: to_json_binary(&QueryMsg::<Empty>::IsPaused {}).unwrap(),
             }))
             .unwrap();
-        assert_eq!(is_paused, false);
+        assert!(!is_paused);
 
         // Try minting
         let mint_msg = MinterExecuteMsg::Mint {};
@@ -268,6 +268,6 @@ mod test_pause {
                 msg: to_json_binary(&QueryMsg::<Empty>::IsPaused {}).unwrap(),
             }))
             .unwrap();
-        assert_eq!(is_paused, true);
+        assert!(is_paused);
     }
 }
