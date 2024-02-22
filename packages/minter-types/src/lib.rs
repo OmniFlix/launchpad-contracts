@@ -85,6 +85,8 @@ pub enum QueryMsg<T> {
     Collection {},
     #[returns(TokenDetails)]
     TokenDetails {},
+    #[returns(AuthDetails)]
+    AuthDetails {},
     #[returns(Config)]
     Config {},
     #[returns(UserDetails)]

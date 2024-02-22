@@ -195,6 +195,10 @@ pub fn execute(
         ExecuteMsg::UpdateWhitelistAddress { address } => {
             execute_update_whitelist_address(deps, env, info, address)
         }
+        ExecuteMsg::SetAdmin { admin } => execute_set_admin(deps, env, info, admin),
+        ExecuteMsg::SetPaymentCollector { payment_collector } => {
+            execute_set_payment_collector(deps, env, info, payment_collector)
+        }
         ExecuteMsg::Pause {} => execute_pause(deps, env, info),
         ExecuteMsg::Unpause {} => execute_unpause(deps, env, info),
         ExecuteMsg::SetPausers { pausers } => execute_set_pausers(deps, env, info, pausers),
@@ -567,6 +571,49 @@ pub fn execute_set_pausers(
     Ok(res)
 }
 
+pub fn execute_set_admin(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    admin: String,
+) -> Result<Response, ContractError> {
+    // Check if sender is admin
+    let mut auth_details = AUTH_DETAILS.load(deps.storage)?;
+    // Check if admin
+    if info.sender != auth_details.admin {
+        return Err(ContractError::Unauthorized {});
+    }
+    let new_admin = deps.api.addr_validate(&admin)?;
+    auth_details.admin = new_admin.clone();
+    AUTH_DETAILS.save(deps.storage, &auth_details)?;
+
+    let res = Response::new()
+        .add_attribute("action", "set_admin")
+        .add_attribute("admin", admin.to_string());
+    Ok(res)
+}
+
+pub fn execute_set_payment_collector(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    payment_collector: String,
+) -> Result<Response, ContractError> {
+    // Check if sender is admin
+    let mut auth_details = AUTH_DETAILS.load(deps.storage)?;
+    // Check if admin
+    if info.sender != auth_details.admin {
+        return Err(ContractError::Unauthorized {});
+    }
+    let new_payment_collector = deps.api.addr_validate(&payment_collector)?;
+    auth_details.payment_collector = new_payment_collector.clone();
+    AUTH_DETAILS.save(deps.storage, &auth_details)?;
+
+    let res = Response::new()
+        .add_attribute("action", "set_payment_collector")
+        .add_attribute("payment_collector", new_payment_collector.to_string());
+    Ok(res)
+}
 pub fn execute_update_royalty_receivers(
     deps: DepsMut,
     env: Env,
@@ -674,6 +721,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg<OEMQueryExtension>) -> StdResul
         QueryMsg::TotalMintedCount {} => to_json_binary(&query_total_tokens_minted(deps, env)?),
         QueryMsg::IsPaused {} => to_json_binary(&query_is_paused(deps, env)?),
         QueryMsg::Pausers {} => to_json_binary(&query_pausers(deps, env)?),
+        QueryMsg::AuthDetails {} => to_json_binary(&query_auth_details(deps, env)?),
         QueryMsg::Extension(ext) => match ext {
             OEMQueryExtension::TokensRemaining {} => {
                 to_json_binary(&query_tokens_remaining(deps, env)?)
@@ -732,4 +780,8 @@ fn query_pausers(deps: Deps, _env: Env) -> Result<Vec<Addr>, ContractError> {
     let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
     let pausers = pause_state.pausers.load(deps.storage).unwrap_or(vec![]);
     Ok(pausers)
+}
+fn query_auth_details(deps: Deps, _env: Env) -> Result<AuthDetails, ContractError> {
+    let auth_details = AUTH_DETAILS.load(deps.storage)?;
+    Ok(auth_details)
 }

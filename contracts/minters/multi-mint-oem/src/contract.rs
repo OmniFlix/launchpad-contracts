@@ -208,6 +208,10 @@ pub fn execute(
         ExecuteMsg::UpdateWhitelistAddress { address, drop_id } => {
             execute_update_whitelist_address(deps, env, info, address, drop_id)
         }
+        ExecuteMsg::SetAdmin { admin } => execute_set_admin(deps, env, info, admin),
+        ExecuteMsg::SetPaymentCollector { payment_collector } => {
+            execute_set_payment_collector(deps, env, info, payment_collector)
+        }
         ExecuteMsg::Pause {} => execute_pause(deps, env, info),
         ExecuteMsg::Unpause {} => execute_unpause(deps, env, info),
         ExecuteMsg::SetPausers { pausers } => execute_set_pausers(deps, env, info, pausers),
@@ -517,6 +521,48 @@ pub fn execute_update_mint_price(
     Ok(res)
 }
 
+pub fn execute_set_admin(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    admin: String,
+) -> Result<Response, ContractError> {
+    let mut auth_details = AUTH_DETAILS.load(deps.storage)?;
+    // Check if sender is admin
+    if info.sender != auth_details.admin {
+        return Err(ContractError::Unauthorized {});
+    }
+    let new_admin = deps.api.addr_validate(&admin)?;
+    auth_details.admin = new_admin.clone();
+    AUTH_DETAILS.save(deps.storage, &auth_details)?;
+
+    let res = Response::new()
+        .add_attribute("action", "set_admin")
+        .add_attribute("admin", admin.to_string());
+    Ok(res)
+}
+
+pub fn execute_set_payment_collector(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    payment_collector: String,
+) -> Result<Response, ContractError> {
+    let mut auth_details = AUTH_DETAILS.load(deps.storage)?;
+    // Check if sender is admin
+    if info.sender != auth_details.admin {
+        return Err(ContractError::Unauthorized {});
+    }
+    let new_payment_collector = deps.api.addr_validate(&payment_collector)?;
+    auth_details.payment_collector = new_payment_collector.clone();
+    AUTH_DETAILS.save(deps.storage, &auth_details)?;
+
+    let res = Response::new()
+        .add_attribute("action", "set_payment_collector")
+        .add_attribute("payment_collector", payment_collector.to_string());
+    Ok(res)
+}
+
 pub fn execute_update_whitelist_address(
     deps: DepsMut,
     _env: Env,
@@ -784,6 +830,7 @@ pub fn query(deps: Deps, env: Env, msg: MinterQueryMsg<QueryMsgExtension>) -> St
         MinterQueryMsg::TotalMintedCount {} => {
             to_json_binary(&query_total_tokens_minted(deps, env)?)
         }
+        MinterQueryMsg::AuthDetails {} => to_json_binary(&query_auth_details(deps, env)?),
         MinterQueryMsg::IsPaused {} => to_json_binary(&query_is_paused(deps, env)?),
         MinterQueryMsg::Pausers {} => to_json_binary(&query_pausers(deps, env)?),
         MinterQueryMsg::Extension(ext) => match ext {
@@ -896,4 +943,9 @@ fn query_all_drops(deps: Deps, _env: Env) -> Result<Vec<(u32, DropParams)>, Cont
         drops.push((edition_number, drop_params));
     }
     Ok(drops)
+}
+
+fn query_auth_details(deps: Deps, _env: Env) -> Result<AuthDetails, ContractError> {
+    let auth_details = AUTH_DETAILS.load(deps.storage)?;
+    Ok(auth_details)
 }

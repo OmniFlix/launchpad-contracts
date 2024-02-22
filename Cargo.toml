@@ -35,7 +35,5 @@ cosmwasm-storage     = "1.5.0"
 serde                = { version = "1.0.145", default-features = false, features = ["derive"] }
 whitelist-types = {  path = "packages/whitelist-types" }
 minter-types = { path = "packages/minter-types" }
-open-edition-minter-types = { path = "packages/open-edition-minter-types" }
-multi-mint-open-edition-minter-types = { path = "packages/multi-mint-oem-types" }
 factory-types = { path = "packages/factory-types" }
 pauser = {  path = "packages/pauser" }

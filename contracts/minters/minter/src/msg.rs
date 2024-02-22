@@ -37,6 +37,12 @@ pub enum ExecuteMsg {
         preview_uri: Option<String>,
     },
     PurgeDenom {},
+    SetAdmin {
+        admin: String,
+    },
+    SetPaymentCollector {
+        payment_collector: String,
+    },
 }
 #[cw_serde]
 #[derive(QueryResponses)]

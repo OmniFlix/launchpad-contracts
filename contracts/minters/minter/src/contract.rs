@@ -222,6 +222,10 @@ pub fn execute(
         ExecuteMsg::UpdateWhitelistAddress { address } => {
             execute_update_whitelist_address(deps, env, info, address)
         }
+        ExecuteMsg::SetAdmin { admin } => execute_set_admin(deps, env, info, admin),
+        ExecuteMsg::SetPaymentCollector { payment_collector } => {
+            execute_set_payment_collector(deps, env, info, payment_collector)
+        }
         ExecuteMsg::Pause {} => execute_pause(deps, env, info),
         ExecuteMsg::Unpause {} => execute_unpause(deps, env, info),
         ExecuteMsg::SetPausers { pausers } => execute_set_pausers(deps, env, info, pausers),
@@ -511,6 +515,48 @@ pub fn execute_update_royalty_ratio(
     Ok(res)
 }
 
+pub fn execute_set_admin(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    admin: String,
+) -> Result<Response, ContractError> {
+    // Check if sender is admin
+    let mut auth_details = AUTH_DETAILS.load(deps.storage)?;
+    if info.sender != auth_details.admin {
+        return Err(ContractError::Unauthorized {});
+    }
+    let new_admin = deps.api.addr_validate(&admin)?;
+    auth_details.admin = new_admin.clone();
+    AUTH_DETAILS.save(deps.storage, &auth_details)?;
+
+    let res = Response::new()
+        .add_attribute("action", "set_admin")
+        .add_attribute("admin", admin.to_string());
+    Ok(res)
+}
+
+pub fn execute_set_payment_collector(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    payment_collector: String,
+) -> Result<Response, ContractError> {
+    // Check if sender is admin
+    let mut auth_details = AUTH_DETAILS.load(deps.storage)?;
+    if info.sender != auth_details.admin {
+        return Err(ContractError::Unauthorized {});
+    }
+    let new_payment_collector = deps.api.addr_validate(&payment_collector)?;
+    auth_details.payment_collector = new_payment_collector.clone();
+    AUTH_DETAILS.save(deps.storage, &auth_details)?;
+
+    let res = Response::new()
+        .add_attribute("action", "set_payment_collector")
+        .add_attribute("payment_collector", payment_collector.to_string());
+    Ok(res)
+}
+
 pub fn execute_update_mint_price(
     deps: DepsMut,
     _env: Env,
@@ -756,6 +802,7 @@ pub fn query(
         BaseMinterQueryMsg::MintedTokens { address } => {
             to_json_binary(&query_minted_tokens(deps, env, address)?)
         }
+        BaseMinterQueryMsg::AuthDetails {} => to_json_binary(&query_auth_details(deps, env)?),
         BaseMinterQueryMsg::IsPaused {} => to_json_binary(&query_is_paused(deps, env)?),
         BaseMinterQueryMsg::Pausers {} => to_json_binary(&query_pausers(deps, env)?),
         BaseMinterQueryMsg::TotalMintedCount {} => {
@@ -828,4 +875,8 @@ fn query_total_minted_count(deps: Deps, _env: Env) -> Result<u32, ContractError>
     let config = CONFIG.load(deps.storage)?;
     let total_tokens = config.num_tokens.unwrap_or(0);
     Ok(total_tokens - TOTAL_TOKENS_REMAINING.load(deps.storage)?)
+}
+fn query_auth_details(deps: Deps, _env: Env) -> Result<AuthDetails, ContractError> {
+    let auth_details = AUTH_DETAILS.load(deps.storage)?;
+    Ok(auth_details)
 }
