@@ -14,7 +14,7 @@ pub struct MinterInitExtention {
     // Public minting start time
     pub start_time: Timestamp,
     pub end_time: Option<Timestamp>,
-    pub per_address_limit: u32,
+    pub per_address_limit: Option<u32>,
     // We expect user to send a string between 0 and 1
     // FE "0.1"
     pub payment_collector: Option<String>,

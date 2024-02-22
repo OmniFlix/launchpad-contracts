@@ -88,8 +88,10 @@ pub fn instantiate(
         });
     }
     // Check if per address limit is 0
-    if msg.init.per_address_limit == 0 {
-        return Err(ContractError::PerAddressLimitZero {});
+    if let Some(per_address_limit) = msg.init.per_address_limit {
+        if per_address_limit == 0 {
+            return Err(ContractError::PerAddressLimitZero {});
+        }
     }
     // Check if token limit is 0
     if let Some(num_tokens) = msg.init.num_tokens {
@@ -307,9 +309,11 @@ pub fn execute_mint(
         };
     } else {
         user_details.public_mint_count += 1;
-        // Check if address has reached the public mint limit
-        if user_details.public_mint_count > config.per_address_limit {
-            return Err(ContractError::AddressReachedMintLimit {});
+        // Check if per address limit is set and if it is reached
+        if let Some(per_address_limit) = config.per_address_limit {
+            if user_details.public_mint_count > per_address_limit {
+                return Err(ContractError::AddressReachedMintLimit {});
+            }
         }
     }
     // Increment total minted count
@@ -619,6 +623,12 @@ pub fn execute_new_drop(
     if let Some(num_tokens) = config.num_tokens {
         if num_tokens == 0 {
             return Err(ContractError::InvalidNumTokens {});
+        }
+    }
+    // Check if per address limit is 0
+    if let Some(per_address_limit) = config.per_address_limit {
+        if per_address_limit == 0 {
+            return Err(ContractError::PerAddressLimitZero {});
         }
     }
     // Check start time

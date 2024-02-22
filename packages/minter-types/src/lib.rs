@@ -6,15 +6,15 @@ use omniflix_std::types::omniflix::onft::v1beta1::{
 
 #[cw_serde]
 pub struct CollectionDetails {
-    pub collection_name: String,
     pub description: Option<String>,
     pub preview_uri: Option<String>,
     pub schema: Option<String>,
-    pub symbol: String,
-    pub id: String,
     pub uri: Option<String>,
     pub uri_hash: Option<String>,
+    pub collection_name: String,
     pub data: Option<String>,
+    pub symbol: String,
+    pub id: String,
     // FE: Collection:"Badkids" each token name "BadKid" #token_id
     pub royalty_receivers: Option<Vec<WeightedAddress>>,
 }
@@ -22,25 +22,25 @@ pub struct CollectionDetails {
 pub struct TokenDetails {
     // FE: Collection:"Badkids" description: "Collection of Badkids", token{ description: "Badkid from badkids collection", name: "Badkid", symbol: "BKID", uri: "https://badkids.com/1", uri_hash: "QmZG9Z3Y9Z3Y}
     pub data: Option<String>,
-    pub token_name: String,
     pub description: Option<String>,
+    pub preview_uri: Option<String>,
+    pub token_name: String,
     pub transferable: bool,
     pub extensible: bool,
     pub nsfw: bool,
     pub royalty_ratio: Decimal,
     // This preview_uri is used for the preview of the token. If provided, it will be used as the preview_uri+token_id
-    pub preview_uri: Option<String>,
     // This is the base token uri. If provided, it will be used as the base_token_uri+token_id should be pointing at a json file.
     pub base_token_uri: String,
 }
 #[cw_serde]
 pub struct Config {
-    pub per_address_limit: u32,
+    pub per_address_limit: Option<u32>,
     pub start_time: Timestamp,
     pub end_time: Option<Timestamp>,
-    pub mint_price: Coin,
     pub whitelist_address: Option<Addr>,
     pub num_tokens: Option<u32>,
+    pub mint_price: Coin,
 }
 
 #[cw_serde]

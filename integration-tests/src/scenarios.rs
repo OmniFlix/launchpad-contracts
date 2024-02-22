@@ -210,7 +210,7 @@ mod scenarios {
                 mint_price: coin(5_000_000, "uflix"),
                 start_time: Timestamp::from_nanos(1_000_000_000),
                 end_time: Some(Timestamp::from_nanos(2_000_000_000)),
-                per_address_limit: 1,
+                per_address_limit: Some(1),
                 payment_collector: Some(creator.to_string()),
                 whitelist_address: Some(round_whitelist_addr.clone()),
                 num_tokens: 100,
@@ -220,7 +220,7 @@ mod scenarios {
         minter_2_inst_msg.init.mint_price = coin(10_000_000, "uflix");
         minter_2_inst_msg.init.start_time = Timestamp::from_nanos(2_000_000_000);
         minter_2_inst_msg.init.end_time = Some(Timestamp::from_nanos(3_000_000_000));
-        minter_2_inst_msg.init.per_address_limit = 100;
+        minter_2_inst_msg.init.per_address_limit = Some(100);
         minter_2_inst_msg.init.num_tokens = 100;
         minter_2_inst_msg.collection_details.id = "test2".to_string();
         minter_2_inst_msg.collection_details.collection_name = "Test_collection_2".to_string();

@@ -167,7 +167,7 @@ mod test_open_edition_minter_creation {
 
         // Send zero per address limit
         let mut open_edition_minter_instantiate_msg = return_open_edition_minter_inst_msg();
-        open_edition_minter_instantiate_msg.init.per_address_limit = 0;
+        open_edition_minter_instantiate_msg.init.per_address_limit = Some(0);
         let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateMinter {
             msg: open_edition_minter_instantiate_msg,
         };
@@ -289,7 +289,7 @@ mod test_open_edition_minter_creation {
                     denom: "uflix".to_string(),
                     amount: Uint128::from(1000000u128)
                 },
-                per_address_limit: 1,
+                per_address_limit: Some(1),
                 whitelist_address: None,
                 num_tokens: Some(1000)
             }

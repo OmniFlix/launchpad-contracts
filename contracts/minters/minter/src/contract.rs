@@ -92,8 +92,10 @@ pub fn instantiate(
         });
     }
     // Check if per address limit is 0
-    if msg.init.per_address_limit == 0 {
-        return Err(ContractError::PerAddressLimitZero {});
+    if let Some(per_address_limit) = msg.init.per_address_limit {
+        if per_address_limit == 0 {
+            return Err(ContractError::PerAddressLimitZero {});
+        }
     }
     // Check num_tokens
     if msg.init.num_tokens == 0 {
@@ -308,10 +310,12 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
         };
     } else {
         user_details.public_mint_count += 1;
-        // Check if address has reached the limit
+        // Check if per address limit is set and if it is reached
         // This check should be done only for public minting
-        if user_details.public_mint_count > config.per_address_limit {
-            return Err(ContractError::AddressReachedMintLimit {});
+        if let Some(per_address_limit) = config.per_address_limit {
+            if user_details.public_mint_count > per_address_limit {
+                return Err(ContractError::AddressReachedMintLimit {});
+            }
         }
     }
     // Increment total minted count

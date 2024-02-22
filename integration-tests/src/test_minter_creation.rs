@@ -244,7 +244,7 @@ mod test_minter_creation {
                 msg: to_json_binary(&QueryMsg::<Empty>::Config {}).unwrap(),
             }))
             .unwrap();
-        assert_eq!(config_data.per_address_limit, 1);
+        assert_eq!(config_data.per_address_limit, Some(1));
         assert_eq!(config_data.mint_price.denom, "uflix".to_string());
         assert_eq!(config_data.start_time, Timestamp::from_nanos(1000000000));
         assert_eq!(config_data.mint_price.amount, Uint128::from(1000000u128));

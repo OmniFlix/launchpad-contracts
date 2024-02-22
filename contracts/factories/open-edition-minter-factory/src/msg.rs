@@ -14,7 +14,7 @@ pub struct OpenEditionMinterInitExtention {
     pub start_time: Timestamp,
     pub end_time: Option<Timestamp>,
     pub num_tokens: Option<u32>,
-    pub per_address_limit: u32,
+    pub per_address_limit: Option<u32>,
     pub payment_collector: Option<String>,
     pub whitelist_address: Option<String>,
 }
