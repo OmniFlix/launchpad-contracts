@@ -3,7 +3,7 @@ mod test_minter_creation {
 
     use cosmwasm_std::Empty;
     use cosmwasm_std::{
-        coin, to_json_binary, Addr, Decimal, QueryRequest, Timestamp, Uint128, WasmQuery,
+        coin, to_json_binary, Decimal, QueryRequest, Timestamp, Uint128, WasmQuery,
     };
     use cw_multi_test::Executor;
     use factory_types::CustomPaymentError;

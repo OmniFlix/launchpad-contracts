@@ -1,6 +1,5 @@
-use cosmwasm_std::{Addr, StdError, Storage};
+use cosmwasm_std::StdError;
 use cosmwasm_std::{Coin, Uint128};
-use cw_storage_plus::Item;
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq)]

@@ -1,7 +1,5 @@
-use std::fmt::format;
-
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Addr, Coin, Decimal, StdError, Storage, Timestamp};
+use cosmwasm_std::{Addr, Coin, Decimal, StdError, Timestamp};
 use omniflix_std::types::omniflix::onft::v1beta1::{
     Metadata, MsgCreateDenom, MsgMintOnft, WeightedAddress,
 };

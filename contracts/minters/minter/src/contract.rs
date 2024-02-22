@@ -392,7 +392,6 @@ pub fn execute_mint_admin(
     pause_state.error_if_paused(deps.storage)?;
     // Check if sender is admin
     nonpayable(&info)?;
-    let config = CONFIG.load(deps.storage)?;
     let collection = COLLECTION.load(deps.storage)?;
     let auth_details = AUTH_DETAILS.load(deps.storage)?;
     if info.sender != auth_details.admin {
@@ -484,7 +483,7 @@ pub fn execute_burn_remaining_tokens(
 
 pub fn execute_update_royalty_ratio(
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     info: MessageInfo,
     ratio: String,
 ) -> Result<Response, ContractError> {

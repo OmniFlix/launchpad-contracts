@@ -9,7 +9,6 @@ use minter_types::{
     generate_create_denom_msg, generate_mint_message, AuthDetails, CollectionDetails, Config,
     QueryMsg as MinterQueryMsg, Token, TokenDetails, UserDetails,
 };
-use omniflix_std::types::cosmos::auth;
 use pauser::{PauseState, PAUSED_KEY, PAUSERS_KEY};
 use std::str::FromStr;
 
@@ -346,7 +345,7 @@ pub fn execute_mint(
         env.contract.address,
         info.sender,
         Some((drop_minted_count).to_string()),
-        is_public,
+        true,
     )
     .into();
 
@@ -644,6 +643,10 @@ pub fn execute_new_drop(
     }
     // Check royalty ratio we expect decimal number
     let royalty_ratio = token_details.royalty_ratio.clone();
+
+    if royalty_ratio < Decimal::zero() || royalty_ratio > Decimal::one() {
+        return Err(ContractError::InvalidRoyaltyRatio {});
+    }
 
     let new_drop_params = DropParams {
         config: config.clone(),

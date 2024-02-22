@@ -9,7 +9,6 @@ use minter_types::{
     generate_create_denom_msg, generate_mint_message, AuthDetails, CollectionDetails, Config,
     QueryMsg, Token, TokenDetails, UserDetails,
 };
-use omniflix_std::types::cosmos::auth;
 use std::str::FromStr;
 
 use crate::error::ContractError;
@@ -416,7 +415,6 @@ pub fn execute_burn_remaining_tokens(
     info: MessageInfo,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
-    let config = CONFIG.load(deps.storage)?;
     let auth_details = AUTH_DETAILS.load(deps.storage)?;
     // Check if admin
     if info.sender != auth_details.admin {
@@ -573,7 +571,6 @@ pub fn execute_update_royalty_receivers(
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
     let mut collection = COLLECTION.load(deps.storage)?;
-    let config = CONFIG.load(deps.storage)?;
     let auth_details = AUTH_DETAILS.load(deps.storage)?;
     // Check if admin
     if info.sender != auth_details.admin {
@@ -609,7 +606,6 @@ pub fn execute_update_denom(
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
     let mut collection = COLLECTION.load(deps.storage)?;
-    let config = CONFIG.load(deps.storage)?;
     let auth_details = AUTH_DETAILS.load(deps.storage)?;
     // Check if admin
     if info.sender != auth_details.admin {
@@ -644,7 +640,6 @@ fn execute_purge_denom(
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
     let collection = COLLECTION.load(deps.storage)?;
-    let config = CONFIG.load(deps.storage)?;
     let auth_details = AUTH_DETAILS.load(deps.storage)?;
     // Check if admin
     if info.sender != auth_details.admin {

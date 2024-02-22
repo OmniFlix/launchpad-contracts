@@ -1,35 +1,21 @@
 #[cfg(test)]
 mod scenarios {
-
-    use std::ops::Add;
-
     use cosmwasm_std::Decimal;
-    use cosmwasm_std::{
-        coin, coins, to_json_binary, Addr, BlockInfo, QueryRequest, Timestamp, Uint128, WasmQuery,
-    };
-    use cw_multi_test::{BankSudo, Executor, SudoMsg};
+    use cosmwasm_std::{coin, coins, Addr, BlockInfo, Timestamp, Uint128};
+    use cw_multi_test::Executor;
     use minter_types::CollectionDetails;
-    use minter_types::Token;
     use minter_types::TokenDetails;
-    use minter_types::UserDetails;
-
-    use minter_types::QueryMsg;
     use omniflix_minter::msg::ExecuteMsg as MinterExecuteMsg;
     use omniflix_minter_factory::msg::CreateMinterMsg;
     use omniflix_minter_factory::msg::MinterInitExtention;
     use omniflix_minter_factory::msg::{
         ExecuteMsg as FactoryExecuteMsg, InstantiateMsg as FactoryInstantiateMsg,
     };
-    use omniflix_open_edition_minter::error;
     use omniflix_round_whitelist::msg::ExecuteMsg as RoundWhitelistExecuteMsg;
-    use omniflix_round_whitelist::round;
     use whitelist_types::Round;
     use whitelist_types::RoundWhitelistQueryMsgs;
 
-    use crate::utils::{
-        get_contract_address_from_res, mint_to_address, return_minter_instantiate_msg,
-        return_rounds,
-    };
+    use crate::utils::{get_contract_address_from_res, mint_to_address};
 
     use crate::{setup::setup, utils::query_onft_collection};
     use omniflix_minter::error::ContractError as MinterContractError;
@@ -290,7 +276,7 @@ mod scenarios {
             height: 1_000,
             time: Timestamp::from_nanos(1_000_000 + 1),
         });
-        let res = app
+        let _res = app
             .execute_contract(
                 collector_1.clone(),
                 Addr::unchecked(minter_1_addr.clone()),
@@ -301,7 +287,7 @@ mod scenarios {
 
         // Collector_1 buys 1 NFT from Minter_2 during round 1
         // Price is round 1 price and its 1_000_000 uflix
-        let res = app
+        let _res = app
             .execute_contract(
                 collector_1.clone(),
                 Addr::unchecked(minter_2_addr.clone()),
@@ -355,7 +341,7 @@ mod scenarios {
             collector_1.to_string(),
             coins(2000000, "ibc_atom"),
         );
-        let res = app
+        let _res = app
             .execute_contract(
                 collector_1.clone(),
                 Addr::unchecked(minter_1_addr.clone()),
@@ -419,7 +405,7 @@ mod scenarios {
             .0;
 
         // Add collector_1 to round 3 whitelist addresses
-        let res = app
+        let _res = app
             .execute_contract(
                 admin.clone(),
                 Addr::unchecked(round_whitelist_addr.clone()),
@@ -455,7 +441,7 @@ mod scenarios {
                 .collect::<Vec<Addr>>(),
             mint_price: coin(200_000, "uflix"),
         };
-        let res = app
+        let _res = app
             .execute_contract(
                 admin.clone(),
                 Addr::unchecked(round_whitelist_addr.clone()),
@@ -507,7 +493,7 @@ mod scenarios {
         mint_to_address(&mut app, collector_1.to_string(), coins(5000000, "uflix"));
 
         // Creator buys 1 NFT from Minter_1
-        let res = app
+        let _res = app
             .execute_contract(
                 creator.clone(),
                 Addr::unchecked(minter_1_addr.clone()),

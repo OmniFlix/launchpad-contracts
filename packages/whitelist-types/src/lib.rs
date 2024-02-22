@@ -1,5 +1,5 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Addr, Coin, Deps, Storage, Timestamp};
+use cosmwasm_std::{Addr, Coin, Deps, Timestamp};
 use cosmwasm_std::{Empty, StdError};
 use minter_types::Config as MinterConfig;
 use minter_types::QueryMsg as MinterQueryMsg;

@@ -1,8 +1,6 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Addr, Coin, Timestamp};
-use minter_types::{
-    CollectionDetails, Config, QueryMsg as BaseMinterQueryMsg, TokenDetails, UserDetails,
-};
+use cosmwasm_std::Coin;
+use minter_types::{CollectionDetails, Config, TokenDetails, UserDetails};
 use multi_mint_open_edition_minter_types::DropParams;
 use omniflix_std::types::omniflix::onft::v1beta1::WeightedAddress;
 
