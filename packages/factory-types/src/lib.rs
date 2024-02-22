@@ -1,4 +1,5 @@
-use cosmwasm_std::StdError;
+use cosmwasm_schema::cw_serde;
+use cosmwasm_std::{Addr, StdError};
 use cosmwasm_std::{Coin, Uint128};
 use thiserror::Error;
 
@@ -136,4 +137,14 @@ mod tests {
         let res = check_payment(&sent_funds, &expected_funds);
         assert!(res.is_ok());
     }
+}
+
+#[cw_serde]
+pub struct FactoryParams<T> {
+    pub creation_fee: Coin,
+    pub fee_collector_address: Addr,
+    pub contract_id: u64,
+    pub admin: Addr,
+    pub product_label: String,
+    pub init: T,
 }

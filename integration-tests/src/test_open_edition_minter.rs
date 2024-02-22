@@ -6,12 +6,12 @@ mod test_open_edition_minter_creation {
     use cw_multi_test::Executor;
     use factory_types::CustomPaymentError;
     use minter_types::{CollectionDetails, Config};
-    use omniflix_open_edition_minter_factory::msg::{
-        ExecuteMsg as OpenEditionMinterFactoryExecuteMsg,
-        InstantiateMsg as OpenEditionMinterFactoryInstantiateMsg,
-    };
+    use omniflix_open_edition_minter_factory::msg::ExecuteMsg as OpenEditionMinterFactoryExecuteMsg;
 
-    use crate::utils::{get_contract_address_from_res, return_open_edition_minter_inst_msg};
+    use crate::utils::{
+        get_contract_address_from_res, return_factory_inst_message,
+        return_open_edition_minter_inst_msg,
+    };
 
     use crate::{setup::setup, utils::query_onft_collection};
 
@@ -39,12 +39,8 @@ mod test_open_edition_minter_creation {
         let _collector = test_addresses.collector;
 
         // Instantiate the minter factory
-        let open_edition_minter_factory_instantiate_msg = OpenEditionMinterFactoryInstantiateMsg {
-            admin: Some(admin.to_string()),
-            open_edition_minter_code_id,
-            fee_collector_address: admin.to_string(),
-            minter_creation_fee: coin(1000000, "uflix"),
-        };
+        let open_edition_minter_factory_instantiate_msg =
+            return_factory_inst_message(open_edition_minter_code_id);
 
         let open_edition_minter_factory_address = app
             .instantiate_contract(

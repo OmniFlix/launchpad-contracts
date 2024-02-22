@@ -6,7 +6,7 @@ use minter_types::QueryMsg as MinterQueryMsg;
 
 #[cw_serde]
 pub struct InstantiateMsg {
-    pub admin: Option<String>,
+    pub admin: String,
     pub rounds: Vec<Round>,
 }
 

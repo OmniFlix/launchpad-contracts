@@ -2,14 +2,13 @@ use std::str::FromStr;
 
 use crate::error::ContractError;
 use crate::msg::{CreateMinterMsg, ExecuteMsg, InstantiateMsg, ParamsResponse, QueryMsg};
-use crate::state::{Params, PARAMS};
+use crate::state::PARAMS;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     to_json_binary, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response,
     StdResult, Uint128, WasmMsg,
 };
-use cw_utils::maybe_addr;
 use factory_types::check_payment;
 use omniflix_std::types::omniflix::onft::v1beta1::OnftQuerier;
 #[cfg(not(test))]
@@ -29,17 +28,16 @@ pub fn instantiate(
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
-    let admin = maybe_addr(deps.api, msg.admin)?.unwrap_or(info.sender);
-    let fee_collector_address = deps.api.addr_validate(&msg.fee_collector_address)?;
-    if msg.minter_code_id == 0 {
-        return Err(ContractError::InvalidMinterCodeId {});
-    }
-    let params = Params {
-        admin: admin.clone(),
-        fee_collector_address,
-        minter_code_id: msg.minter_code_id,
-        minter_creation_fee: msg.minter_creation_fee,
-    };
+    let _admin = deps
+        .api
+        .addr_validate(&msg.params.clone().admin.into_string())
+        .unwrap_or(info.sender.clone());
+    let _fee_collector_address = deps
+        .api
+        .addr_validate(&msg.params.fee_collector_address.clone().into_string())
+        .unwrap_or(info.sender.clone());
+
+    let params = msg.params;
     PARAMS.save(deps.storage, &params)?;
     Ok(Response::default())
 }
@@ -89,19 +87,19 @@ fn create_minter(
     };
     check_payment(
         &info.funds,
-        &[nft_creation_fee.clone(), params.minter_creation_fee.clone()],
+        &[nft_creation_fee.clone(), params.creation_fee.clone()],
     )?;
     let mut msgs = Vec::<CosmosMsg>::new();
     msgs.push(CosmosMsg::Wasm(WasmMsg::Instantiate {
         admin: Some(msg.init.admin.to_string()),
-        code_id: params.minter_code_id,
+        code_id: params.contract_id,
         msg: to_json_binary(&msg)?,
         funds: vec![nft_creation_fee],
-        label: "omniflix-nft-minter".to_string(),
+        label: params.product_label,
     }));
-    if params.minter_creation_fee.amount > Uint128::new(0) {
+    if params.creation_fee.amount > Uint128::new(0) {
         msgs.push(CosmosMsg::Bank(BankMsg::Send {
-            amount: vec![params.minter_creation_fee],
+            amount: vec![params.creation_fee],
             to_address: params.fee_collector_address.to_string(),
         }));
     }
@@ -158,7 +156,7 @@ fn update_params_minter_code_id(
     if params.admin != info.sender {
         return Err(ContractError::Unauthorized {});
     }
-    params.minter_code_id = minter_code_id;
+    params.contract_id = minter_code_id;
     PARAMS.save(deps.storage, &params)?;
     Ok(Response::default()
         .add_attribute("action", "update_minter_code_id")
@@ -175,7 +173,7 @@ fn update_params_minter_creation_fee(
     if params.admin != info.sender {
         return Err(ContractError::Unauthorized {});
     }
-    params.minter_creation_fee = minter_creation_fee.clone();
+    params.creation_fee = minter_creation_fee.clone();
     PARAMS.save(deps.storage, &params)?;
     Ok(Response::default()
         .add_attribute("action", "update_minter_creation_fee")
@@ -201,7 +199,7 @@ mod tests {
     use super::*;
     use cosmwasm_std::{
         testing::{mock_dependencies, mock_env, mock_info},
-        Addr, Decimal, Timestamp,
+        Addr, Decimal, Empty, Timestamp,
     };
     use factory_types::CustomPaymentError;
     use minter_types::CollectionDetails;
@@ -210,12 +208,16 @@ mod tests {
     fn test_instantiate() {
         let mut deps = mock_dependencies();
         let msg = InstantiateMsg {
-            admin: None,
-            fee_collector_address: "fee_collector_address".to_string(),
-            minter_code_id: 1,
-            minter_creation_fee: Coin {
-                amount: Uint128::new(100),
-                denom: "uusd".to_string(),
+            params: factory_types::FactoryParams::<Empty> {
+                admin: Addr::unchecked("admin"),
+                fee_collector_address: Addr::unchecked("fee_collector_address"),
+                contract_id: 1,
+                creation_fee: Coin {
+                    amount: Uint128::new(100),
+                    denom: "uusd".to_string(),
+                },
+                product_label: "omniflix-nft-minter".to_string(),
+                init: Empty {},
             },
         };
         let info = mock_info("creator", &[]);
@@ -225,14 +227,16 @@ mod tests {
         let params = query_params(deps.as_ref()).unwrap();
         assert_eq!(
             params.params,
-            Params {
-                admin: Addr::unchecked("creator"),
+            factory_types::FactoryParams::<Empty> {
+                admin: Addr::unchecked("admin"),
                 fee_collector_address: Addr::unchecked("fee_collector_address"),
-                minter_code_id: 1,
-                minter_creation_fee: Coin {
+                contract_id: 1,
+                creation_fee: Coin {
                     amount: Uint128::new(100),
                     denom: "uusd".to_string(),
                 },
+                product_label: "omniflix-nft-minter".to_string(),
+                init: Empty {},
             }
         );
     }
@@ -241,12 +245,16 @@ mod tests {
     fn test_execute_create_minter() {
         let mut deps = mock_dependencies();
         let msg = InstantiateMsg {
-            admin: None,
-            fee_collector_address: "fee_collector_address".to_string(),
-            minter_code_id: 1,
-            minter_creation_fee: Coin {
-                amount: Uint128::new(100),
-                denom: "uusd".to_string(),
+            params: factory_types::FactoryParams::<Empty> {
+                admin: Addr::unchecked("admin"),
+                fee_collector_address: Addr::unchecked("fee_collector_address"),
+                contract_id: 1,
+                creation_fee: Coin {
+                    amount: Uint128::new(100),
+                    denom: "uusd".to_string(),
+                },
+                product_label: "omniflix-nft-minter".to_string(),
+                init: Empty {},
             },
         };
         let info = mock_info("creator", &[]);

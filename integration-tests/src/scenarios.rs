@@ -7,15 +7,15 @@ mod scenarios {
     use minter_types::TokenDetails;
     use omniflix_minter::msg::ExecuteMsg as MinterExecuteMsg;
     use omniflix_minter_factory::msg::CreateMinterMsg;
+    use omniflix_minter_factory::msg::ExecuteMsg as FactoryExecuteMsg;
     use omniflix_minter_factory::msg::MinterInitExtention;
-    use omniflix_minter_factory::msg::{
-        ExecuteMsg as FactoryExecuteMsg, InstantiateMsg as FactoryInstantiateMsg,
-    };
     use omniflix_round_whitelist::msg::ExecuteMsg as RoundWhitelistExecuteMsg;
     use whitelist_types::Round;
     use whitelist_types::RoundWhitelistQueryMsgs;
 
-    use crate::utils::{get_contract_address_from_res, mint_to_address};
+    use crate::utils::{
+        get_contract_address_from_res, mint_to_address, return_factory_inst_message,
+    };
 
     use crate::{setup::setup, utils::query_onft_collection};
     use omniflix_minter::error::ContractError as MinterContractError;
@@ -109,12 +109,7 @@ mod scenarios {
         let creator = test_addresses.creator;
         let _collector = test_addresses.collector;
 
-        let factory_inst_msg = FactoryInstantiateMsg {
-            admin: Some(admin.to_string()),
-            minter_creation_fee: coin(1000000, "uflix"),
-            minter_code_id,
-            fee_collector_address: admin.clone().into_string(),
-        };
+        let factory_inst_msg = return_factory_inst_message(minter_code_id);
         let minter_factory_addr = app
             .instantiate_contract(
                 minter_factory_code_id,
@@ -125,13 +120,7 @@ mod scenarios {
                 None,
             )
             .unwrap();
-        let round_whitelist_factory_inst_msg =
-            omniflix_round_whitelist_factory::msg::InstantiateMsg {
-                admin: Some(admin.to_string()),
-                fee_collector_address: admin.clone().into_string(),
-                whitelist_code_id: round_whitelist_code_id,
-                whitelist_creation_fee: coin(1000000, "uflix"),
-            };
+        let round_whitelist_factory_inst_msg = return_factory_inst_message(round_whitelist_code_id);
         let round_whitelist_factory_addr = app
             .instantiate_contract(
                 round_whitelist_factory_code_id,
@@ -175,7 +164,7 @@ mod scenarios {
         .to_vec();
 
         let round_whitelist_inst_msg = whitelist_types::InstantiateMsg {
-            admin: Some(admin.to_string()),
+            admin: admin.to_string(),
             rounds: rounds.clone(),
         };
         let create_round_whitelist_msg =

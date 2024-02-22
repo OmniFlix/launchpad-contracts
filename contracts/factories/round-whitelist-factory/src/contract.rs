@@ -1,14 +1,13 @@
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, ParamsResponse, QueryMsg};
-use crate::state::{Params, PARAMS};
+use crate::state::PARAMS;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     to_json_binary, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response,
     StdResult, WasmMsg,
 };
-use cw_utils::{may_pay, maybe_addr};
-
+use cw_utils::may_pay;
 use whitelist_types::InstantiateMsg as WhitelistInstantiateMsg;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -18,13 +17,16 @@ pub fn instantiate(
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
-    let admin = maybe_addr(deps.api, msg.admin)?.unwrap_or(info.sender);
-    let params = Params {
-        admin: admin.clone(),
-        fee_collector_address: deps.api.addr_validate(&msg.fee_collector_address)?,
-        whitelist_code_id: msg.whitelist_code_id,
-        whitelist_creation_fee: msg.whitelist_creation_fee,
-    };
+    let _admin = deps
+        .api
+        .addr_validate(&msg.params.clone().admin.into_string())
+        .unwrap_or(info.sender.clone());
+    let _fee_collector_address = deps
+        .api
+        .addr_validate(&msg.params.fee_collector_address.clone().into_string())
+        .unwrap_or(info.sender.clone());
+
+    let params = msg.params;
     PARAMS.save(deps.storage, &params)?;
     Ok(Response::default())
 }
@@ -58,9 +60,9 @@ pub fn create_whitelist(
     msg: WhitelistInstantiateMsg,
 ) -> Result<Response, ContractError> {
     let params = PARAMS.load(deps.storage)?;
-    let creation_fee = params.whitelist_creation_fee;
+    let creation_fee = params.creation_fee;
     let fee_collector_address = params.fee_collector_address;
-    let whitelist_code_id = params.whitelist_code_id;
+    let whitelist_code_id = params.contract_id;
     let mut messages: Vec<CosmosMsg> = vec![];
 
     let amount = may_pay(&info, &creation_fee.clone().denom)?;
@@ -75,11 +77,11 @@ pub fn create_whitelist(
         }));
     }
     messages.push(CosmosMsg::Wasm(WasmMsg::Instantiate {
-        admin: None,
+        admin: Some(msg.admin.clone()),
         code_id: whitelist_code_id,
         msg: to_json_binary(&msg)?,
         funds: vec![],
-        label: "Whitelist".to_string(),
+        label: params.product_label,
     }));
     Ok(Response::new()
         .add_messages(messages)
@@ -129,7 +131,7 @@ pub fn update_whitelist_creation_fee(
     if info.sender != params.admin {
         return Err(ContractError::Unauthorized {});
     }
-    params.whitelist_creation_fee = whitelist_creation_fee;
+    params.creation_fee = whitelist_creation_fee;
     PARAMS.save(deps.storage, &params)?;
     Ok(Response::new().add_attribute("action", "update_whitelist_creation_fee"))
 }
@@ -144,7 +146,7 @@ pub fn update_whitelist_code_id(
     if info.sender != params.admin {
         return Err(ContractError::Unauthorized {});
     }
-    params.whitelist_code_id = whitelist_code_id;
+    params.contract_id = whitelist_code_id;
     PARAMS.save(deps.storage, &params)?;
     Ok(Response::new().add_attribute("action", "update_whitelist_code_id"))
 }

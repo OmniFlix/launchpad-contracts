@@ -1,13 +1,13 @@
-use cosmwasm_std::{from_json, Addr, Coin, Decimal, MemoryStorage, Storage, Timestamp};
+use cosmwasm_std::{from_json, Addr, Coin, Decimal, Empty, MemoryStorage, Storage, Timestamp};
 use cw_multi_test::{AppResponse, BankSudo, SudoMsg};
 use minter_types::{CollectionDetails, TokenDetails};
+use omniflix_minter_factory::msg::InstantiateMsg;
 use omniflix_minter_factory::msg::{CreateMinterMsg, MinterInitExtention};
 use omniflix_open_edition_minter_factory::msg::{
     OpenEditionMinterCreateMsg, OpenEditionMinterInitExtention,
 };
 use omniflix_std::types::omniflix::onft::v1beta1::Collection;
 use omniflix_testing::app::OmniflixApp;
-
 pub fn get_contract_address_from_res(res: AppResponse) -> String {
     res.events
         .iter()
@@ -134,4 +134,16 @@ pub fn return_rounds() -> Vec<whitelist_types::Round> {
 pub fn mint_to_address(app: &mut OmniflixApp, to_address: String, amount: Vec<Coin>) {
     app.sudo(SudoMsg::Bank(BankSudo::Mint { to_address, amount }))
         .unwrap();
+}
+pub fn return_factory_inst_message(code_id: u64) -> InstantiateMsg {
+    let params = factory_types::FactoryParams {
+        admin: Addr::unchecked("admin".to_string()),
+        creation_fee: Coin::new(1000000, "uflix"),
+        contract_id: code_id,
+        fee_collector_address: Addr::unchecked("admin".to_string()),
+        product_label: "label".to_string(),
+        init: Empty {},
+    };
+    let inst_msg = InstantiateMsg { params };
+    inst_msg
 }

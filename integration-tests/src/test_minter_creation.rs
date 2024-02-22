@@ -12,11 +12,11 @@ mod test_minter_creation {
     use minter_types::Config as MinterConfig;
     use minter_types::QueryMsg;
 
-    use omniflix_minter_factory::msg::{
-        ExecuteMsg as FactoryExecuteMsg, InstantiateMsg as FactoryInstantiateMsg,
-    };
+    use omniflix_minter_factory::msg::ExecuteMsg as FactoryExecuteMsg;
 
-    use crate::utils::{get_contract_address_from_res, return_minter_instantiate_msg};
+    use crate::utils::{
+        get_contract_address_from_res, return_factory_inst_message, return_minter_instantiate_msg,
+    };
 
     use crate::{setup::setup, utils::query_onft_collection};
     use omniflix_minter::error::ContractError as MinterContractError;
@@ -38,12 +38,7 @@ mod test_minter_creation {
         let creator = test_addresses.creator;
         let _collector = test_addresses.collector;
 
-        let factory_inst_msg = FactoryInstantiateMsg {
-            admin: Some(admin.to_string()),
-            minter_creation_fee: coin(1000000, "uflix"),
-            minter_code_id,
-            fee_collector_address: admin.clone().into_string(),
-        };
+        let factory_inst_msg = return_factory_inst_message(minter_code_id);
         let factory_addr = app
             .instantiate_contract(
                 minter_factory_code_id,
