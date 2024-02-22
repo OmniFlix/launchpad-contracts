@@ -7,7 +7,7 @@
 import { MsgExecuteContractEncodeObject } from "@cosmjs/cosmwasm-stargate";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { toUtf8 } from "@cosmjs/encoding";
-import { Timestamp, Uint64, Uint128, Decimal, InstantiateMsg, CollectionDetails, WeightedAddress, MinterInitExtention, Coin, TokenDetails, ExecuteMsg, QueryMsg, MinterExtensionQueryMsg, Addr, Config, Uint32, Boolean, UserDetails, Token, ArrayOfAddr } from "./OmniflixMinter.types";
+import { Timestamp, Uint64, Uint128, Decimal, InstantiateMsg, CollectionDetails, WeightedAddress, MinterInitExtention, Coin, TokenDetails, ExecuteMsg, QueryMsg, MinterExtensionQueryMsg, Addr, AuthDetails, Config, Uint32, Boolean, UserDetails, Token, ArrayOfAddr } from "./OmniflixMinter.types";
 export interface OmniflixMinterMsg {
   contractAddress: string;
   sender: string;
@@ -58,6 +58,16 @@ export interface OmniflixMinterMsg {
     previewUri?: string;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   purgeDenom: (_funds?: Coin[]) => MsgExecuteContractEncodeObject;
+  setAdmin: ({
+    admin
+  }: {
+    admin: string;
+  }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
+  setPaymentCollector: ({
+    paymentCollector
+  }: {
+    paymentCollector: string;
+  }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
 }
 export class OmniflixMinterMsgComposer implements OmniflixMinterMsg {
   sender: string;
@@ -79,6 +89,8 @@ export class OmniflixMinterMsgComposer implements OmniflixMinterMsg {
     this.updateRoyaltyReceivers = this.updateRoyaltyReceivers.bind(this);
     this.updateDenom = this.updateDenom.bind(this);
     this.purgeDenom = this.purgeDenom.bind(this);
+    this.setAdmin = this.setAdmin.bind(this);
+    this.setPaymentCollector = this.setPaymentCollector.bind(this);
   }
 
   mint = (_funds?: Coin[]): MsgExecuteContractEncodeObject => {
@@ -296,6 +308,44 @@ export class OmniflixMinterMsgComposer implements OmniflixMinterMsg {
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
           purge_denom: {}
+        })),
+        funds: _funds
+      })
+    };
+  };
+  setAdmin = ({
+    admin
+  }: {
+    admin: string;
+  }, _funds?: Coin[]): MsgExecuteContractEncodeObject => {
+    return {
+      typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+      value: MsgExecuteContract.fromPartial({
+        sender: this.sender,
+        contract: this.contractAddress,
+        msg: toUtf8(JSON.stringify({
+          set_admin: {
+            admin
+          }
+        })),
+        funds: _funds
+      })
+    };
+  };
+  setPaymentCollector = ({
+    paymentCollector
+  }: {
+    paymentCollector: string;
+  }, _funds?: Coin[]): MsgExecuteContractEncodeObject => {
+    return {
+      typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+      value: MsgExecuteContract.fromPartial({
+        sender: this.sender,
+        contract: this.contractAddress,
+        msg: toUtf8(JSON.stringify({
+          set_payment_collector: {
+            payment_collector: paymentCollector
+          }
         })),
         funds: _funds
       })

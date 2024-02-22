@@ -9,7 +9,7 @@ export type Timestamp = Uint64;
 export type Uint64 = string;
 export type Uint128 = string;
 export interface InstantiateMsg {
-  admin?: string | null;
+  admin: string;
   rounds: Round[];
 }
 export interface Round {

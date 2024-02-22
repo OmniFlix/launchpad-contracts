@@ -36,7 +36,7 @@ export interface OpenEditionMinterInitExtention {
   mint_price: Coin;
   num_tokens?: number | null;
   payment_collector?: string | null;
-  per_address_limit: number;
+  per_address_limit?: number | null;
   start_time: Timestamp;
   whitelist_address?: string | null;
 }
@@ -94,11 +94,21 @@ export type ExecuteMsg = {
   };
 } | {
   purge_denom: {};
+} | {
+  set_admin: {
+    admin: string;
+  };
+} | {
+  set_payment_collector: {
+    payment_collector: string;
+  };
 };
 export type QueryMsg = {
   collection: {};
 } | {
   token_details: {};
+} | {
+  auth_details: {};
 } | {
   config: {};
 } | {
@@ -118,11 +128,15 @@ export type OEMQueryExtension = {
   tokens_remaining: {};
 };
 export type Addr = string;
+export interface AuthDetails {
+  admin: Addr;
+  payment_collector: Addr;
+}
 export interface Config {
   end_time?: Timestamp | null;
   mint_price: Coin;
   num_tokens?: number | null;
-  per_address_limit: number;
+  per_address_limit?: number | null;
   start_time: Timestamp;
   whitelist_address?: Addr | null;
 }

@@ -6,11 +6,12 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { StdFee } from "@cosmjs/amino";
-import { Timestamp, Uint64, Uint128, Decimal, InstantiateMsg, CollectionDetails, WeightedAddress, MinterInitExtention, Coin, TokenDetails, ExecuteMsg, QueryMsg, MinterExtensionQueryMsg, Addr, Config, Uint32, Boolean, UserDetails, Token, ArrayOfAddr } from "./OmniflixMinter.types";
+import { Timestamp, Uint64, Uint128, Decimal, InstantiateMsg, CollectionDetails, WeightedAddress, MinterInitExtention, Coin, TokenDetails, ExecuteMsg, QueryMsg, MinterExtensionQueryMsg, Addr, AuthDetails, Config, Uint32, Boolean, UserDetails, Token, ArrayOfAddr } from "./OmniflixMinter.types";
 export interface OmniflixMinterReadOnlyInterface {
   contractAddress: string;
   collection: () => Promise<CollectionDetails>;
   tokenDetails: () => Promise<TokenDetails>;
+  authDetails: () => Promise<AuthDetails>;
   config: () => Promise<Config>;
   mintedTokens: ({
     address
@@ -31,6 +32,7 @@ export class OmniflixMinterQueryClient implements OmniflixMinterReadOnlyInterfac
     this.contractAddress = contractAddress;
     this.collection = this.collection.bind(this);
     this.tokenDetails = this.tokenDetails.bind(this);
+    this.authDetails = this.authDetails.bind(this);
     this.config = this.config.bind(this);
     this.mintedTokens = this.mintedTokens.bind(this);
     this.isPaused = this.isPaused.bind(this);
@@ -47,6 +49,11 @@ export class OmniflixMinterQueryClient implements OmniflixMinterReadOnlyInterfac
   tokenDetails = async (): Promise<TokenDetails> => {
     return this.client.queryContractSmart(this.contractAddress, {
       token_details: {}
+    });
+  };
+  authDetails = async (): Promise<AuthDetails> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      auth_details: {}
     });
   };
   config = async (): Promise<Config> => {
@@ -136,6 +143,16 @@ export interface OmniflixMinterInterface extends OmniflixMinterReadOnlyInterface
     previewUri?: string;
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   purgeDenom: (fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
+  setAdmin: ({
+    admin
+  }: {
+    admin: string;
+  }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
+  setPaymentCollector: ({
+    paymentCollector
+  }: {
+    paymentCollector: string;
+  }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
 }
 export class OmniflixMinterClient extends OmniflixMinterQueryClient implements OmniflixMinterInterface {
   client: SigningCosmWasmClient;
@@ -160,6 +177,8 @@ export class OmniflixMinterClient extends OmniflixMinterQueryClient implements O
     this.updateRoyaltyReceivers = this.updateRoyaltyReceivers.bind(this);
     this.updateDenom = this.updateDenom.bind(this);
     this.purgeDenom = this.purgeDenom.bind(this);
+    this.setAdmin = this.setAdmin.bind(this);
+    this.setPaymentCollector = this.setPaymentCollector.bind(this);
   }
 
   mint = async (fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
@@ -276,6 +295,28 @@ export class OmniflixMinterClient extends OmniflixMinterQueryClient implements O
   purgeDenom = async (fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       purge_denom: {}
+    }, fee, memo, _funds);
+  };
+  setAdmin = async ({
+    admin
+  }: {
+    admin: string;
+  }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
+    return await this.client.execute(this.sender, this.contractAddress, {
+      set_admin: {
+        admin
+      }
+    }, fee, memo, _funds);
+  };
+  setPaymentCollector = async ({
+    paymentCollector
+  }: {
+    paymentCollector: string;
+  }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
+    return await this.client.execute(this.sender, this.contractAddress, {
+      set_payment_collector: {
+        payment_collector: paymentCollector
+      }
     }, fee, memo, _funds);
   };
 }

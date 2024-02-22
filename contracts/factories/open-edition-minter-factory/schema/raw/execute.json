@@ -220,7 +220,6 @@
       "required": [
         "admin",
         "mint_price",
-        "per_address_limit",
         "start_time"
       ],
       "properties": {
@@ -255,7 +254,10 @@
           ]
         },
         "per_address_limit": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "format": "uint32",
           "minimum": 0.0
         },

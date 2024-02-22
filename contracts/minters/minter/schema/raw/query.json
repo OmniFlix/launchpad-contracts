@@ -31,6 +31,19 @@
     {
       "type": "object",
       "required": [
+        "auth_details"
+      ],
+      "properties": {
+        "auth_details": {
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
         "config"
       ],
       "properties": {

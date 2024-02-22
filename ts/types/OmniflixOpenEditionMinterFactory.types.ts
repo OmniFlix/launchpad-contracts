@@ -4,16 +4,25 @@
 * and run the @cosmwasm/ts-codegen generate command to regenerate this file.
 */
 
+export type Addr = string;
 export type Uint128 = string;
 export interface InstantiateMsg {
-  admin?: string | null;
-  fee_collector_address: string;
-  minter_creation_fee: Coin;
-  open_edition_minter_code_id: number;
+  params: FactoryParamsForEmpty;
+}
+export interface FactoryParamsForEmpty {
+  admin: Addr;
+  contract_id: number;
+  creation_fee: Coin;
+  fee_collector_address: Addr;
+  init: Empty;
+  product_label: string;
 }
 export interface Coin {
   amount: Uint128;
   denom: string;
+  [k: string]: unknown;
+}
+export interface Empty {
   [k: string]: unknown;
 }
 export type ExecuteMsg = {
@@ -68,7 +77,7 @@ export interface OpenEditionMinterInitExtention {
   mint_price: Coin;
   num_tokens?: number | null;
   payment_collector?: string | null;
-  per_address_limit: number;
+  per_address_limit?: number | null;
   start_time: Timestamp;
   whitelist_address?: string | null;
 }
@@ -86,13 +95,6 @@ export interface TokenDetails {
 export type QueryMsg = {
   params: {};
 };
-export type Addr = string;
 export interface ParamsResponse {
-  params: Params;
-}
-export interface Params {
-  admin: Addr;
-  fee_collector_address: Addr;
-  minter_creation_fee: Coin;
-  open_edition_minter_code_id: number;
+  params: FactoryParamsForEmpty;
 }

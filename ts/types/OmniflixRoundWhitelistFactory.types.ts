@@ -4,14 +4,26 @@
 * and run the @cosmwasm/ts-codegen generate command to regenerate this file.
 */
 
+export type Addr = string;
 export type Uint128 = string;
 export interface InstantiateMsg {
-  admin?: string | null;
+  admin: string;
   rounds: Round[];
+}
+export interface FactoryParamsForEmpty {
+  admin: Addr;
+  contract_id: number;
+  creation_fee: Coin;
+  fee_collector_address: Addr;
+  init: Empty;
+  product_label: string;
 }
 export interface Coin {
   amount: Uint128;
   denom: string;
+  [k: string]: unknown;
+}
+export interface Empty {
   [k: string]: unknown;
 }
 export type ExecuteMsg = {
@@ -35,7 +47,6 @@ export type ExecuteMsg = {
     whitelist_code_id: number;
   };
 };
-export type Addr = string;
 export type Timestamp = Uint64;
 export type Uint64 = string;
 export interface Round {
@@ -49,11 +60,5 @@ export type QueryMsg = {
   params: {};
 };
 export interface ParamsResponse {
-  params: Params;
-}
-export interface Params {
-  admin: Addr;
-  fee_collector_address: Addr;
-  whitelist_code_id: number;
-  whitelist_creation_fee: Coin;
+  params: FactoryParamsForEmpty;
 }

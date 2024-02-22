@@ -285,6 +285,48 @@
         }
       },
       "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "set_admin"
+      ],
+      "properties": {
+        "set_admin": {
+          "type": "object",
+          "required": [
+            "admin"
+          ],
+          "properties": {
+            "admin": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "set_payment_collector"
+      ],
+      "properties": {
+        "set_payment_collector": {
+          "type": "object",
+          "required": [
+            "payment_collector"
+          ],
+          "properties": {
+            "payment_collector": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     }
   ],
   "definitions": {
@@ -311,7 +353,6 @@
       "type": "object",
       "required": [
         "mint_price",
-        "per_address_limit",
         "start_time"
       ],
       "properties": {
@@ -337,7 +378,10 @@
           "minimum": 0.0
         },
         "per_address_limit": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "format": "uint32",
           "minimum": 0.0
         },
