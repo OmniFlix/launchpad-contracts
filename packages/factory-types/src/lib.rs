@@ -58,6 +58,15 @@ pub fn check_payment(
 
     Ok(())
 }
+#[cw_serde]
+pub struct FactoryParams<T> {
+    pub admin: Addr,
+    pub creation_fee: Coin,
+    pub fee_collector_address: Addr,
+    pub contract_id: u64,
+    pub product_label: String,
+    pub init: T,
+}
 
 // Test check_payment
 #[cfg(test)]
@@ -137,14 +146,4 @@ mod tests {
         let res = check_payment(&sent_funds, &expected_funds);
         assert!(res.is_ok());
     }
-}
-
-#[cw_serde]
-pub struct FactoryParams<T> {
-    pub creation_fee: Coin,
-    pub fee_collector_address: Addr,
-    pub contract_id: u64,
-    pub admin: Addr,
-    pub product_label: String,
-    pub init: T,
 }
