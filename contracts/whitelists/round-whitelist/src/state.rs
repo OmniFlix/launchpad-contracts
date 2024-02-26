@@ -111,7 +111,7 @@ impl<'a> Rounds<'a> {
     pub fn load(&self, store: &dyn Storage, id: u32) -> Result<Round, ContractError> {
         self.0
             .may_load(store, id)?
-            .ok_or_else(|| ContractError::RoundNotFound {})
+            .ok_or(ContractError::RoundNotFound {})
     }
     pub fn remove(&self, store: &mut dyn Storage, id: u32) -> StdResult<()> {
         self.0.remove(store, id);
@@ -124,7 +124,7 @@ impl<'a> Rounds<'a> {
     ) -> Option<(u32, Round)> {
         self.0
             .range(store, None, None, Order::Ascending)
-            .filter_map(|result| result.ok().map(|(id, round)| (id, round)))
+            .filter_map(|result| result.ok())
             .find(|(_, round)| round.is_active(current_time))
     }
 

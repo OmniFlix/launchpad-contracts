@@ -1,5 +1,5 @@
-use cosmwasm_std::{coins, Addr, BlockInfo, Coin, Timestamp};
-use cw_multi_test::{BankSudo, ContractWrapper, SudoMsg};
+use cosmwasm_std::{coins, Addr, BlockInfo, Timestamp};
+use cw_multi_test::ContractWrapper;
 use omniflix_minter::contract::{
     execute as minter_execute, instantiate as minter_instantiate, query as minter_query,
 };

@@ -2,17 +2,19 @@
 
 mod test_pause {
 
-    use cosmwasm_std::{coin, to_json_binary, Addr, BlockInfo, QueryRequest, Timestamp, WasmQuery};
+    use cosmwasm_std::{
+        coin, to_json_binary, Addr, BlockInfo, Empty, QueryRequest, Timestamp, WasmQuery,
+    };
     use cw_multi_test::Executor;
     use pauser::PauseError;
 
     use minter_types::QueryMsg;
     use omniflix_minter::msg::ExecuteMsg as MinterExecuteMsg;
-    use omniflix_minter_factory::msg::{
-        ExecuteMsg as FactoryExecuteMsg, InstantiateMsg as FactoryInstantiateMsg,
-    };
+    use omniflix_minter_factory::msg::ExecuteMsg as FactoryExecuteMsg;
 
-    use crate::utils::{get_contract_address_from_res, return_minter_instantiate_msg};
+    use crate::utils::{
+        get_contract_address_from_res, return_factory_inst_message, return_minter_instantiate_msg,
+    };
 
     use crate::setup::setup;
     use omniflix_minter::error::ContractError as MinterContractError;
@@ -33,12 +35,7 @@ mod test_pause {
         let creator = test_addresses.creator;
         let collector = test_addresses.collector;
 
-        let factory_inst_msg = FactoryInstantiateMsg {
-            admin: Some(admin.to_string()),
-            minter_creation_fee: coin(1000000, "uflix"),
-            minter_code_id,
-            fee_collector_address: admin.clone().into_string(),
-        };
+        let factory_inst_msg = return_factory_inst_message(minter_code_id);
         let factory_addr = app
             .instantiate_contract(
                 minter_factory_code_id,
@@ -69,17 +66,17 @@ mod test_pause {
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
-                msg: to_json_binary(&QueryMsg::IsPaused {}).unwrap(),
+                msg: to_json_binary(&QueryMsg::<Empty>::IsPaused {}).unwrap(),
             }))
             .unwrap();
-        assert_eq!(is_paused, false);
+        assert!(!is_paused);
 
         // Query pausers
         let pausers: Vec<Addr> = app
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
-                msg: to_json_binary(&QueryMsg::Pausers {}).unwrap(),
+                msg: to_json_binary(&QueryMsg::<Empty>::Pausers {}).unwrap(),
             }))
             .unwrap();
         assert_eq!(pausers.len(), 1);
@@ -120,10 +117,10 @@ mod test_pause {
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
-                msg: to_json_binary(&QueryMsg::IsPaused {}).unwrap(),
+                msg: to_json_binary(&QueryMsg::<Empty>::IsPaused {}).unwrap(),
             }))
             .unwrap();
-        assert_eq!(is_paused, true);
+        assert!(is_paused);
 
         // Try pausing again
         let pause_msg = MinterExecuteMsg::Pause {};
@@ -193,10 +190,10 @@ mod test_pause {
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
-                msg: to_json_binary(&QueryMsg::IsPaused {}).unwrap(),
+                msg: to_json_binary(&QueryMsg::<Empty>::IsPaused {}).unwrap(),
             }))
             .unwrap();
-        assert_eq!(is_paused, false);
+        assert!(!is_paused);
 
         // Try minting
         let mint_msg = MinterExecuteMsg::Mint {};
@@ -227,7 +224,7 @@ mod test_pause {
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
-                msg: to_json_binary(&QueryMsg::Pausers {}).unwrap(),
+                msg: to_json_binary(&QueryMsg::<Empty>::Pausers {}).unwrap(),
             }))
             .unwrap();
         assert_eq!(pausers.len(), 1);
@@ -268,9 +265,9 @@ mod test_pause {
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
-                msg: to_json_binary(&QueryMsg::IsPaused {}).unwrap(),
+                msg: to_json_binary(&QueryMsg::<Empty>::IsPaused {}).unwrap(),
             }))
             .unwrap();
-        assert_eq!(is_paused, true);
+        assert!(is_paused);
     }
 }

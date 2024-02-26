@@ -3,7 +3,6 @@ use cosmwasm_std::entry_point;
 use cosmwasm_std::Coin;
 use cosmwasm_std::{to_json_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
 use cw2::set_contract_version;
-use cw_utils::maybe_addr;
 use omniflix_round_whitelist_factory::msg::ParamsResponse;
 use omniflix_round_whitelist_factory::msg::QueryMsg as QueryFactoryParams;
 
@@ -30,7 +29,7 @@ pub fn instantiate(
         &QueryFactoryParams::Params {},
     )?;
 
-    let admin = maybe_addr(deps.api, msg.admin)?.unwrap_or(info.sender);
+    let admin = deps.api.addr_validate(&msg.admin)?;
 
     let rounds = msg.rounds;
     // Check if rounds are valid
@@ -39,7 +38,7 @@ pub fn instantiate(
     }
     let rounds_state = Rounds::new(ROUNDS_KEY);
     rounds_state.check_round_overlaps(deps.storage, Some(rounds.clone()))?;
-    // Save the rounds
+    //  Save the rounds
     rounds.clone().into_iter().for_each(|round| {
         let _ = rounds_state.save(deps.storage, &round);
     });

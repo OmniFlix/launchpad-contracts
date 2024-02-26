@@ -18,6 +18,32 @@
     {
       "type": "object",
       "required": [
+        "token_details"
+      ],
+      "properties": {
+        "token_details": {
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "auth_details"
+      ],
+      "properties": {
+        "auth_details": {
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
         "config"
       ],
       "properties": {
@@ -52,32 +78,6 @@
     {
       "type": "object",
       "required": [
-        "total_minted_count"
-      ],
-      "properties": {
-        "total_minted_count": {
-          "type": "object",
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "required": [
-        "tokens_remaining"
-      ],
-      "properties": {
-        "tokens_remaining": {
-          "type": "object",
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "required": [
         "is_paused"
       ],
       "properties": {
@@ -100,6 +100,50 @@
         }
       },
       "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "extension"
+      ],
+      "properties": {
+        "extension": {
+          "$ref": "#/definitions/OEMQueryExtension"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "total_minted_count"
+      ],
+      "properties": {
+        "total_minted_count": {
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     }
-  ]
+  ],
+  "definitions": {
+    "OEMQueryExtension": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "tokens_remaining"
+          ],
+          "properties": {
+            "tokens_remaining": {
+              "type": "object",
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
 }

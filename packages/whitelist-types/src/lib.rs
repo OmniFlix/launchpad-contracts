@@ -1,12 +1,12 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::StdError;
-use cosmwasm_std::{Addr, Coin, Deps, Storage, Timestamp};
+use cosmwasm_std::{Addr, Coin, Deps, Timestamp};
+use cosmwasm_std::{Empty, StdError};
 use minter_types::Config as MinterConfig;
 use minter_types::QueryMsg as MinterQueryMsg;
 
 #[cw_serde]
 pub struct InstantiateMsg {
-    pub admin: Option<String>,
+    pub admin: String,
     pub rounds: Vec<Round>,
 }
 
@@ -74,7 +74,7 @@ pub fn check_if_minter(address: &Addr, deps: Deps) -> Result<(), StdError> {
     // Check if sender is a minter contract
     let _minter_config: MinterConfig = deps
         .querier
-        .query_wasm_smart(address, &MinterQueryMsg::Config {})?;
+        .query_wasm_smart(address, &MinterQueryMsg::<&Empty>::Config {})?;
     Ok(())
 }
 

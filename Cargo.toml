@@ -16,7 +16,7 @@ repository = ""
 license    = "Apache-2.0"
 
 [workspace.dependencies]
-cosmwasm-schema      = "1.5.0"
+cosmwasm-schema      = "1.5.3"
 cosmwasm-std         = "1.2.1"
 omniflix-std         = "0.1.3"
 cw-controllers       = "1.1.0"
@@ -33,8 +33,7 @@ semver               = "1"
 cw-ownable           = "0.5.1"
 cosmwasm-storage     = "1.5.0"
 serde                = { version = "1.0.145", default-features = false, features = ["derive"] }
-whitelist-types = { version = "0.0.1", path = "packages/whitelist-types" }
-minter-types = { version = "0.0.1", path = "packages/minter-types" }
-open-edition-minter-types = { version = "0.0.1", path = "packages/open-edition-minter-types" }
-multi-mint-open-edition-minter-types = { version = "0.0.1", path = "packages/multi-mint-oem-types" }
+whitelist-types = {  path = "packages/whitelist-types" }
+minter-types = { path = "packages/minter-types" }
+factory-types = { path = "packages/factory-types" }
 pauser = {  path = "packages/pauser" }

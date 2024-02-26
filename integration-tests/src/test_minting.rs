@@ -2,20 +2,19 @@
 mod test_minting {
 
     use cosmwasm_std::{
-        coin, coins, to_json_binary, Addr, BlockInfo, QueryRequest, Timestamp, Uint128, WasmQuery,
+        coin, coins, to_json_binary, Addr, BlockInfo, Empty, QueryRequest, Timestamp, Uint128,
+        WasmQuery,
     };
     use cw_multi_test::{BankSudo, Executor, SudoMsg};
-    use minter_types::Token;
     use minter_types::UserDetails;
+    use minter_types::{QueryMsg as MinterQueryMsg, Token};
 
-    use minter_types::QueryMsg;
-    use omniflix_minter::msg::ExecuteMsg as MinterExecuteMsg;
-    use omniflix_minter_factory::msg::{
-        ExecuteMsg as FactoryExecuteMsg, InstantiateMsg as FactoryInstantiateMsg,
-    };
+    use omniflix_minter::msg::{ExecuteMsg as MinterExecuteMsg, MinterExtensionQueryMsg};
+    use omniflix_minter_factory::msg::ExecuteMsg as FactoryExecuteMsg;
 
     use crate::utils::{
-        get_contract_address_from_res, return_minter_instantiate_msg, return_rounds,
+        get_contract_address_from_res, return_factory_inst_message, return_minter_instantiate_msg,
+        return_rounds,
     };
 
     use crate::{setup::setup, utils::query_onft_collection};
@@ -39,12 +38,7 @@ mod test_minting {
         let creator = test_addresses.creator;
         let collector = test_addresses.collector;
 
-        let factory_inst_msg = FactoryInstantiateMsg {
-            admin: Some(admin.to_string()),
-            minter_creation_fee: coin(1000000, "uflix"),
-            minter_code_id,
-            fee_collector_address: admin.clone().into_string(),
-        };
+        let factory_inst_msg = return_factory_inst_message(minter_code_id);
         let factory_addr = app
             .instantiate_contract(
                 minter_factory_code_id,
@@ -107,8 +101,8 @@ mod test_minting {
         let error = res.downcast_ref::<MinterContractError>().unwrap();
         assert_eq!(
             error,
-            &MinterContractError::PaymentError(cw_utils::PaymentError::MissingDenom(
-                "uflix".to_string()
+            &MinterContractError::PaymentError(cw_utils::PaymentError::ExtraDenom(
+                "incorrect_denom".to_string()
             ))
         );
 
@@ -199,9 +193,11 @@ mod test_minting {
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
-                msg: to_json_binary(&QueryMsg::MintedTokens {
-                    address: collector.clone().into_string(),
-                })
+                msg: to_json_binary::<MinterQueryMsg<MinterExtensionQueryMsg>>(
+                    &MinterQueryMsg::MintedTokens {
+                        address: collector.clone().into_string(),
+                    },
+                )
                 .unwrap(),
             }))
             .unwrap();
@@ -212,7 +208,10 @@ mod test_minting {
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
-                msg: to_json_binary(&QueryMsg::MintableTokens {}).unwrap(),
+                msg: to_json_binary(&MinterQueryMsg::Extension(
+                    omniflix_minter::msg::MinterExtensionQueryMsg::MintableTokens {},
+                ))
+                .unwrap(),
             }))
             .unwrap();
         assert_eq!(total_tokens_remaining_data.len(), 999);
@@ -257,7 +256,10 @@ mod test_minting {
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
-                msg: to_json_binary(&QueryMsg::MintableTokens {}).unwrap(),
+                msg: to_json_binary(&MinterQueryMsg::Extension(
+                    omniflix_minter::msg::MinterExtensionQueryMsg::MintableTokens {},
+                ))
+                .unwrap(),
             }))
             .unwrap();
         assert_eq!(mintable_tokens_data.len(), 0);
@@ -267,7 +269,10 @@ mod test_minting {
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
-                msg: to_json_binary(&QueryMsg::TotalTokens {}).unwrap(),
+                msg: to_json_binary(&MinterQueryMsg::Extension(
+                    omniflix_minter::msg::MinterExtensionQueryMsg::TotalTokensRemaining {},
+                ))
+                .unwrap(),
             }))
             .unwrap();
         assert_eq!(total_tokens_remaining_data, 0);
@@ -281,9 +286,11 @@ mod test_minting {
                 .wrap()
                 .query(&QueryRequest::Wasm(WasmQuery::Smart {
                     contract_addr: minter_address.clone(),
-                    msg: to_json_binary(&QueryMsg::MintedTokens {
-                        address: Addr::unchecked(format!("{}{}", collector, i)).into_string(),
-                    })
+                    msg: to_json_binary::<MinterQueryMsg<MinterExtensionQueryMsg>>(
+                        &MinterQueryMsg::MintedTokens {
+                            address: Addr::unchecked(format!("{}{}", collector, i)).to_string(),
+                        },
+                    )
                     .unwrap(),
                 }))
                 .unwrap();
@@ -331,12 +338,7 @@ mod test_minting {
         let creator = test_addresses.creator;
         let collector = test_addresses.collector;
 
-        let factory_inst_msg = FactoryInstantiateMsg {
-            admin: Some(admin.to_string()),
-            minter_creation_fee: coin(1000000, "uflix"),
-            minter_code_id,
-            fee_collector_address: admin.clone().into_string(),
-        };
+        let factory_inst_msg = return_factory_inst_message(minter_code_id);
         let factory_addr = app
             .instantiate_contract(
                 minter_factory_code_id,
@@ -446,7 +448,7 @@ mod test_minting {
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
-                msg: to_json_binary(&QueryMsg::MintedTokens {
+                msg: to_json_binary(&MinterQueryMsg::<Empty>::MintedTokens {
                     address: "gift_recipient".to_string(),
                 })
                 .unwrap(),
@@ -459,7 +461,10 @@ mod test_minting {
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
-                msg: to_json_binary(&QueryMsg::MintableTokens {}).unwrap(),
+                msg: to_json_binary(&MinterQueryMsg::Extension(
+                    MinterExtensionQueryMsg::MintableTokens {},
+                ))
+                .unwrap(),
             }))
             .unwrap();
         assert_eq!(total_tokens_remaining_data.len(), 999);
@@ -502,7 +507,7 @@ mod test_minting {
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
-                msg: to_json_binary(&QueryMsg::MintedTokens {
+                msg: to_json_binary(&MinterQueryMsg::<Empty>::MintedTokens {
                     address: "gift_recipient".to_string(),
                 })
                 .unwrap(),
@@ -527,12 +532,7 @@ mod test_minting {
         let creator = test_addresses.creator;
         let collector = test_addresses.collector;
 
-        let factory_inst_msg = FactoryInstantiateMsg {
-            admin: Some(admin.to_string()),
-            minter_creation_fee: coin(1000000, "uflix"),
-            minter_code_id,
-            fee_collector_address: admin.clone().into_string(),
-        };
+        let factory_inst_msg = return_factory_inst_message(minter_code_id);
         let minter_factory_addr = app
             .instantiate_contract(
                 minter_factory_code_id,
@@ -543,13 +543,7 @@ mod test_minting {
                 None,
             )
             .unwrap();
-        let round_whitelist_factory_inst_msg =
-            omniflix_round_whitelist_factory::msg::InstantiateMsg {
-                admin: Some(admin.to_string()),
-                fee_collector_address: admin.clone().into_string(),
-                whitelist_code_id: round_whitelist_code_id,
-                whitelist_creation_fee: coin(1000000, "uflix"),
-            };
+        let round_whitelist_factory_inst_msg = return_factory_inst_message(round_whitelist_code_id);
         let round_whitelist_factory_addr = app
             .instantiate_contract(
                 round_whitelist_factory_code_id,
@@ -569,7 +563,7 @@ mod test_minting {
 
         // Try instantiating minter with already active whitelist
         let round_whitelist_inst_msg = whitelist_types::InstantiateMsg {
-            admin: Some(admin.to_string()),
+            admin: admin.to_string(),
             rounds: rounds.clone(),
         };
         let create_round_whitelist_msg =
@@ -593,7 +587,7 @@ mod test_minting {
 
         let mut minter_inst_msg = return_minter_instantiate_msg();
         minter_inst_msg.init.whitelist_address = Some(round_whitelist_address.clone());
-        minter_inst_msg.init.per_address_limit = 2;
+        minter_inst_msg.init.per_address_limit = Some(2);
 
         let create_minter_msg = FactoryExecuteMsg::CreateMinter {
             msg: minter_inst_msg,
@@ -672,8 +666,8 @@ mod test_minting {
         let error = res.downcast_ref::<MinterContractError>().unwrap();
         assert_eq!(
             error,
-            &MinterContractError::PaymentError(cw_utils::PaymentError::MissingDenom(
-                "diffirent_denom".to_string()
+            &MinterContractError::PaymentError(cw_utils::PaymentError::ExtraDenom(
+                "uflix".to_string()
             ))
         );
         // Try minting round one with wrong amount

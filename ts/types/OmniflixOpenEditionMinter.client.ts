@@ -6,20 +6,22 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { StdFee } from "@cosmjs/amino";
-import { Timestamp, Uint64, Uint128, InstantiateMsg, CollectionDetails, WeightedAddress, OpenEditionMinterInitExtention, Coin, ExecuteMsg, QueryMsg, Addr, Decimal, Config, Boolean, UserDetails, Token, ArrayOfAddr, Uint32 } from "./OmniflixOpenEditionMinter.types";
+import { Timestamp, Uint64, Uint128, Decimal, InstantiateMsg, CollectionDetails, WeightedAddress, OpenEditionMinterInitExtention, Coin, TokenDetails, ExecuteMsg, QueryMsg, OEMQueryExtension, Addr, AuthDetails, Config, Uint32, Boolean, UserDetails, Token, ArrayOfAddr } from "./OmniflixOpenEditionMinter.types";
 export interface OmniflixOpenEditionMinterReadOnlyInterface {
   contractAddress: string;
   collection: () => Promise<CollectionDetails>;
+  tokenDetails: () => Promise<TokenDetails>;
+  authDetails: () => Promise<AuthDetails>;
   config: () => Promise<Config>;
   mintedTokens: ({
     address
   }: {
     address: string;
   }) => Promise<UserDetails>;
-  totalMintedCount: () => Promise<Uint32>;
-  tokensRemaining: () => Promise<Uint32>;
   isPaused: () => Promise<Boolean>;
   pausers: () => Promise<ArrayOfAddr>;
+  extension: (oEMQueryExtension: OEMQueryExtension) => Promise<Uint32>;
+  totalMintedCount: () => Promise<Uint32>;
 }
 export class OmniflixOpenEditionMinterQueryClient implements OmniflixOpenEditionMinterReadOnlyInterface {
   client: CosmWasmClient;
@@ -29,17 +31,29 @@ export class OmniflixOpenEditionMinterQueryClient implements OmniflixOpenEdition
     this.client = client;
     this.contractAddress = contractAddress;
     this.collection = this.collection.bind(this);
+    this.tokenDetails = this.tokenDetails.bind(this);
+    this.authDetails = this.authDetails.bind(this);
     this.config = this.config.bind(this);
     this.mintedTokens = this.mintedTokens.bind(this);
-    this.totalMintedCount = this.totalMintedCount.bind(this);
-    this.tokensRemaining = this.tokensRemaining.bind(this);
     this.isPaused = this.isPaused.bind(this);
     this.pausers = this.pausers.bind(this);
+    this.extension = this.extension.bind(this);
+    this.totalMintedCount = this.totalMintedCount.bind(this);
   }
 
   collection = async (): Promise<CollectionDetails> => {
     return this.client.queryContractSmart(this.contractAddress, {
       collection: {}
+    });
+  };
+  tokenDetails = async (): Promise<TokenDetails> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      token_details: {}
+    });
+  };
+  authDetails = async (): Promise<AuthDetails> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      auth_details: {}
     });
   };
   config = async (): Promise<Config> => {
@@ -58,16 +72,6 @@ export class OmniflixOpenEditionMinterQueryClient implements OmniflixOpenEdition
       }
     });
   };
-  totalMintedCount = async (): Promise<Uint32> => {
-    return this.client.queryContractSmart(this.contractAddress, {
-      total_minted_count: {}
-    });
-  };
-  tokensRemaining = async (): Promise<Uint32> => {
-    return this.client.queryContractSmart(this.contractAddress, {
-      tokens_remaining: {}
-    });
-  };
   isPaused = async (): Promise<Boolean> => {
     return this.client.queryContractSmart(this.contractAddress, {
       is_paused: {}
@@ -76,6 +80,16 @@ export class OmniflixOpenEditionMinterQueryClient implements OmniflixOpenEdition
   pausers = async (): Promise<ArrayOfAddr> => {
     return this.client.queryContractSmart(this.contractAddress, {
       pausers: {}
+    });
+  };
+  extension = async (oEMQueryExtension: OEMQueryExtension): Promise<Uint32> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      extension: oEMQueryExtension
+    });
+  };
+  totalMintedCount = async (): Promise<Uint32> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      total_minted_count: {}
     });
   };
 }
@@ -116,15 +130,25 @@ export interface OmniflixOpenEditionMinterInterface extends OmniflixOpenEditionM
     receivers: WeightedAddress[];
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   updateDenom: ({
+    collectionName,
     description,
-    name,
     previewUri
   }: {
+    collectionName?: string;
     description?: string;
-    name?: string;
     previewUri?: string;
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   purgeDenom: (fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
+  setAdmin: ({
+    admin
+  }: {
+    admin: string;
+  }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
+  setPaymentCollector: ({
+    paymentCollector
+  }: {
+    paymentCollector: string;
+  }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
 }
 export class OmniflixOpenEditionMinterClient extends OmniflixOpenEditionMinterQueryClient implements OmniflixOpenEditionMinterInterface {
   client: SigningCosmWasmClient;
@@ -147,6 +171,8 @@ export class OmniflixOpenEditionMinterClient extends OmniflixOpenEditionMinterQu
     this.updateRoyaltyReceivers = this.updateRoyaltyReceivers.bind(this);
     this.updateDenom = this.updateDenom.bind(this);
     this.purgeDenom = this.purgeDenom.bind(this);
+    this.setAdmin = this.setAdmin.bind(this);
+    this.setPaymentCollector = this.setPaymentCollector.bind(this);
   }
 
   mint = async (fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
@@ -231,18 +257,18 @@ export class OmniflixOpenEditionMinterClient extends OmniflixOpenEditionMinterQu
     }, fee, memo, _funds);
   };
   updateDenom = async ({
+    collectionName,
     description,
-    name,
     previewUri
   }: {
+    collectionName?: string;
     description?: string;
-    name?: string;
     previewUri?: string;
   }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       update_denom: {
+        collection_name: collectionName,
         description,
-        name,
         preview_uri: previewUri
       }
     }, fee, memo, _funds);
@@ -250,6 +276,28 @@ export class OmniflixOpenEditionMinterClient extends OmniflixOpenEditionMinterQu
   purgeDenom = async (fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       purge_denom: {}
+    }, fee, memo, _funds);
+  };
+  setAdmin = async ({
+    admin
+  }: {
+    admin: string;
+  }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
+    return await this.client.execute(this.sender, this.contractAddress, {
+      set_admin: {
+        admin
+      }
+    }, fee, memo, _funds);
+  };
+  setPaymentCollector = async ({
+    paymentCollector
+  }: {
+    paymentCollector: string;
+  }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
+    return await this.client.execute(this.sender, this.contractAddress, {
+      set_payment_collector: {
+        payment_collector: paymentCollector
+      }
     }, fee, memo, _funds);
   };
 }

@@ -1,5 +1,7 @@
-use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Coin, Timestamp};
+use crate::state::DropParams;
+use cosmwasm_schema::{cw_serde, QueryResponses};
+use cosmwasm_std::Coin;
+use minter_types::{CollectionDetails, Config, TokenDetails, UserDetails};
 use omniflix_std::types::omniflix::onft::v1beta1::WeightedAddress;
 
 #[cw_serde]
@@ -29,22 +31,8 @@ pub enum ExecuteMsg {
         pausers: Vec<String>,
     },
     NewDrop {
-        start_time: Timestamp,
-        mint_price: Coin,
-        token_name: String,
-        per_address_limit: u32,
-        token_limit: Option<u32>,
-        whitelist_address: Option<String>,
-        end_time: Option<Timestamp>,
-        royalty_ratio: Option<String>,
-        description: Option<String>,
-        base_uri: Option<String>,
-        preview_uri: Option<String>,
-        uri_hash: Option<String>,
-        transferable: Option<bool>,
-        extensible: Option<bool>,
-        nsfw: Option<bool>,
-        data: Option<String>,
+        new_token_details: TokenDetails,
+        new_config: Config,
     },
     UpdateRoyaltyReceivers {
         receivers: Vec<WeightedAddress>,
@@ -55,4 +43,32 @@ pub enum ExecuteMsg {
         preview_uri: Option<String>,
     },
     PurgeDenom {},
+    SetAdmin {
+        admin: String,
+    },
+    SetPaymentCollector {
+        payment_collector: String,
+    },
+}
+
+#[cw_serde]
+#[derive(QueryResponses)]
+pub enum QueryMsgExtension {
+    #[returns(CollectionDetails)]
+    Collection { drop_id: Option<u32> },
+    #[returns(TokenDetails)]
+    TokenDetails { drop_id: Option<u32> },
+    #[returns(Config)]
+    Config { drop_id: Option<u32> },
+    #[returns(UserDetails)]
+    MintedTokens {
+        address: String,
+        drop_id: Option<u32>,
+    },
+    #[returns(u32)]
+    TokensRemaining { drop_id: Option<u32> },
+    #[returns(u32)]
+    CurrentDropNumber {},
+    #[returns(Vec<(u32,DropParams)>)]
+    AllDrops {},
 }

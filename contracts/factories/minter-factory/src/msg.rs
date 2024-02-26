@@ -1,14 +1,10 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Coin, Timestamp};
+use cosmwasm_std::{Coin, Empty, Timestamp};
+use factory_types::FactoryParams;
 use minter_types::MinterInstantiateMsg;
-
-use crate::state::Params;
 #[cw_serde]
 pub struct InstantiateMsg {
-    pub admin: Option<String>,
-    pub fee_collector_address: String,
-    pub minter_code_id: u64,
-    pub minter_creation_fee: Coin,
+    pub params: FactoryParams<Empty>,
 }
 
 #[cw_serde]
@@ -18,10 +14,9 @@ pub struct MinterInitExtention {
     // Public minting start time
     pub start_time: Timestamp,
     pub end_time: Option<Timestamp>,
-    pub per_address_limit: u32,
+    pub per_address_limit: Option<u32>,
     // We expect user to send a string between 0 and 1
     // FE "0.1"
-    pub royalty_ratio: String,
     pub payment_collector: Option<String>,
     // Whitelist address if any
     pub whitelist_address: Option<String>,
@@ -41,7 +36,7 @@ pub enum ExecuteMsg {
 
 #[cw_serde]
 pub struct ParamsResponse {
-    pub params: Params,
+    pub params: FactoryParams<Empty>,
 }
 
 #[cw_serde]

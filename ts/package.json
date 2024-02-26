@@ -6,7 +6,7 @@
     "main": "",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
-        "generate_ts": "ts-node codegen_script.ts"
+        "generate-ts": "ts-node codegen_script.ts"
     },
     "dependencies": {
         "@cosmjs/amino": "0.29.5",

@@ -1,11 +1,32 @@
-use cosmwasm_std::Coin;
+use cosmwasm_schema::cw_serde;
+use cosmwasm_std::{Addr, StdError};
+use cosmwasm_std::{Coin, Uint128};
+use thiserror::Error;
 
-use crate::error::ContractError;
+#[derive(Error, Debug, PartialEq)]
+pub enum CustomPaymentError {
+    #[error(transparent)]
+    Std(#[from] StdError),
+    #[error("Insufficient funds sent")]
+    InsufficientFunds {
+        expected: Vec<Coin>,
+        actual: Vec<Coin>,
+    },
+}
+pub fn check_payment(
+    sent_funds: &[Coin],
+    expected_funds: &[Coin],
+) -> Result<(), CustomPaymentError> {
+    // Remove 0 amounts
+    let expected_funds = expected_funds
+        .iter()
+        .filter(|coin| coin.amount > Uint128::zero())
+        .cloned() // Clone the elements
+        .collect::<Vec<_>>();
 
-pub fn check_payment(sent_funds: &[Coin], expected_funds: &[Coin]) -> Result<(), ContractError> {
     // Check length
     if sent_funds.len() > expected_funds.len() {
-        return Err(ContractError::IncorrectFunds {
+        return Err(CustomPaymentError::InsufficientFunds {
             expected: expected_funds.to_vec(),
             actual: sent_funds.to_vec(),
         });
@@ -13,14 +34,14 @@ pub fn check_payment(sent_funds: &[Coin], expected_funds: &[Coin]) -> Result<(),
 
     let mut mut_sent_funds = sent_funds.to_vec(); // Create a mutable copy
 
-    for expected in expected_funds {
+    for expected in expected_funds.clone() {
         if let Some(sent_index) = mut_sent_funds
             .iter()
             .position(|sent| expected.denom == sent.denom)
         {
             let sent = &mut mut_sent_funds[sent_index];
             if expected.amount > sent.amount {
-                return Err(ContractError::IncorrectFunds {
+                return Err(CustomPaymentError::InsufficientFunds {
                     expected: expected_funds.to_vec(),
                     actual: sent_funds.to_vec(),
                 });
@@ -28,7 +49,7 @@ pub fn check_payment(sent_funds: &[Coin], expected_funds: &[Coin]) -> Result<(),
                 sent.amount = sent.amount.checked_sub(expected.amount).unwrap();
             }
         } else {
-            return Err(ContractError::IncorrectFunds {
+            return Err(CustomPaymentError::InsufficientFunds {
                 expected: expected_funds.to_vec(),
                 actual: sent_funds.to_vec(),
             });
@@ -36,6 +57,15 @@ pub fn check_payment(sent_funds: &[Coin], expected_funds: &[Coin]) -> Result<(),
     }
 
     Ok(())
+}
+#[cw_serde]
+pub struct FactoryParams<T> {
+    pub admin: Addr,
+    pub creation_fee: Coin,
+    pub fee_collector_address: Addr,
+    pub contract_id: u64,
+    pub product_label: String,
+    pub init: T,
 }
 
 // Test check_payment
@@ -110,5 +140,10 @@ mod tests {
         ];
         let res = check_payment(&sent_funds, &expected_funds);
         assert!(res.is_err());
+
+        let sent_funds = vec![coin(1100, "uluna")];
+        let expected_funds = vec![coin(0, "something"), coin(1100, "uluna")];
+        let res = check_payment(&sent_funds, &expected_funds);
+        assert!(res.is_ok());
     }
 }

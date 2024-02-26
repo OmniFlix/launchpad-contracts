@@ -4,16 +4,25 @@
 * and run the @cosmwasm/ts-codegen generate command to regenerate this file.
 */
 
+export type Addr = string;
 export type Uint128 = string;
 export interface InstantiateMsg {
-  admin?: string | null;
-  fee_collector_address: string;
-  minter_code_id: number;
-  minter_creation_fee: Coin;
+  params: FactoryParamsForEmpty;
+}
+export interface FactoryParamsForEmpty {
+  admin: Addr;
+  contract_id: number;
+  creation_fee: Coin;
+  fee_collector_address: Addr;
+  init: Empty;
+  product_label: string;
 }
 export interface Coin {
   amount: Uint128;
   denom: string;
+  [k: string]: unknown;
+}
+export interface Empty {
   [k: string]: unknown;
 }
 export type ExecuteMsg = {
@@ -39,26 +48,23 @@ export type ExecuteMsg = {
 };
 export type Timestamp = Uint64;
 export type Uint64 = string;
+export type Decimal = string;
 export interface MinterInstantiateMsgForMinterInitExtention {
   collection_details: CollectionDetails;
   init: MinterInitExtention;
+  token_details: TokenDetails;
 }
 export interface CollectionDetails {
-  base_uri: string;
-  data: string;
-  description: string;
-  extensible: boolean;
+  collection_name: string;
+  data?: string | null;
+  description?: string | null;
   id: string;
-  name: string;
-  nsfw: boolean;
-  preview_uri: string;
+  preview_uri?: string | null;
   royalty_receivers?: WeightedAddress[] | null;
-  schema: string;
+  schema?: string | null;
   symbol: string;
-  token_name: string;
-  transferable: boolean;
-  uri: string;
-  uri_hash: string;
+  uri?: string | null;
+  uri_hash?: string | null;
 }
 export interface WeightedAddress {
   address: string;
@@ -71,21 +77,24 @@ export interface MinterInitExtention {
   mint_price: Coin;
   num_tokens: number;
   payment_collector?: string | null;
-  per_address_limit: number;
-  royalty_ratio: string;
+  per_address_limit?: number | null;
   start_time: Timestamp;
   whitelist_address?: string | null;
+}
+export interface TokenDetails {
+  base_token_uri: string;
+  data?: string | null;
+  description?: string | null;
+  extensible: boolean;
+  nsfw: boolean;
+  preview_uri?: string | null;
+  royalty_ratio: Decimal;
+  token_name: string;
+  transferable: boolean;
 }
 export type QueryMsg = {
   params: {};
 };
-export type Addr = string;
 export interface ParamsResponse {
-  params: Params;
-}
-export interface Params {
-  admin: Addr;
-  fee_collector_address: Addr;
-  minter_code_id: number;
-  minter_creation_fee: Coin;
+  params: FactoryParamsForEmpty;
 }

@@ -2,15 +2,14 @@ use std::str::FromStr;
 
 use crate::error::ContractError;
 use crate::msg::{CreateMinterMsg, ExecuteMsg, InstantiateMsg, ParamsResponse, QueryMsg};
-use crate::state::{Params, PARAMS};
-use crate::utils::check_payment;
+use crate::state::PARAMS;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     to_json_binary, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response,
     StdResult, Uint128, WasmMsg,
 };
-use cw_utils::maybe_addr;
+use factory_types::check_payment;
 use omniflix_std::types::omniflix::onft::v1beta1::OnftQuerier;
 #[cfg(not(test))]
 const CREATION_FEE: Uint128 = Uint128::new(0);
@@ -29,17 +28,16 @@ pub fn instantiate(
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
-    let admin = maybe_addr(deps.api, msg.admin)?.unwrap_or(info.sender);
-    let fee_collector_address = deps.api.addr_validate(&msg.fee_collector_address)?;
-    if msg.minter_code_id == 0 {
-        return Err(ContractError::InvalidMinterCodeId {});
-    }
-    let params = Params {
-        admin: admin.clone(),
-        fee_collector_address,
-        minter_code_id: msg.minter_code_id,
-        minter_creation_fee: msg.minter_creation_fee,
-    };
+    let _admin = deps
+        .api
+        .addr_validate(&msg.params.clone().admin.into_string())
+        .unwrap_or(info.sender.clone());
+    let _fee_collector_address = deps
+        .api
+        .addr_validate(&msg.params.fee_collector_address.clone().into_string())
+        .unwrap_or(info.sender.clone());
+
+    let params = msg.params;
     PARAMS.save(deps.storage, &params)?;
     Ok(Response::default())
 }
@@ -89,22 +87,22 @@ fn create_minter(
     };
     check_payment(
         &info.funds,
-        &[nft_creation_fee.clone(), params.minter_creation_fee.clone()],
+        &[nft_creation_fee.clone(), params.creation_fee.clone()],
     )?;
-
-    let msgs: Vec<CosmosMsg> = vec![
-        CosmosMsg::Wasm(WasmMsg::Instantiate {
-            admin: Some(params.admin.to_string()),
-            code_id: params.minter_code_id,
-            msg: to_json_binary(&msg)?,
-            funds: vec![nft_creation_fee],
-            label: "omniflix-nft-minter".to_string(),
-        }),
-        CosmosMsg::Bank(BankMsg::Send {
-            amount: vec![params.minter_creation_fee],
+    let mut msgs = Vec::<CosmosMsg>::new();
+    msgs.push(CosmosMsg::Wasm(WasmMsg::Instantiate {
+        admin: Some(msg.init.admin.to_string()),
+        code_id: params.contract_id,
+        msg: to_json_binary(&msg)?,
+        funds: vec![nft_creation_fee],
+        label: params.product_label,
+    }));
+    if params.creation_fee.amount > Uint128::new(0) {
+        msgs.push(CosmosMsg::Bank(BankMsg::Send {
+            amount: vec![params.creation_fee],
             to_address: params.fee_collector_address.to_string(),
-        }),
-    ];
+        }));
+    }
     let res = Response::new()
         .add_messages(msgs)
         .add_attribute("action", "create_minter");
@@ -158,7 +156,7 @@ fn update_params_minter_code_id(
     if params.admin != info.sender {
         return Err(ContractError::Unauthorized {});
     }
-    params.minter_code_id = minter_code_id;
+    params.contract_id = minter_code_id;
     PARAMS.save(deps.storage, &params)?;
     Ok(Response::default()
         .add_attribute("action", "update_minter_code_id")
@@ -175,7 +173,7 @@ fn update_params_minter_creation_fee(
     if params.admin != info.sender {
         return Err(ContractError::Unauthorized {});
     }
-    params.minter_creation_fee = minter_creation_fee.clone();
+    params.creation_fee = minter_creation_fee.clone();
     PARAMS.save(deps.storage, &params)?;
     Ok(Response::default()
         .add_attribute("action", "update_minter_creation_fee")
@@ -201,20 +199,25 @@ mod tests {
     use super::*;
     use cosmwasm_std::{
         testing::{mock_dependencies, mock_env, mock_info},
-        Addr, Decimal, Timestamp,
+        Addr, Decimal, Empty, Timestamp,
     };
+    use factory_types::CustomPaymentError;
     use minter_types::CollectionDetails;
 
     #[test]
     fn test_instantiate() {
         let mut deps = mock_dependencies();
         let msg = InstantiateMsg {
-            admin: None,
-            fee_collector_address: "fee_collector_address".to_string(),
-            minter_code_id: 1,
-            minter_creation_fee: Coin {
-                amount: Uint128::new(100),
-                denom: "uusd".to_string(),
+            params: factory_types::FactoryParams::<Empty> {
+                admin: Addr::unchecked("admin"),
+                fee_collector_address: Addr::unchecked("fee_collector_address"),
+                contract_id: 1,
+                creation_fee: Coin {
+                    amount: Uint128::new(100),
+                    denom: "uusd".to_string(),
+                },
+                product_label: "omniflix-nft-minter".to_string(),
+                init: Empty {},
             },
         };
         let info = mock_info("creator", &[]);
@@ -224,14 +227,16 @@ mod tests {
         let params = query_params(deps.as_ref()).unwrap();
         assert_eq!(
             params.params,
-            Params {
-                admin: Addr::unchecked("creator"),
+            factory_types::FactoryParams::<Empty> {
+                admin: Addr::unchecked("admin"),
                 fee_collector_address: Addr::unchecked("fee_collector_address"),
-                minter_code_id: 1,
-                minter_creation_fee: Coin {
+                contract_id: 1,
+                creation_fee: Coin {
                     amount: Uint128::new(100),
                     denom: "uusd".to_string(),
                 },
+                product_label: "omniflix-nft-minter".to_string(),
+                init: Empty {},
             }
         );
     }
@@ -240,32 +245,42 @@ mod tests {
     fn test_execute_create_minter() {
         let mut deps = mock_dependencies();
         let msg = InstantiateMsg {
-            admin: None,
-            fee_collector_address: "fee_collector_address".to_string(),
-            minter_code_id: 1,
-            minter_creation_fee: Coin {
-                amount: Uint128::new(100),
-                denom: "uusd".to_string(),
+            params: factory_types::FactoryParams::<Empty> {
+                admin: Addr::unchecked("admin"),
+                fee_collector_address: Addr::unchecked("fee_collector_address"),
+                contract_id: 1,
+                creation_fee: Coin {
+                    amount: Uint128::new(100),
+                    denom: "uusd".to_string(),
+                },
+                product_label: "omniflix-nft-minter".to_string(),
+                init: Empty {},
             },
         };
         let info = mock_info("creator", &[]);
         let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
         let collection_details = CollectionDetails {
-            name: "My Collection".to_string(),
-            description: "This is a collection of unique tokens.".to_string(),
-            preview_uri: "https://example.com/preview".to_string(),
-            schema: "https://example.com/schema".to_string(),
+            collection_name: "Collection Name".to_string(),
+            description: Some("This is a collection of unique tokens.".to_string()),
+            preview_uri: Some("https://example.com/preview".to_string()),
+            schema: Some("https://example.com/schema".to_string()),
             symbol: "SYM".to_string(),
             id: "collection_id".to_string(),
-            extensible: true,
-            nsfw: false,
-            base_uri: "https://example.com/base".to_string(),
-            uri: "https://example.com/collection".to_string(),
+            uri: Some("https://example.com/collection".to_string()),
             uri_hash: Some("".to_string()),
-            data: "Additional data for the collection".to_string(),
-            transferable: true,
-            token_name: "token_name".to_string(),
+            data: Some("Additional data for the collection".to_string()),
             royalty_receivers: None,
+        };
+        let token_details = minter_types::TokenDetails {
+            token_name: "Token Name".to_string(),
+            description: Some("This is a unique token.".to_string()),
+            base_token_uri: "https://example.com/token".to_string(),
+            transferable: true,
+            extensible: false,
+            nsfw: false,
+            royalty_ratio: Decimal::percent(10),
+            preview_uri: Some("https://example.com/preview".to_string()),
+            data: Some("Additional data for the token".to_string()),
         };
         // Send additional funds
         let msg = ExecuteMsg::CreateMinter {
@@ -279,12 +294,12 @@ mod tests {
                         denom: "uusd".to_string(),
                     },
                     start_time: Timestamp::from_seconds(0),
-                    royalty_ratio: Decimal::percent(10).to_string(),
                     payment_collector: None,
-                    per_address_limit: 3,
+                    per_address_limit: Some(3),
                     end_time: None,
                     num_tokens: 100,
                 },
+                token_details: token_details.clone(),
             },
         };
 
@@ -308,7 +323,7 @@ mod tests {
         let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
         assert_eq!(
             res,
-            ContractError::IncorrectFunds {
+            ContractError::PaymentError(CustomPaymentError::InsufficientFunds {
                 expected: vec![
                     Coin {
                         amount: Uint128::new(100_000_000),
@@ -333,13 +348,14 @@ mod tests {
                         denom: "additional".to_string(),
                     },
                 ],
-            }
+            })
         );
 
         // Missing funds
         let msg = ExecuteMsg::CreateMinter {
             msg: CreateMinterMsg {
                 collection_details: collection_details.clone(),
+                token_details: token_details.clone(),
                 init: MinterInitExtention {
                     admin: "admin".to_string(),
                     whitelist_address: None,
@@ -348,9 +364,8 @@ mod tests {
                         denom: "uusd".to_string(),
                     },
                     start_time: Timestamp::from_seconds(0),
-                    royalty_ratio: Decimal::percent(10).to_string(),
                     payment_collector: None,
-                    per_address_limit: 3,
+                    per_address_limit: Some(3),
                     end_time: None,
                     num_tokens: 100,
                 },
@@ -367,7 +382,7 @@ mod tests {
         let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
         assert_eq!(
             res,
-            ContractError::IncorrectFunds {
+            ContractError::PaymentError(CustomPaymentError::InsufficientFunds {
                 expected: vec![
                     Coin {
                         amount: Uint128::new(100_000_000),
@@ -381,8 +396,8 @@ mod tests {
                 actual: vec![Coin {
                     amount: Uint128::new(100_000_000),
                     denom: "uflix".to_string(),
-                },],
-            }
+                }],
+            })
         );
 
         // Happy path
@@ -397,12 +412,12 @@ mod tests {
                         denom: "uusd".to_string(),
                     },
                     start_time: Timestamp::from_seconds(0),
-                    royalty_ratio: Decimal::percent(10).to_string(),
                     payment_collector: None,
-                    per_address_limit: 3,
+                    per_address_limit: Some(3),
                     end_time: None,
                     num_tokens: 100,
                 },
+                token_details: token_details.clone(),
             },
         };
 
@@ -425,7 +440,7 @@ mod tests {
         assert_eq!(
             res.messages[0].msg,
             CosmosMsg::Wasm(WasmMsg::Instantiate {
-                admin: Some("creator".to_string()),
+                admin: Some("admin".to_string()),
                 code_id: 1,
                 msg: to_json_binary(&CreateMinterMsg {
                     collection_details: collection_details.clone(),
@@ -437,12 +452,12 @@ mod tests {
                             denom: "uusd".to_string(),
                         },
                         start_time: Timestamp::from_seconds(0),
-                        royalty_ratio: Decimal::percent(10).to_string(),
                         payment_collector: None,
-                        per_address_limit: 3,
+                        per_address_limit: Some(3),
                         end_time: None,
                         num_tokens: 100,
                     },
+                    token_details: token_details.clone(),
                 })
                 .unwrap(),
                 funds: vec![Coin {

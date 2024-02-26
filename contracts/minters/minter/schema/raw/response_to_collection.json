@@ -3,45 +3,34 @@
   "title": "CollectionDetails",
   "type": "object",
   "required": [
-    "base_uri",
-    "data",
-    "description",
-    "extensible",
+    "collection_name",
     "id",
-    "name",
-    "nsfw",
-    "preview_uri",
-    "schema",
-    "symbol",
-    "token_name",
-    "transferable",
-    "uri",
-    "uri_hash"
+    "symbol"
   ],
   "properties": {
-    "base_uri": {
+    "collection_name": {
       "type": "string"
     },
     "data": {
-      "type": "string"
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "description": {
-      "type": "string"
-    },
-    "extensible": {
-      "type": "boolean"
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "id": {
       "type": "string"
     },
-    "name": {
-      "type": "string"
-    },
-    "nsfw": {
-      "type": "boolean"
-    },
     "preview_uri": {
-      "type": "string"
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "royalty_receivers": {
       "type": [
@@ -53,22 +42,25 @@
       }
     },
     "schema": {
-      "type": "string"
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "symbol": {
       "type": "string"
     },
-    "token_name": {
-      "type": "string"
-    },
-    "transferable": {
-      "type": "boolean"
-    },
     "uri": {
-      "type": "string"
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "uri_hash": {
-      "type": "string"
+      "type": [
+        "string",
+        "null"
+      ]
     }
   },
   "additionalProperties": false,

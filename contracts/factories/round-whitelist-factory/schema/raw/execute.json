@@ -133,14 +133,12 @@
     "InstantiateMsg": {
       "type": "object",
       "required": [
+        "admin",
         "rounds"
       ],
       "properties": {
         "admin": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "string"
         },
         "rounds": {
           "type": "array",

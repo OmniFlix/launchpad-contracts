@@ -1,14 +1,10 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Coin, Timestamp};
+use cosmwasm_std::{Coin, Empty, Timestamp};
+use factory_types::FactoryParams;
 use minter_types::MinterInstantiateMsg;
-
-use crate::state::Params;
 #[cw_serde]
 pub struct InstantiateMsg {
-    pub admin: Option<String>,
-    pub fee_collector_address: String,
-    pub open_edition_minter_code_id: u64,
-    pub minter_creation_fee: Coin,
+    pub params: FactoryParams<Empty>,
 }
 
 #[cw_serde]
@@ -17,9 +13,8 @@ pub struct OpenEditionMinterInitExtention {
     pub mint_price: Coin,
     pub start_time: Timestamp,
     pub end_time: Option<Timestamp>,
-    pub token_limit: Option<u32>,
-    pub per_address_limit: u32,
-    pub royalty_ratio: String,
+    pub num_tokens: Option<u32>,
+    pub per_address_limit: Option<u32>,
     pub payment_collector: Option<String>,
     pub whitelist_address: Option<String>,
 }
@@ -37,7 +32,7 @@ pub enum ExecuteMsg {
 
 #[cw_serde]
 pub struct ParamsResponse {
-    pub params: Params,
+    pub params: FactoryParams<Empty>,
 }
 
 #[cw_serde]

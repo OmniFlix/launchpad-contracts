@@ -1,20 +1,22 @@
 #[cfg(test)]
 mod test_minter_creation {
 
+    use cosmwasm_std::Empty;
     use cosmwasm_std::{
-        coin, to_json_binary, Addr, Decimal, QueryRequest, Timestamp, Uint128, WasmQuery,
+        coin, to_json_binary, Decimal, QueryRequest, Timestamp, Uint128, WasmQuery,
     };
     use cw_multi_test::Executor;
-    use minter_types::Token;
+    use factory_types::CustomPaymentError;
+    use minter_types::{Token, TokenDetails};
 
     use minter_types::Config as MinterConfig;
     use minter_types::QueryMsg;
 
-    use omniflix_minter_factory::msg::{
-        ExecuteMsg as FactoryExecuteMsg, InstantiateMsg as FactoryInstantiateMsg,
-    };
+    use omniflix_minter_factory::msg::ExecuteMsg as FactoryExecuteMsg;
 
-    use crate::utils::{get_contract_address_from_res, return_minter_instantiate_msg};
+    use crate::utils::{
+        get_contract_address_from_res, return_factory_inst_message, return_minter_instantiate_msg,
+    };
 
     use crate::{setup::setup, utils::query_onft_collection};
     use omniflix_minter::error::ContractError as MinterContractError;
@@ -36,12 +38,7 @@ mod test_minter_creation {
         let creator = test_addresses.creator;
         let _collector = test_addresses.collector;
 
-        let factory_inst_msg = FactoryInstantiateMsg {
-            admin: Some(admin.to_string()),
-            minter_creation_fee: coin(1000000, "uflix"),
-            minter_code_id,
-            fee_collector_address: admin.clone().into_string(),
-        };
+        let factory_inst_msg = return_factory_inst_message(minter_code_id);
         let factory_addr = app
             .instantiate_contract(
                 minter_factory_code_id,
@@ -71,10 +68,10 @@ mod test_minter_creation {
         let error = res.downcast_ref::<MinterFactoryError>().unwrap();
         assert_eq!(
             error,
-            &MinterFactoryError::IncorrectFunds {
+            &MinterFactoryError::PaymentError(CustomPaymentError::InsufficientFunds {
                 expected: [coin(1000000, "uflix"), coin(1000000, "uflix")].to_vec(),
                 actual: [].to_vec()
-            }
+            })
         );
         // Send incorrect denom
         let error = app
@@ -90,10 +87,10 @@ mod test_minter_creation {
         let error = res.downcast_ref::<MinterFactoryError>().unwrap();
         assert_eq!(
             error,
-            &MinterFactoryError::IncorrectFunds {
+            &MinterFactoryError::PaymentError(CustomPaymentError::InsufficientFunds {
                 expected: [coin(1000000, "uflix"), coin(1000000, "uflix")].to_vec(),
                 actual: [coin(1000000, "diffirent_denom")].to_vec()
-            }
+            })
         );
         // Send correct denom incorrect amount
         let error = app
@@ -109,10 +106,10 @@ mod test_minter_creation {
         let error = res.downcast_ref::<MinterFactoryError>().unwrap();
         assert_eq!(
             error,
-            &MinterFactoryError::IncorrectFunds {
+            &MinterFactoryError::PaymentError(CustomPaymentError::InsufficientFunds {
                 expected: [coin(1000000, "uflix"), coin(1000000, "uflix")].to_vec(),
                 actual: [coin(1000000, "uflix")].to_vec()
-            }
+            })
         );
 
         // Send 0 num tokens
@@ -135,7 +132,7 @@ mod test_minter_creation {
 
         // Send royalty ratio more than 100%
         let mut minter_inst_msg = return_minter_instantiate_msg();
-        minter_inst_msg.init.royalty_ratio = "1.1".to_string();
+        minter_inst_msg.token_details.royalty_ratio = Decimal::percent(101);
         let create_minter_msg = FactoryExecuteMsg::CreateMinter {
             msg: minter_inst_msg,
         };
@@ -244,26 +241,32 @@ mod test_minter_creation {
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
-                msg: to_json_binary(&QueryMsg::Config {}).unwrap(),
+                msg: to_json_binary(&QueryMsg::<Empty>::Config {}).unwrap(),
             }))
             .unwrap();
-        assert_eq!(config_data.per_address_limit, 1);
+        assert_eq!(config_data.per_address_limit, Some(1));
         assert_eq!(config_data.mint_price.denom, "uflix".to_string());
         assert_eq!(config_data.start_time, Timestamp::from_nanos(1000000000));
         assert_eq!(config_data.mint_price.amount, Uint128::from(1000000u128));
-        assert_eq!(
-            config_data.royalty_ratio,
-            Decimal::from_ratio(1u128, 10u128)
-        );
-        assert_eq!(config_data.admin, Addr::unchecked("creator"));
-        assert_eq!(config_data.payment_collector, Addr::unchecked("creator"));
+
+        let token_details: TokenDetails = app
+            .wrap()
+            .query(&QueryRequest::Wasm(WasmQuery::Smart {
+                contract_addr: minter_address.clone(),
+                msg: to_json_binary(&QueryMsg::<Empty>::TokenDetails {}).unwrap(),
+            }))
+            .unwrap();
+        assert_eq!(token_details.royalty_ratio, Decimal::percent(10));
 
         // Query mintable tokens
         let mintable_tokens_data: Vec<Token> = app
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
-                msg: to_json_binary(&QueryMsg::MintableTokens {}).unwrap(),
+                msg: to_json_binary(&QueryMsg::Extension(
+                    omniflix_minter::msg::MinterExtensionQueryMsg::MintableTokens {},
+                ))
+                .unwrap(),
             }))
             .unwrap();
         assert_eq!(mintable_tokens_data.len(), 1000);
@@ -275,7 +278,10 @@ mod test_minter_creation {
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
-                msg: to_json_binary(&QueryMsg::TotalTokens {}).unwrap(),
+                msg: to_json_binary(&QueryMsg::Extension(
+                    omniflix_minter::msg::MinterExtensionQueryMsg::TotalTokensRemaining {},
+                ))
+                .unwrap(),
             }))
             .unwrap();
         assert_eq!(total_tokens_remaining_data, 1000);

@@ -214,13 +214,13 @@
         "update_denom": {
           "type": "object",
           "properties": {
-            "description": {
+            "collection_name": {
               "type": [
                 "string",
                 "null"
               ]
             },
-            "name": {
+            "description": {
               "type": [
                 "string",
                 "null"
@@ -246,6 +246,48 @@
       "properties": {
         "purge_denom": {
           "type": "object",
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "set_admin"
+      ],
+      "properties": {
+        "set_admin": {
+          "type": "object",
+          "required": [
+            "admin"
+          ],
+          "properties": {
+            "admin": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "set_payment_collector"
+      ],
+      "properties": {
+        "set_payment_collector": {
+          "type": "object",
+          "required": [
+            "payment_collector"
+          ],
+          "properties": {
+            "payment_collector": {
+              "type": "string"
+            }
+          },
           "additionalProperties": false
         }
       },

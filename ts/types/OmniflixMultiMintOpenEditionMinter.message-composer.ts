@@ -7,7 +7,7 @@
 import { MsgExecuteContractEncodeObject } from "@cosmjs/cosmwasm-stargate";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { toUtf8 } from "@cosmjs/encoding";
-import { Timestamp, Uint64, Uint128, InstantiateMsg, CollectionDetails, WeightedAddress, OpenEditionMinterInitExtention, Coin, ExecuteMsg, QueryMsg, Addr, Decimal, Config, Uint32, Boolean, UserDetails, Token, ArrayOfAddr } from "./OmniflixMultiMintOpenEditionMinter.types";
+import { Timestamp, Uint64, Uint128, Decimal, InstantiateMsg, CollectionDetails, WeightedAddress, OpenEditionMinterInitExtention, Coin, TokenDetails, ExecuteMsg, Addr, Config, QueryMsg, QueryMsgExtension, AuthDetails, Uint32, Boolean, UserDetails, Token, ArrayOfAddr } from "./OmniflixMultiMintOpenEditionMinter.types";
 export interface OmniflixMultiMintOpenEditionMinterMsg {
   contractAddress: string;
   sender: string;
@@ -52,39 +52,11 @@ export interface OmniflixMultiMintOpenEditionMinterMsg {
     pausers: string[];
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   newDrop: ({
-    baseUri,
-    data,
-    description,
-    endTime,
-    extensible,
-    mintPrice,
-    nsfw,
-    perAddressLimit,
-    previewUri,
-    royaltyRatio,
-    startTime,
-    tokenLimit,
-    tokenName,
-    transferable,
-    uriHash,
-    whitelistAddress
+    newConfig,
+    newTokenDetails
   }: {
-    baseUri?: string;
-    data?: string;
-    description?: string;
-    endTime?: Timestamp;
-    extensible?: boolean;
-    mintPrice: Coin;
-    nsfw?: boolean;
-    perAddressLimit: number;
-    previewUri?: string;
-    royaltyRatio?: string;
-    startTime: Timestamp;
-    tokenLimit?: number;
-    tokenName: string;
-    transferable?: boolean;
-    uriHash?: string;
-    whitelistAddress?: string;
+    newConfig: Config;
+    newTokenDetails: TokenDetails;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   updateRoyaltyReceivers: ({
     receivers
@@ -101,6 +73,16 @@ export interface OmniflixMultiMintOpenEditionMinterMsg {
     previewUri?: string;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   purgeDenom: (_funds?: Coin[]) => MsgExecuteContractEncodeObject;
+  setAdmin: ({
+    admin
+  }: {
+    admin: string;
+  }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
+  setPaymentCollector: ({
+    paymentCollector
+  }: {
+    paymentCollector: string;
+  }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
 }
 export class OmniflixMultiMintOpenEditionMinterMsgComposer implements OmniflixMultiMintOpenEditionMinterMsg {
   sender: string;
@@ -121,6 +103,8 @@ export class OmniflixMultiMintOpenEditionMinterMsgComposer implements OmniflixMu
     this.updateRoyaltyReceivers = this.updateRoyaltyReceivers.bind(this);
     this.updateDenom = this.updateDenom.bind(this);
     this.purgeDenom = this.purgeDenom.bind(this);
+    this.setAdmin = this.setAdmin.bind(this);
+    this.setPaymentCollector = this.setPaymentCollector.bind(this);
   }
 
   mint = ({
@@ -276,39 +260,11 @@ export class OmniflixMultiMintOpenEditionMinterMsgComposer implements OmniflixMu
     };
   };
   newDrop = ({
-    baseUri,
-    data,
-    description,
-    endTime,
-    extensible,
-    mintPrice,
-    nsfw,
-    perAddressLimit,
-    previewUri,
-    royaltyRatio,
-    startTime,
-    tokenLimit,
-    tokenName,
-    transferable,
-    uriHash,
-    whitelistAddress
+    newConfig,
+    newTokenDetails
   }: {
-    baseUri?: string;
-    data?: string;
-    description?: string;
-    endTime?: Timestamp;
-    extensible?: boolean;
-    mintPrice: Coin;
-    nsfw?: boolean;
-    perAddressLimit: number;
-    previewUri?: string;
-    royaltyRatio?: string;
-    startTime: Timestamp;
-    tokenLimit?: number;
-    tokenName: string;
-    transferable?: boolean;
-    uriHash?: string;
-    whitelistAddress?: string;
+    newConfig: Config;
+    newTokenDetails: TokenDetails;
   }, _funds?: Coin[]): MsgExecuteContractEncodeObject => {
     return {
       typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
@@ -317,22 +273,8 @@ export class OmniflixMultiMintOpenEditionMinterMsgComposer implements OmniflixMu
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
           new_drop: {
-            base_uri: baseUri,
-            data,
-            description,
-            end_time: endTime,
-            extensible,
-            mint_price: mintPrice,
-            nsfw,
-            per_address_limit: perAddressLimit,
-            preview_uri: previewUri,
-            royalty_ratio: royaltyRatio,
-            start_time: startTime,
-            token_limit: tokenLimit,
-            token_name: tokenName,
-            transferable,
-            uri_hash: uriHash,
-            whitelist_address: whitelistAddress
+            new_config: newConfig,
+            new_token_details: newTokenDetails
           }
         })),
         funds: _funds
@@ -391,6 +333,44 @@ export class OmniflixMultiMintOpenEditionMinterMsgComposer implements OmniflixMu
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
           purge_denom: {}
+        })),
+        funds: _funds
+      })
+    };
+  };
+  setAdmin = ({
+    admin
+  }: {
+    admin: string;
+  }, _funds?: Coin[]): MsgExecuteContractEncodeObject => {
+    return {
+      typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+      value: MsgExecuteContract.fromPartial({
+        sender: this.sender,
+        contract: this.contractAddress,
+        msg: toUtf8(JSON.stringify({
+          set_admin: {
+            admin
+          }
+        })),
+        funds: _funds
+      })
+    };
+  };
+  setPaymentCollector = ({
+    paymentCollector
+  }: {
+    paymentCollector: string;
+  }, _funds?: Coin[]): MsgExecuteContractEncodeObject => {
+    return {
+      typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+      value: MsgExecuteContract.fromPartial({
+        sender: this.sender,
+        contract: this.contractAddress,
+        msg: toUtf8(JSON.stringify({
+          set_payment_collector: {
+            payment_collector: paymentCollector
+          }
         })),
         funds: _funds
       })

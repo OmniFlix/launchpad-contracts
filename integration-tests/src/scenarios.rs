@@ -1,32 +1,20 @@
 #[cfg(test)]
 mod scenarios {
-
-    use std::ops::Add;
-
-    use cosmwasm_std::{
-        coin, coins, to_json_binary, Addr, BlockInfo, QueryRequest, Timestamp, Uint128, WasmQuery,
-    };
-    use cw_multi_test::{BankSudo, Executor, SudoMsg};
+    use cosmwasm_std::Decimal;
+    use cosmwasm_std::{coin, coins, Addr, BlockInfo, Timestamp, Uint128};
+    use cw_multi_test::Executor;
     use minter_types::CollectionDetails;
-    use minter_types::Token;
-    use minter_types::UserDetails;
-
-    use minter_types::QueryMsg;
+    use minter_types::TokenDetails;
     use omniflix_minter::msg::ExecuteMsg as MinterExecuteMsg;
     use omniflix_minter_factory::msg::CreateMinterMsg;
+    use omniflix_minter_factory::msg::ExecuteMsg as FactoryExecuteMsg;
     use omniflix_minter_factory::msg::MinterInitExtention;
-    use omniflix_minter_factory::msg::{
-        ExecuteMsg as FactoryExecuteMsg, InstantiateMsg as FactoryInstantiateMsg,
-    };
-    use omniflix_open_edition_minter::error;
     use omniflix_round_whitelist::msg::ExecuteMsg as RoundWhitelistExecuteMsg;
-    use omniflix_round_whitelist::round;
     use whitelist_types::Round;
     use whitelist_types::RoundWhitelistQueryMsgs;
 
     use crate::utils::{
-        get_contract_address_from_res, mint_to_address, return_minter_instantiate_msg,
-        return_rounds,
+        get_contract_address_from_res, mint_to_address, return_factory_inst_message,
     };
 
     use crate::{setup::setup, utils::query_onft_collection};
@@ -121,12 +109,7 @@ mod scenarios {
         let creator = test_addresses.creator;
         let _collector = test_addresses.collector;
 
-        let factory_inst_msg = FactoryInstantiateMsg {
-            admin: Some(admin.to_string()),
-            minter_creation_fee: coin(1000000, "uflix"),
-            minter_code_id,
-            fee_collector_address: admin.clone().into_string(),
-        };
+        let factory_inst_msg = return_factory_inst_message(minter_code_id);
         let minter_factory_addr = app
             .instantiate_contract(
                 minter_factory_code_id,
@@ -137,13 +120,7 @@ mod scenarios {
                 None,
             )
             .unwrap();
-        let round_whitelist_factory_inst_msg =
-            omniflix_round_whitelist_factory::msg::InstantiateMsg {
-                admin: Some(admin.to_string()),
-                fee_collector_address: admin.clone().into_string(),
-                whitelist_code_id: round_whitelist_code_id,
-                whitelist_creation_fee: coin(1000000, "uflix"),
-            };
+        let round_whitelist_factory_inst_msg = return_factory_inst_message(round_whitelist_code_id);
         let round_whitelist_factory_addr = app
             .instantiate_contract(
                 round_whitelist_factory_code_id,
@@ -187,7 +164,7 @@ mod scenarios {
         .to_vec();
 
         let round_whitelist_inst_msg = whitelist_types::InstantiateMsg {
-            admin: Some(admin.to_string()),
+            admin: admin.to_string(),
             rounds: rounds.clone(),
         };
         let create_round_whitelist_msg =
@@ -206,29 +183,34 @@ mod scenarios {
 
         let minter_1_inst_message = CreateMinterMsg {
             collection_details: CollectionDetails {
-                name: "Test_collection_1".to_string(),
-                description: "description".to_string(),
-                preview_uri: "preview_uri".to_string(),
-                schema: "schema".to_string(),
+                collection_name: "Test_collection_1".to_string(),
+                description: Some("description".to_string()),
+                preview_uri: Some("preview_uri".to_string()),
+                schema: Some("schema".to_string()),
                 symbol: "symbol".to_string(),
                 id: "test1".to_string(),
+                uri: Some("uri".to_string()),
+                uri_hash: Some("uri_hash".to_string()),
+                data: Some("data".to_string()),
+                royalty_receivers: None,
+            },
+            token_details: TokenDetails {
+                transferable: true,
+                token_name: "token_name".to_string(),
+                description: Some("description".to_string()),
+                base_token_uri: "base_token_uri".to_string(),
+                preview_uri: Some("preview_uri".to_string()),
                 extensible: true,
                 nsfw: false,
-                base_uri: "base_uri".to_string(),
-                uri: "uri".to_string(),
-                uri_hash: Some("uri_hash".to_string()),
-                data: "data".to_string(),
-                token_name: "token_name".to_string(),
-                transferable: true,
-                royalty_receivers: None,
+                royalty_ratio: Decimal::percent(10),
+                data: None,
             },
             init: MinterInitExtention {
                 admin: creator.to_string(),
                 mint_price: coin(5_000_000, "uflix"),
                 start_time: Timestamp::from_nanos(1_000_000_000),
                 end_time: Some(Timestamp::from_nanos(2_000_000_000)),
-                per_address_limit: 1,
-                royalty_ratio: "0.1".to_string(),
+                per_address_limit: Some(1),
                 payment_collector: Some(creator.to_string()),
                 whitelist_address: Some(round_whitelist_addr.clone()),
                 num_tokens: 100,
@@ -238,10 +220,10 @@ mod scenarios {
         minter_2_inst_msg.init.mint_price = coin(10_000_000, "uflix");
         minter_2_inst_msg.init.start_time = Timestamp::from_nanos(2_000_000_000);
         minter_2_inst_msg.init.end_time = Some(Timestamp::from_nanos(3_000_000_000));
-        minter_2_inst_msg.init.per_address_limit = 100;
+        minter_2_inst_msg.init.per_address_limit = Some(100);
         minter_2_inst_msg.init.num_tokens = 100;
         minter_2_inst_msg.collection_details.id = "test2".to_string();
-        minter_2_inst_msg.collection_details.name = "Test_collection_2".to_string();
+        minter_2_inst_msg.collection_details.collection_name = "Test_collection_2".to_string();
 
         // Instantiate minter_1
         let res = app
@@ -283,7 +265,7 @@ mod scenarios {
             height: 1_000,
             time: Timestamp::from_nanos(1_000_000 + 1),
         });
-        let res = app
+        let _res = app
             .execute_contract(
                 collector_1.clone(),
                 Addr::unchecked(minter_1_addr.clone()),
@@ -294,7 +276,7 @@ mod scenarios {
 
         // Collector_1 buys 1 NFT from Minter_2 during round 1
         // Price is round 1 price and its 1_000_000 uflix
-        let res = app
+        let _res = app
             .execute_contract(
                 collector_1.clone(),
                 Addr::unchecked(minter_2_addr.clone()),
@@ -348,7 +330,7 @@ mod scenarios {
             collector_1.to_string(),
             coins(2000000, "ibc_atom"),
         );
-        let res = app
+        let _res = app
             .execute_contract(
                 collector_1.clone(),
                 Addr::unchecked(minter_1_addr.clone()),
@@ -412,7 +394,7 @@ mod scenarios {
             .0;
 
         // Add collector_1 to round 3 whitelist addresses
-        let res = app
+        let _res = app
             .execute_contract(
                 admin.clone(),
                 Addr::unchecked(round_whitelist_addr.clone()),
@@ -448,7 +430,7 @@ mod scenarios {
                 .collect::<Vec<Addr>>(),
             mint_price: coin(200_000, "uflix"),
         };
-        let res = app
+        let _res = app
             .execute_contract(
                 admin.clone(),
                 Addr::unchecked(round_whitelist_addr.clone()),
@@ -500,7 +482,7 @@ mod scenarios {
         mint_to_address(&mut app, collector_1.to_string(), coins(5000000, "uflix"));
 
         // Creator buys 1 NFT from Minter_1
-        let res = app
+        let _res = app
             .execute_contract(
                 creator.clone(),
                 Addr::unchecked(minter_1_addr.clone()),

@@ -4,22 +4,20 @@ mod test_open_edition_minter_minting {
     use cosmwasm_std::{coin, coins, Addr, BlockInfo, Coin, Timestamp, Uint128};
 
     use cw_multi_test::{BankSudo, Executor, SudoMsg};
-    use minter_types::{CollectionDetails, UserDetails};
-    use omniflix_open_edition_minter_factory::msg::{
-        ExecuteMsg as OpenEditionMinterFactoryExecuteMsg,
-        InstantiateMsg as OpenEditionMinterFactoryInstantiateMsg, OpenEditionMinterCreateMsg,
-        OpenEditionMinterInitExtention,
-    };
+    use minter_types::{QueryMsg, UserDetails};
+    use omniflix_open_edition_minter_factory::msg::ExecuteMsg as OpenEditionMinterFactoryExecuteMsg;
 
     use crate::utils::{
-        get_contract_address_from_res, return_open_edition_minter_inst_msg, return_rounds,
+        get_contract_address_from_res, return_factory_inst_message,
+        return_open_edition_minter_inst_msg, return_rounds,
     };
 
     use crate::{setup::setup, utils::query_onft_collection};
 
-    use omniflix_open_edition_minter::msg::ExecuteMsg as OpenEditionMinterExecuteMsg;
-
-    use open_edition_minter_types::QueryMsg as OpenEditionMinterQueryMsg;
+    use omniflix_open_edition_minter::msg::{
+        ExecuteMsg as OpenEditionMinterExecuteMsg, OEMQueryExtension,
+    };
+    type OpenEditionMinterQueryMsg = QueryMsg<OEMQueryExtension>;
 
     use omniflix_open_edition_minter::error::ContractError as OpenEditionMinterError;
 
@@ -40,12 +38,8 @@ mod test_open_edition_minter_minting {
         let collector = test_addresses.collector;
 
         // Instantiate the minter factory
-        let open_edition_minter_factory_instantiate_msg = OpenEditionMinterFactoryInstantiateMsg {
-            admin: Some(admin.to_string()),
-            open_edition_minter_code_id,
-            fee_collector_address: admin.to_string(),
-            minter_creation_fee: coin(1000000, "uflix"),
-        };
+        let open_edition_minter_factory_instantiate_msg =
+            return_factory_inst_message(open_edition_minter_code_id);
 
         let open_edition_minter_factory_address = app
             .instantiate_contract(
@@ -113,8 +107,8 @@ mod test_open_edition_minter_minting {
         let error = err.downcast_ref::<OpenEditionMinterError>().unwrap();
         assert_eq!(
             error,
-            &OpenEditionMinterError::PaymentError(cw_utils::PaymentError::MissingDenom(
-                "uflix".to_string()
+            &OpenEditionMinterError::PaymentError(cw_utils::PaymentError::ExtraDenom(
+                "incorrect_denom".to_string()
             ))
         );
 
@@ -211,7 +205,7 @@ mod test_open_edition_minter_minting {
             "token_name # 1".to_string()
         );
         //     Query minter
-        let query_msg = OpenEditionMinterQueryMsg::TokensRemaining {};
+        let query_msg = OpenEditionMinterQueryMsg::Extension(OEMQueryExtension::TokensRemaining {});
         let res: u32 = app
             .wrap()
             .query_wasm_smart(Addr::unchecked(minter_address.clone()), &query_msg)
@@ -258,7 +252,7 @@ mod test_open_edition_minter_minting {
         }
 
         // Query minter
-        let query_msg = OpenEditionMinterQueryMsg::TokensRemaining {};
+        let query_msg = OpenEditionMinterQueryMsg::Extension(OEMQueryExtension::TokensRemaining {});
         let res: u32 = app
             .wrap()
             .query_wasm_smart(Addr::unchecked(minter_address.clone()), &query_msg)
@@ -305,12 +299,8 @@ mod test_open_edition_minter_minting {
         let collector = test_addresses.collector;
 
         // Instantiate the minter factory
-        let open_edition_minter_factory_instantiate_msg = OpenEditionMinterFactoryInstantiateMsg {
-            admin: Some(admin.to_string()),
-            open_edition_minter_code_id,
-            fee_collector_address: admin.to_string(),
-            minter_creation_fee: coin(1000000, "uflix"),
-        };
+        let open_edition_minter_factory_instantiate_msg =
+            return_factory_inst_message(open_edition_minter_code_id);
         let open_edition_minter_factory_address = app
             .instantiate_contract(
                 open_edition_minter_factory_code_id,
@@ -322,13 +312,7 @@ mod test_open_edition_minter_minting {
             )
             .unwrap();
 
-        let round_whitelist_factory_inst_msg =
-            omniflix_round_whitelist_factory::msg::InstantiateMsg {
-                admin: Some(admin.to_string()),
-                fee_collector_address: admin.clone().into_string(),
-                whitelist_code_id: round_whitelist_code_id,
-                whitelist_creation_fee: coin(1000000, "uflix"),
-            };
+        let round_whitelist_factory_inst_msg = return_factory_inst_message(round_whitelist_code_id);
         let round_whitelist_factory_addr = app
             .instantiate_contract(
                 round_whitelist_factory_code_id,
@@ -343,7 +327,7 @@ mod test_open_edition_minter_minting {
         let rounds = return_rounds();
 
         let round_whitelist_inst_msg = whitelist_types::InstantiateMsg {
-            admin: Some(admin.to_string()),
+            admin: admin.to_string(),
             rounds: rounds.clone(),
         };
         let create_round_whitelist_msg =
