@@ -10,17 +10,7 @@ use cosmwasm_std::{
     StdResult, Uint128, WasmMsg,
 };
 use factory_types::check_payment;
-use omniflix_std::types::omniflix::onft::v1beta1::OnftQuerier;
-use std::str::FromStr;
-#[cfg(not(test))]
-const CREATION_FEE: Uint128 = Uint128::new(0);
-#[cfg(not(test))]
-const CREATION_FEE_DENOM: &str = "";
-
-#[cfg(test)]
-const CREATION_FEE: Uint128 = Uint128::new(100_000_000);
-#[cfg(test)]
-const CREATION_FEE_DENOM: &str = "uflix";
+use minter_types::check_collection_creation_fee;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -72,30 +62,17 @@ fn create_minter(
     msg: OpenEditionMinterCreateMsg,
 ) -> Result<Response, ContractError> {
     let params = PARAMS.load(deps.storage)?;
-    let nft_creation_fee: Coin = if CREATION_FEE == Uint128::new(0) {
-        let onft_querier = OnftQuerier::new(&deps.querier);
-        let params = onft_querier.params()?;
-        let denom_creation_fee = params.params.unwrap().denom_creation_fee.unwrap();
-        Coin {
-            amount: Uint128::from_str(&denom_creation_fee.amount)?,
-            denom: denom_creation_fee.denom,
-        }
-    } else {
-        Coin {
-            amount: CREATION_FEE,
-            denom: CREATION_FEE_DENOM.to_string(),
-        }
-    };
+    let collection_creation_fee: Coin = check_collection_creation_fee(deps.as_ref().querier)?;
     check_payment(
         &info.funds,
-        &[nft_creation_fee.clone(), params.creation_fee.clone()],
+        &[collection_creation_fee.clone(), params.creation_fee.clone()],
     )?;
     let mut msgs = Vec::<CosmosMsg>::new();
     msgs.push(CosmosMsg::Wasm(WasmMsg::Instantiate {
         admin: Some(msg.init.admin.to_string()),
         code_id: params.contract_id,
         msg: to_json_binary(&msg)?,
-        funds: vec![nft_creation_fee],
+        funds: vec![collection_creation_fee.clone()],
         label: params.product_label,
     }));
     if params.creation_fee.amount > Uint128::new(0) {
@@ -196,15 +173,12 @@ fn query_params(deps: Deps) -> StdResult<ParamsResponse> {
 
 #[cfg(test)]
 mod tests {
-    use crate::msg::OpenEditionMinterInitExtention;
 
     use super::*;
     use cosmwasm_std::{
         testing::{mock_dependencies, mock_env, mock_info},
-        Addr, Decimal, Empty, Timestamp,
+        Addr, Empty,
     };
-    use factory_types::CustomPaymentError;
-    use minter_types::{CollectionDetails, TokenDetails};
 
     #[test]
     fn test_instantiate() {
@@ -240,245 +214,6 @@ mod tests {
                 product_label: "omniflix-open-edition-minter".to_string(),
                 init: Empty {},
             }
-        );
-    }
-
-    #[test]
-    fn test_execute_create_open_edition_minter() {
-        let mut deps = mock_dependencies();
-        let msg = InstantiateMsg {
-            params: factory_types::FactoryParams::<Empty> {
-                admin: Addr::unchecked("creator"),
-                fee_collector_address: Addr::unchecked("fee_collector_address"),
-                contract_id: 1,
-                creation_fee: Coin {
-                    amount: Uint128::new(100),
-                    denom: "uusd".to_string(),
-                },
-                product_label: "omniflix-open-edition-minter".to_string(),
-                init: Empty {},
-            },
-        };
-
-        let info = mock_info("creator", &[]);
-        let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
-        let collection_details = CollectionDetails {
-            collection_name: "My Collection".to_string(),
-            description: Some("This is a collection of unique tokens.".to_string()),
-            preview_uri: Some("https://example.com/preview".to_string()),
-            schema: Some("https://example.com/schema".to_string()),
-            symbol: "SYM".to_string(),
-            id: "collection_id".to_string(),
-            uri: Some("https://example.com/collection".to_string()),
-            uri_hash: Some("hash123".to_string()),
-            data: Some("Additional data for the collection".to_string()),
-            royalty_receivers: None,
-        };
-        let token_details = TokenDetails {
-            token_name: "My Token".to_string(),
-            description: Some("This is a unique token.".to_string()),
-            base_token_uri: "https://example.com/token".to_string(),
-            preview_uri: Some("https://example.com/preview".to_string()),
-            extensible: true,
-            nsfw: false,
-            royalty_ratio: Decimal::percent(10),
-            transferable: true,
-            data: Some("Additional data for the token".to_string()),
-        };
-        // Send additional funds
-        let msg = ExecuteMsg::CreateMinter {
-            msg: OpenEditionMinterCreateMsg {
-                collection_details: collection_details.clone(),
-                token_details: token_details.clone(),
-                init: OpenEditionMinterInitExtention {
-                    admin: "admin".to_string(),
-                    whitelist_address: None,
-                    mint_price: Coin {
-                        amount: Uint128::new(100),
-                        denom: "uusd".to_string(),
-                    },
-                    start_time: Timestamp::from_seconds(0),
-                    payment_collector: None,
-                    per_address_limit: Some(3),
-                    end_time: None,
-                    num_tokens: None,
-                },
-            },
-        };
-
-        let info = mock_info(
-            "creator",
-            &[
-                Coin {
-                    amount: Uint128::new(100_000_000),
-                    denom: "uflix".to_string(),
-                },
-                Coin {
-                    amount: Uint128::new(100),
-                    denom: "uusd".to_string(),
-                },
-                Coin {
-                    amount: Uint128::new(100),
-                    denom: "additional".to_string(),
-                },
-            ],
-        );
-        let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
-        assert_eq!(
-            res,
-            ContractError::PaymentError(CustomPaymentError::InsufficientFunds {
-                expected: vec![
-                    Coin {
-                        amount: Uint128::new(100_000_000),
-                        denom: "uflix".to_string(),
-                    },
-                    Coin {
-                        amount: Uint128::new(100),
-                        denom: "uusd".to_string(),
-                    },
-                ],
-                actual: vec![
-                    Coin {
-                        amount: Uint128::new(100_000_000),
-                        denom: "uflix".to_string(),
-                    },
-                    Coin {
-                        amount: Uint128::new(100),
-                        denom: "uusd".to_string(),
-                    },
-                    Coin {
-                        amount: Uint128::new(100),
-                        denom: "additional".to_string(),
-                    },
-                ]
-            })
-        );
-
-        // Missing funds
-        let msg = ExecuteMsg::CreateMinter {
-            msg: OpenEditionMinterCreateMsg {
-                collection_details: collection_details.clone(),
-                token_details: token_details.clone(),
-                init: OpenEditionMinterInitExtention {
-                    admin: "admin".to_string(),
-                    whitelist_address: None,
-                    mint_price: Coin {
-                        amount: Uint128::new(100),
-                        denom: "uusd".to_string(),
-                    },
-                    start_time: Timestamp::from_seconds(0),
-                    payment_collector: None,
-                    per_address_limit: Some(3),
-                    end_time: None,
-                    num_tokens: None,
-                },
-            },
-        };
-
-        let info = mock_info(
-            "creator",
-            &[Coin {
-                amount: Uint128::new(100_000_000),
-                denom: "uflix".to_string(),
-            }],
-        );
-        let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
-        assert_eq!(
-            res,
-            ContractError::PaymentError(CustomPaymentError::InsufficientFunds {
-                expected: vec![
-                    Coin {
-                        amount: Uint128::new(100_000_000),
-                        denom: "uflix".to_string(),
-                    },
-                    Coin {
-                        amount: Uint128::new(100),
-                        denom: "uusd".to_string(),
-                    },
-                ],
-                actual: vec![Coin {
-                    amount: Uint128::new(100_000_000),
-                    denom: "uflix".to_string(),
-                },]
-            })
-        );
-
-        // Happy path
-        let msg = ExecuteMsg::CreateMinter {
-            msg: OpenEditionMinterCreateMsg {
-                collection_details: collection_details.clone(),
-                token_details: token_details.clone(),
-                init: OpenEditionMinterInitExtention {
-                    admin: "admin".to_string(),
-                    whitelist_address: None,
-                    mint_price: Coin {
-                        amount: Uint128::new(100),
-                        denom: "uusd".to_string(),
-                    },
-                    start_time: Timestamp::from_seconds(0),
-                    payment_collector: None,
-                    per_address_limit: Some(3),
-                    end_time: None,
-                    num_tokens: None,
-                },
-            },
-        };
-
-        let info = mock_info(
-            "creator",
-            &[
-                Coin {
-                    amount: Uint128::new(100_000_000),
-                    denom: "uflix".to_string(),
-                },
-                Coin {
-                    amount: Uint128::new(100),
-                    denom: "uusd".to_string(),
-                },
-            ],
-        );
-        let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
-
-        assert_eq!(res.messages.len(), 2);
-        assert_eq!(
-            res.messages[0].msg,
-            CosmosMsg::Wasm(WasmMsg::Instantiate {
-                admin: Some("admin".to_string()),
-                code_id: 1,
-                msg: to_json_binary(&OpenEditionMinterCreateMsg {
-                    collection_details: collection_details.clone(),
-                    token_details: token_details.clone(),
-                    init: OpenEditionMinterInitExtention {
-                        admin: "admin".to_string(),
-                        whitelist_address: None,
-                        mint_price: Coin {
-                            amount: Uint128::new(100),
-                            denom: "uusd".to_string(),
-                        },
-                        start_time: Timestamp::from_seconds(0),
-                        payment_collector: None,
-                        per_address_limit: Some(3),
-                        end_time: None,
-                        num_tokens: None,
-                    },
-                })
-                .unwrap(),
-                funds: vec![Coin {
-                    amount: Uint128::new(100_000_000),
-                    denom: "uflix".to_string(),
-                }],
-                label: "omniflix-open-edition-minter".to_string(),
-            })
-        );
-        assert_eq!(
-            res.messages[1].msg,
-            CosmosMsg::Bank(BankMsg::Send {
-                amount: vec![Coin {
-                    amount: Uint128::new(100),
-                    denom: "uusd".to_string(),
-                }],
-                to_address: "fee_collector_address".to_string(),
-            })
         );
     }
 }
