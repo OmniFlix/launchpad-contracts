@@ -586,14 +586,11 @@ pub fn execute_update_whitelist_address(
     let whitelist_address = drop_params.config.whitelist_address.clone();
 
     // Check if whitelist already active
-    match whitelist_address {
-        Some(whitelist_address) => {
-            let is_active: bool = check_if_whitelist_is_active(&whitelist_address, deps.as_ref())?;
-            if is_active {
-                return Err(ContractError::WhitelistAlreadyActive {});
-            }
+    if let Some(whitelist_address) = whitelist_address {
+        let is_active: bool = check_if_whitelist_is_active(&whitelist_address, deps.as_ref())?;
+        if is_active {
+            return Err(ContractError::WhitelistAlreadyActive {});
         }
-        None => {}
     }
 
     let address = deps.api.addr_validate(&address)?;

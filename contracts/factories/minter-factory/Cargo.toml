@@ -1,7 +1,6 @@
 [package]
 authors     = ["Adnan Deniz Corlu <adenizcorlu@gmail.com>"]
 name = "omniflix-minter-factory"
-version = { workspace = true }
 edition = { workspace = true }
 homepage = { workspace = true }
 repository = { workspace = true }

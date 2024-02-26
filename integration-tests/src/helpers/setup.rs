@@ -11,7 +11,7 @@ use omniflix_open_edition_minter::contract::{
     query as open_edition_minter_query,
 };
 
-use crate::utils::mint_to_address;
+use crate::helpers::utils::mint_to_address;
 use omniflix_open_edition_minter_factory::contract::{
     execute as open_edition_minter_factory_execute,
     instantiate as open_edition_minter_factory_instantiate,
@@ -32,6 +32,7 @@ pub struct TestAdresses {
     pub creator: Addr,
     pub collector: Addr,
 }
+
 pub fn setup() -> (OmniflixApp, TestAdresses, u64, u64, u64, u64, u64, u64) {
     let mut app = OmniflixApp::new();
     let admin = Addr::unchecked("admin");
