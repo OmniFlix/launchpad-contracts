@@ -80,9 +80,6 @@ pub enum ContractError {
     #[error("Round start time is invalid")]
     RoundStartTimeInvalid {},
 
-    #[error("Collection not found")]
-    CollectionNotFound {},
-
     #[error("Error saving tokens")]
     ErrorSavingTokens {},
 

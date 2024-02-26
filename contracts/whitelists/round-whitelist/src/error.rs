@@ -22,17 +22,11 @@ pub enum ContractError {
     #[error("Invalid per address limit")]
     InvalidPerAddressLimit {},
 
-    #[error("Invalid mint price")]
-    InvalidMintPrice {},
-
     #[error("{0}")]
     PaymentError(#[from] PaymentError),
 
     #[error("Invalid end time")]
     InvalidEndTime {},
-
-    #[error("Whitelist frozen")]
-    WhitelistFrozen {},
 
     #[error("Round limit is reached")]
     RoundReachedMintLimit {},
@@ -45,9 +39,6 @@ pub enum ContractError {
 
     #[error("Round start time is invalid")]
     RoundStartTimeInvalid {},
-
-    #[error("Collection not found")]
-    CollectionNotFound {},
 
     #[error("Round does not exist")]
     RoundNotFound {},
