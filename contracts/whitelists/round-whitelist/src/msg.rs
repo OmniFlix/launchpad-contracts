@@ -23,14 +23,3 @@ pub enum ExecuteMsg {
         round_index: u32,
     },
 }
-
-#[cw_serde]
-pub struct ConfigResponse {
-    pub num_members: u32,
-    pub per_address_limit: u32,
-    pub member_limit: u32,
-    pub start_time: Timestamp,
-    pub end_time: Timestamp,
-    pub mint_price: Coin,
-    pub is_active: bool,
-}
