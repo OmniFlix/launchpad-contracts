@@ -1,13 +1,19 @@
 use std::convert::Infallible;
 
-use cosmwasm_std::{CheckedFromRatioError, ConversionOverflowError, StdError, Timestamp, Uint128};
+use cosmwasm_std::{
+    CheckedFromRatioError, Coin, ConversionOverflowError, StdError, Timestamp, Uint128,
+};
 use cw_utils::PaymentError;
+use pauser::PauseError;
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ContractError {
     #[error("{0}")]
     Std(#[from] StdError),
+
+    #[error(transparent)]
+    Pause(#[from] PauseError),
 
     #[error("Unauthorized")]
     Unauthorized {},
@@ -22,7 +28,10 @@ pub enum ContractError {
     DivideByZero {},
 
     #[error("Invalid creation fee")]
-    InvalidCreationFee { expected: Uint128, sent: Uint128 },
+    InvalidCreationFee {
+        expected: Vec<Coin>,
+        sent: Vec<Coin>,
+    },
 
     #[error("Minting has not started yet")]
     MintingNotStarted {

@@ -1,15 +1,11 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Coin};
+use cosmwasm_std::{Coin, Empty};
+use factory_types::FactoryParams;
 use whitelist_types::InstantiateMsg as WhitelistInstantiateMsg;
-
-use crate::state::Params;
 
 #[cw_serde]
 pub struct InstantiateMsg {
-    pub admin: Option<String>,
-    pub fee_collector_address: String,
-    pub whitelist_code_id: u64,
-    pub whitelist_creation_fee: Coin,
+    pub params: FactoryParams<Empty>,
 }
 
 #[cw_serde]
@@ -23,7 +19,7 @@ pub enum ExecuteMsg {
 
 #[cw_serde]
 pub struct ParamsResponse {
-    pub params: Params,
+    pub params: FactoryParams<Empty>,
 }
 
 #[cw_serde]

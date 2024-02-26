@@ -7,7 +7,7 @@
   ],
   "properties": {
     "params": {
-      "$ref": "#/definitions/Params"
+      "$ref": "#/definitions/FactoryParams_for_Empty"
     }
   },
   "additionalProperties": false,
@@ -31,28 +31,40 @@
         }
       }
     },
-    "Params": {
+    "Empty": {
+      "description": "An empty struct that serves as a placeholder in different places, such as contracts that don't set a custom message.\n\nIt is designed to be expressable in correct JSON and JSON Schema but contains no meaningful data. Previously we used enums without cases, but those cannot represented as valid JSON Schema (https://github.com/CosmWasm/cosmwasm/issues/451)",
+      "type": "object"
+    },
+    "FactoryParams_for_Empty": {
       "type": "object",
       "required": [
         "admin",
+        "contract_id",
+        "creation_fee",
         "fee_collector_address",
-        "whitelist_code_id",
-        "whitelist_creation_fee"
+        "init",
+        "product_label"
       ],
       "properties": {
         "admin": {
           "$ref": "#/definitions/Addr"
         },
-        "fee_collector_address": {
-          "$ref": "#/definitions/Addr"
-        },
-        "whitelist_code_id": {
+        "contract_id": {
           "type": "integer",
           "format": "uint64",
           "minimum": 0.0
         },
-        "whitelist_creation_fee": {
+        "creation_fee": {
           "$ref": "#/definitions/Coin"
+        },
+        "fee_collector_address": {
+          "$ref": "#/definitions/Addr"
+        },
+        "init": {
+          "$ref": "#/definitions/Empty"
+        },
+        "product_label": {
+          "type": "string"
         }
       },
       "additionalProperties": false

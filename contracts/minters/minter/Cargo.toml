@@ -59,6 +59,7 @@ sha2                 = { version = "0.10.2", default-features = false }
 whitelist-types ={ workspace = true }
 omniflix-round-whitelist = {path="../../whitelists/round-whitelist"}
 omniflix-minter-factory = {path = "../../factories/minter-factory"}
+pauser = { workspace = true }
 
 
 

@@ -42,6 +42,7 @@ impl Stargate for StargateKeeper {
                         symbol: msg.symbol,
                         uri: msg.uri,
                         uri_hash: msg.uri_hash,
+                        royalty_receivers: msg.royalty_receivers,
                     }),
                     onfts: vec![],
                 };

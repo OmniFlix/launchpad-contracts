@@ -1,8 +1,8 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
+use cosmwasm_std::Coin;
 use cosmwasm_std::{to_json_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
 use cw2::set_contract_version;
-use cw_utils::maybe_addr;
 use omniflix_round_whitelist_factory::msg::ParamsResponse;
 use omniflix_round_whitelist_factory::msg::QueryMsg as QueryFactoryParams;
 
@@ -11,11 +11,9 @@ use crate::msg::ExecuteMsg;
 use crate::round::RoundMethods;
 
 use crate::state::{Config, Rounds, UserMintDetails, CONFIG, ROUNDS_KEY, USERMINTDETAILS_KEY};
-use minter_types::Config as MinterConfig;
-use minter_types::QueryMsg as MinterQueryMsg;
 use whitelist_types::{
-    InstantiateMsg, IsActiveResponse, IsMemberResponse, MembersResponse, MintPriceResponse, Round,
-    RoundWhitelistQueryMsgs,
+    check_if_minter, InstantiateMsg, IsActiveResponse, IsMemberResponse, MembersResponse,
+    MintPriceResponse, Round, RoundWhitelistQueryMsgs,
 };
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -31,17 +29,18 @@ pub fn instantiate(
         &QueryFactoryParams::Params {},
     )?;
 
-    let admin = maybe_addr(deps.api, msg.admin)?.unwrap_or(info.sender);
+    let admin = deps.api.addr_validate(&msg.admin)?;
 
     let rounds = msg.rounds;
     // Check if rounds are valid
     for round in rounds.clone() {
         round.check_integrity(deps.as_ref(), env.block.time)?;
     }
-    Rounds::new(ROUNDS_KEY).check_round_overlaps(deps.storage, Some(rounds.clone()))?;
-    // Save the rounds
+    let rounds_state = Rounds::new(ROUNDS_KEY);
+    rounds_state.check_round_overlaps(deps.storage, Some(rounds.clone()))?;
+    //  Save the rounds
     rounds.clone().into_iter().for_each(|round| {
-        Rounds::new(ROUNDS_KEY).save(deps.storage, &round).unwrap();
+        let _ = rounds_state.save(deps.storage, &round);
     });
 
     let config = Config {
@@ -64,6 +63,14 @@ pub fn execute(
         }
         ExecuteMsg::AddRound { round } => execute_add_round(deps, env, info, round),
         ExecuteMsg::PrivateMint { collector } => execute_private_mint(deps, env, info, collector),
+        ExecuteMsg::AddMembers {
+            address,
+            round_index,
+        } => execute_add_members(deps, env, info, address, round_index),
+        ExecuteMsg::UpdatePrice {
+            mint_price,
+            round_index,
+        } => execute_update_price(deps, env, info, mint_price, round_index),
     }
 }
 pub fn execute_remove_round(
@@ -81,7 +88,8 @@ pub fn execute_remove_round(
     // Check if the round exists
     let round = rounds.load(deps.storage, round_index)?;
     // Check if the round has started
-    if round.start_time < env.block.time {
+    // It should not have started even if it has ended
+    if round.has_started(env.block.time) {
         return Err(ContractError::RoundAlreadyStarted {});
     }
     // Remove the round
@@ -105,6 +113,7 @@ pub fn execute_add_round(
         return Err(ContractError::Unauthorized {});
     }
     round.check_integrity(deps.as_ref(), env.block.time)?;
+
     let rounds = Rounds::new(ROUNDS_KEY);
     // Check overlaps
     rounds.check_round_overlaps(deps.storage, Some([round.clone()].to_vec()))?;
@@ -129,11 +138,7 @@ pub fn execute_private_mint(
 
     let collector = deps.api.addr_validate(&collector)?;
 
-    // Check if sender is a our minter contract
-    let _minter_config: MinterConfig = deps.querier.query_wasm_smart(
-        info.sender.clone().into_string(),
-        &MinterQueryMsg::Config {},
-    )?;
+    check_if_minter(&info.sender.clone(), deps.as_ref())?;
 
     let rounds = Rounds::new(ROUNDS_KEY);
 
@@ -148,12 +153,74 @@ pub fn execute_private_mint(
         deps.storage,
         &collector,
         &info.sender,
-        &active_round,
+        &active_round.0,
+        &active_round.1,
     )?;
 
     let res = Response::new()
-        .add_attribute("action", "privately_mint")
+        .add_attribute("action", "private_mint")
         .add_attribute("minter", collector.to_string());
+    Ok(res)
+}
+
+pub fn execute_add_members(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    addresses: Vec<String>,
+    round_index: u32,
+) -> Result<Response, ContractError> {
+    // Check if sender is admin
+    let config = CONFIG.load(deps.storage)?;
+    if info.sender != config.admin {
+        return Err(ContractError::Unauthorized {});
+    }
+    // Since we are adding members to a round
+    // We are not checking if the round has started or ended
+    let rounds = Rounds::new(ROUNDS_KEY);
+    // Check if the round exists
+    let mut round = rounds.load(deps.storage, round_index)?;
+    // Add the address to the round
+    round.add_members(deps.as_ref(), addresses.clone())?;
+    // Save the round
+    rounds.update(deps.storage, round_index, &round)?;
+
+    let res = Response::new()
+        .add_attribute("action", "add_members")
+        .add_attribute("round_index", round_index.to_string())
+        .add_attribute("addresses", addresses.join(","));
+    Ok(res)
+}
+
+pub fn execute_update_price(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    mint_price: Coin,
+    round_index: u32,
+) -> Result<Response, ContractError> {
+    // Check if sender is admin
+    let config = CONFIG.load(deps.storage)?;
+    if info.sender != config.admin {
+        return Err(ContractError::Unauthorized {});
+    }
+    let rounds = Rounds::new(ROUNDS_KEY);
+    // Check if the round exists
+    let mut round = rounds.load(deps.storage, round_index)?;
+    // Check if the round has started
+    if round.has_started(env.block.time) {
+        return Err(ContractError::RoundAlreadyStarted {});
+    }
+    // Update the price
+    round.mint_price = mint_price.clone();
+    // Save the round
+    rounds.update(deps.storage, round_index, &round)?;
+
+    let res = Response::new()
+        .add_attribute("action", "update_price")
+        .add_attribute("round_index", round_index.to_string())
+        .add_attribute("mint_price_denom", mint_price.denom.to_string())
+        .add_attribute("mint_price_amount", mint_price.amount.to_string());
     Ok(res)
 }
 
@@ -179,7 +246,7 @@ pub fn query(deps: Deps, env: Env, msg: RoundWhitelistQueryMsgs) -> StdResult<Bi
     }
 }
 
-pub fn query_active_round(deps: Deps, env: Env) -> Result<Round, ContractError> {
+pub fn query_active_round(deps: Deps, env: Env) -> Result<(u32, Round), ContractError> {
     let rounds = Rounds::new(ROUNDS_KEY);
     let active_round = rounds.load_active_round(deps.storage, env.block.time);
     let active_round = match active_round {
@@ -217,19 +284,27 @@ pub fn query_price(deps: Deps, env: Env) -> Result<MintPriceResponse, ContractEr
         Some(active_round) => active_round,
         None => return Err(ContractError::NoActiveRound {}),
     };
-    let price = active_round.mint_price();
+    let price = active_round.1.mint_price();
     Ok(MintPriceResponse { mint_price: price })
 }
 
-pub fn query_rounds(deps: Deps, _env: Env) -> Result<Vec<Round>, ContractError> {
+pub fn query_rounds(deps: Deps, _env: Env) -> Result<Vec<(u32, Round)>, ContractError> {
     let rounds = Rounds::new(ROUNDS_KEY);
-    let rounds = rounds.load_all_rounds(deps.storage)?;
+    let mut rounds = rounds.load_all_rounds(deps.storage)?;
+    // remove members from rounds
+    // To query members use Members query
+    rounds.iter_mut().for_each(|round| {
+        round.1.addresses = vec![];
+    });
     Ok(rounds)
 }
 
 pub fn query_round(deps: Deps, round_index: u32) -> Result<Round, ContractError> {
     let rounds = Rounds::new(ROUNDS_KEY);
-    let round = rounds.load(deps.storage, round_index)?;
+    let mut round = rounds.load(deps.storage, round_index)?;
+    // remove members from round
+    // To query members use Members query
+    round.addresses = vec![];
     Ok(round)
 }
 
@@ -245,7 +320,7 @@ pub fn query_is_member(
         None => return Err(ContractError::NoActiveRound {}),
     };
     let address = deps.api.addr_validate(&address)?;
-    let is_member = active_round.is_member(&address);
+    let is_member = active_round.1.is_member(&address);
     Ok(IsMemberResponse { is_member })
 }
 

@@ -1,6 +1,5 @@
-use cosmwasm_std::{
-    Coin, StdError,
-};
+use cosmwasm_std::{Coin, StdError};
+use cw_utils::PaymentError;
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq)]
@@ -8,6 +7,8 @@ use thiserror::Error;
 pub enum ContractError {
     #[error("{0}")]
     Std(#[from] StdError),
+    #[error("Payment error")]
+    PaymentError(#[from] PaymentError),
 
     #[error("Unauthorized")]
     Unauthorized {},

@@ -14,6 +14,7 @@ pub trait RoundMethods {
     ) -> Result<Vec<String>, ContractError>;
     fn mint_price(&self) -> Coin;
     fn check_integrity(&self, deps: Deps, now: Timestamp) -> Result<(), ContractError>;
+    fn add_members(&mut self, deps: Deps, address: Vec<String>) -> Result<(), ContractError>;
 }
 impl RoundMethods for Round {
     fn is_active(&self, current_time: Timestamp) -> bool {
@@ -69,6 +70,18 @@ impl RoundMethods for Round {
             .iter()
             .try_for_each(|address| deps.api.addr_validate(address.as_str()).map(|_| ()))?;
 
+        Ok(())
+    }
+    fn add_members(&mut self, deps: Deps, address: Vec<String>) -> Result<(), ContractError> {
+        let mut addr_list: Vec<Addr> = address
+            .iter()
+            .map(|x| deps.api.addr_validate(x.as_str()))
+            .collect::<Result<Vec<Addr>, _>>()?;
+        //remove duplicates
+        addr_list.sort();
+        addr_list.dedup();
+
+        self.addresses.extend(addr_list);
         Ok(())
     }
 }

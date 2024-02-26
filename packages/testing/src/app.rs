@@ -45,6 +45,12 @@ impl DerefMut for OmniflixApp {
         &mut self.0
     }
 }
+impl Default for OmniflixApp {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl OmniflixApp {
     pub fn new() -> Self {
         let app_builder = AppBuilder::default();

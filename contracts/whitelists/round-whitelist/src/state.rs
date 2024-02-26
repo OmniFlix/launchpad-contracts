@@ -6,16 +6,21 @@ use cw_storage_plus::{Item, Map};
 use crate::error::ContractError;
 use whitelist_types::Round;
 
+pub const CONFIG: Item<Config> = Item::new("config");
+pub const ROUNDS_KEY: &str = "rounds";
+pub const USERMINTDETAILS_KEY: &str = "user_mint_details";
+
 #[cw_serde]
 pub struct Config {
     pub admin: Addr,
 }
 
 pub type MintCount = u32;
+pub type RoundIndex = u32;
 
 #[cw_serde]
 pub struct MintDetails {
-    pub rounds: Vec<(Round, MintCount)>,
+    pub rounds: Vec<(RoundIndex, MintCount)>,
 }
 pub type MinterAddress = Addr;
 pub type UserAddress = Addr;
@@ -30,6 +35,7 @@ impl<'a> UserMintDetails<'a> {
         store: &mut dyn Storage,
         user_address: &UserAddress,
         minter_address: &MinterAddress,
+        round_index: &u32,
         round: &Round,
     ) -> Result<(), ContractError> {
         // Check if user exist
@@ -42,7 +48,7 @@ impl<'a> UserMintDetails<'a> {
         let user_mint_index = user_mint_details
             .rounds
             .iter()
-            .position(|(found_round, _)| found_round == round);
+            .position(|(found_round_index, _)| found_round_index == round_index);
 
         if let Some(index) = user_mint_index {
             // Increment the mint count for the existing round
@@ -54,7 +60,7 @@ impl<'a> UserMintDetails<'a> {
             }
         } else {
             // Round not found, add a new entry for the round
-            user_mint_details.rounds.push((round.clone(), 1));
+            user_mint_details.rounds.push((*round_index, 1));
         }
 
         // Save the updated user_mint_details
@@ -63,7 +69,6 @@ impl<'a> UserMintDetails<'a> {
             (user_address.clone(), minter_address.clone()),
             &user_mint_details,
         )?;
-
         Ok(())
     }
 }
@@ -82,53 +87,77 @@ impl<'a> Rounds<'a> {
             .transpose()?
             .map(|(id, _)| id)
             .unwrap_or(0);
-
+        // Check if the index is already used
         self.0.save(store, last_id + 1, round)?;
-
         Ok(last_id + 1)
+    }
+
+    pub fn update(&self, store: &mut dyn Storage, id: u32, round: &Round) -> StdResult<()> {
+        self.0.save(store, id, round)?;
+        Ok(())
+    }
+    pub fn last_id(&self, store: &dyn Storage) -> StdResult<u32> {
+        let last_id = self
+            .0
+            .range(store, None, None, Order::Descending)
+            .next()
+            .transpose()?
+            .map(|(id, _)| id)
+            .unwrap_or(0);
+
+        Ok(last_id)
     }
 
     pub fn load(&self, store: &dyn Storage, id: u32) -> Result<Round, ContractError> {
         self.0
             .may_load(store, id)?
-            .ok_or_else(|| ContractError::RoundNotFound {})
+            .ok_or(ContractError::RoundNotFound {})
     }
     pub fn remove(&self, store: &mut dyn Storage, id: u32) -> StdResult<()> {
         self.0.remove(store, id);
         Ok(())
     }
-    pub fn load_active_round(&self, store: &dyn Storage, current_time: Timestamp) -> Option<Round> {
+    pub fn load_active_round(
+        &self,
+        store: &dyn Storage,
+        current_time: Timestamp,
+    ) -> Option<(u32, Round)> {
         self.0
             .range(store, None, None, Order::Ascending)
-            .filter_map(|result| result.ok().map(|(_, v)| v))
-            .find(|round| round.is_active(current_time))
+            .filter_map(|result| result.ok())
+            .find(|(_, round)| round.is_active(current_time))
     }
 
-    pub fn load_all_rounds(&self, store: &dyn Storage) -> StdResult<Vec<Round>> {
-        self.0
-            .range(store, None, None, Order::Ascending)
-            .map(|x| x.map(|(_, v)| v))
-            .collect()
+    pub fn load_all_rounds(&self, store: &dyn Storage) -> StdResult<Vec<(u32, Round)>> {
+        self.0.range(store, None, None, Order::Ascending).collect()
     }
+
     pub fn check_round_overlaps(
         &self,
         store: &dyn Storage,
+        // It has option to check if the provided rounds overlap with the rounds in storage
         round: Option<Vec<Round>>,
     ) -> Result<(), ContractError> {
+        let last_index = self.last_id(store)?;
         let mut rounds = self.load_all_rounds(store)?;
 
-        // Combine the rounds from storage with the provided rounds if it exists
-        if let Some(provided_round) = round {
-            rounds.extend(provided_round);
+        // Put indexes of the provided rounds
+        // Its not needed to start at last index + 1 because we are only checking for overlaps
+        if let Some(round) = round {
+            for r in round {
+                rounds.push((last_index + 1, r));
+            }
         }
 
-        rounds.sort_by_key(|round| round.start_time);
+        // Sort the rounds by start time
+        rounds.sort_by(|(_, a), (_, b)| a.start_time.cmp(&b.start_time));
 
+        // Check if any round overlaps
         for i in 0..rounds.len() - 1 {
             let current_round = &rounds[i];
             let next_round = &rounds[i + 1];
 
-            if current_round.end_time > next_round.start_time {
+            if current_round.1.end_time > next_round.1.start_time {
                 return Err(ContractError::RoundsOverlapped {});
             }
         }
@@ -136,10 +165,6 @@ impl<'a> Rounds<'a> {
         Ok(())
     }
 }
-
-pub const CONFIG: Item<Config> = Item::new("config");
-pub const ROUNDS_KEY: &str = "rounds";
-pub const USERMINTDETAILS_KEY: &str = "user_mint_details";
 
 #[cfg(test)]
 mod tests {
@@ -176,8 +201,8 @@ mod tests {
 
         let loadled_rounds = rounds.load_all_rounds(&deps.storage).unwrap();
         assert_eq!(loadled_rounds.len(), 2);
-        assert_eq!(loadled_rounds[0], round);
-        assert_eq!(loadled_rounds[1], round2);
+        assert_eq!(loadled_rounds[0].1, round);
+        assert_eq!(loadled_rounds[1].1, round2);
     }
 
     #[test]
@@ -200,11 +225,25 @@ mod tests {
         };
         let round1_index = rounds.save(&mut deps.storage, &round).unwrap();
         let _round2_index = rounds.save(&mut deps.storage, &round2).unwrap();
+        println!("round1_index: {}", round1_index);
+        println!("round2_index: {}", _round2_index);
 
         rounds.remove(&mut deps.storage, round1_index).unwrap();
         let loadled_rounds = rounds.load_all_rounds(&deps.storage).unwrap();
+        // Index 1 should be empty
+        let _loaded_round_1 = rounds.load(&deps.storage, round1_index).unwrap_err();
+        // Try saving a new round
+        let round3 = Round {
+            addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
+            start_time: Timestamp::from_seconds(5000),
+            end_time: Timestamp::from_seconds(6000),
+            mint_price: coin(100, "atom"),
+            round_per_address_limit: 1,
+        };
+        let round3_index = rounds.save(&mut deps.storage, &round3).unwrap();
+        assert_eq!(round3_index, 3);
         assert_eq!(loadled_rounds.len(), 1);
-        assert_eq!(loadled_rounds[0], round2);
+        assert_eq!(loadled_rounds[0].1, round2);
     }
 
     #[test]
@@ -237,12 +276,12 @@ mod tests {
         let active_round = rounds
             .load_active_round(&deps.storage, Timestamp::from_seconds(1500))
             .unwrap();
-        assert_eq!(active_round, round);
+        assert_eq!(active_round.1, round);
 
         let active_round = rounds
             .load_active_round(&deps.storage, Timestamp::from_seconds(3500))
             .unwrap();
-        assert_eq!(active_round, round2);
+        assert_eq!(active_round.1, round2);
 
         let active_round = rounds.load_active_round(&deps.storage, Timestamp::from_seconds(5000));
         assert_eq!(active_round, None);
@@ -263,7 +302,7 @@ mod tests {
             .load_active_round(&deps.storage, Timestamp::from_seconds(1600))
             .unwrap();
         // We wont let that happen but if it does we will return the first round that is active
-        assert_eq!(active_round, round);
+        assert_eq!(active_round.1, round);
     }
 
     #[test]
@@ -305,7 +344,7 @@ mod tests {
         let mut deps = mock_dependencies();
         let user_details = UserMintDetails::new("user_mint_details");
 
-        let round = Round {
+        let round_1 = Round {
             addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
             start_time: Timestamp::from_seconds(1000),
             end_time: Timestamp::from_seconds(2000),
@@ -313,7 +352,7 @@ mod tests {
             round_per_address_limit: 1,
         };
 
-        let _round2 = Round {
+        let _round_2 = Round {
             addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
             start_time: Timestamp::from_seconds(3000),
             end_time: Timestamp::from_seconds(4000),
@@ -327,7 +366,13 @@ mod tests {
 
         // Try to mint for a user
         user_details
-            .mint_for_user(&mut deps.storage, &user_address, &minter_address, &round)
+            .mint_for_user(
+                &mut deps.storage,
+                &user_address,
+                &minter_address,
+                &1,
+                &round_1,
+            )
             .unwrap();
         // Check if the user_mint_details is saved
         let user_mint_details = user_details
@@ -340,13 +385,19 @@ mod tests {
         assert_eq!(
             user_mint_details,
             MintDetails {
-                rounds: vec![(round.clone(), 1)]
+                rounds: vec![(1, 1)]
             }
         );
 
         // Try to mint for a user again
         let res = user_details
-            .mint_for_user(&mut deps.storage, &user_address, &minter_address, &round)
+            .mint_for_user(
+                &mut deps.storage,
+                &user_address,
+                &minter_address,
+                &1,
+                &round_1,
+            )
             .unwrap_err();
         assert_eq!(res, ContractError::RoundReachedMintLimit {});
     }

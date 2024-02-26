@@ -1,6 +1,5 @@
-use cosmwasm_std::{
-    Coin, StdError,
-};
+use cosmwasm_std::StdError;
+use factory_types::CustomPaymentError;
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq)]
@@ -9,17 +8,15 @@ pub enum ContractError {
     #[error("{0}")]
     Std(#[from] StdError),
 
+    #[error("Payment error")]
+    PaymentError(#[from] CustomPaymentError),
+
     #[error("Unauthorized")]
     Unauthorized {},
 
     #[error("Invalid minter code id")]
     InvalidMinterCodeId {},
 
-    #[error("Inncorrect funds")]
-    IncorrectFunds {
-        expected: Vec<Coin>,
-        actual: Vec<Coin>,
-    },
     #[error("Invalid Mint Denom")]
     InvalidMintDenom {},
 

@@ -1,5 +1,5 @@
-use cosmwasm_std::{coins, Addr, BlockInfo, Coin, Timestamp};
-use cw_multi_test::{BankSudo, ContractWrapper, SudoMsg};
+use cosmwasm_std::{coins, Addr, BlockInfo, Timestamp};
+use cw_multi_test::ContractWrapper;
 use omniflix_minter::contract::{
     execute as minter_execute, instantiate as minter_instantiate, query as minter_query,
 };
@@ -11,6 +11,7 @@ use omniflix_open_edition_minter::contract::{
     query as open_edition_minter_query,
 };
 
+use crate::utils::mint_to_address;
 use omniflix_open_edition_minter_factory::contract::{
     execute as open_edition_minter_factory_execute,
     instantiate as open_edition_minter_factory_instantiate,
@@ -124,8 +125,4 @@ pub fn setup() -> (OmniflixApp, TestAdresses, u64, u64, u64, u64, u64, u64) {
         open_edition_minter_factory_code_id,
         open_edition_minter_code_id,
     )
-}
-fn mint_to_address(app: &mut OmniflixApp, to_address: String, amount: Vec<Coin>) {
-    app.sudo(SudoMsg::Bank(BankSudo::Mint { to_address, amount }))
-        .unwrap();
 }

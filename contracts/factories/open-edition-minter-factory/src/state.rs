@@ -1,14 +1,5 @@
-use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, Coin};
+use cosmwasm_std::Empty;
 use cw_storage_plus::Item;
+use factory_types::FactoryParams;
 
-#[cw_serde]
-pub struct Params {
-    pub minter_creation_fee: Coin,
-    pub fee_collector_address: Addr,
-    pub open_edition_minter_code_id: u64,
-    pub allowed_minter_mint_denoms: Vec<String>,
-    pub admin: Addr,
-}
-
-pub const PARAMS: Item<Params> = Item::new("params");
+pub const PARAMS: Item<FactoryParams<Empty>> = Item::new("params");

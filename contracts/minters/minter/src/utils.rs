@@ -1,11 +1,13 @@
 use std::convert::TryInto;
 
-use cosmwasm_std::{Env, StdError};
+use cosmwasm_std::{Env, Order, StdError, Storage};
 use minter_types::Token;
 use rand_core::{RngCore, SeedableRng};
 use rand_xoshiro::Xoshiro128PlusPlus;
 use sha2::{Digest, Sha256};
 use shuffle::{fy::FisherYates, shuffler::Shuffler};
+
+use crate::state::MINTABLE_TOKENS;
 
 pub fn randomize_token_list(
     tokens: Vec<(u32, Token)>,
@@ -40,7 +42,7 @@ pub fn randomize_token_list(
     Ok(randomized_tokens)
 }
 
-pub fn return_random_token_id(
+pub fn return_random_token(
     token_list: &Vec<(u32, Token)>,
     env: Env,
 ) -> Result<(u32, Token), StdError> {
@@ -79,6 +81,28 @@ pub fn return_random_token_id(
         }
     }
 }
+pub fn generate_tokens(num_of_tokens: u32) -> Vec<(u32, Token)> {
+    let tokens: Vec<(u32, Token)> = (1..=num_of_tokens)
+        .map(|x| {
+            (
+                x,
+                Token {
+                    token_id: x.to_string(),
+                },
+            )
+        })
+        .collect();
+    tokens
+}
+pub fn collect_mintable_tokens(storage: &dyn Storage) -> Result<Vec<(u32, Token)>, StdError> {
+    // Collect mintable tokens
+    let mut mintable_tokens: Vec<(u32, Token)> = Vec::new();
+    for item in MINTABLE_TOKENS.range(storage, None, None, Order::Ascending) {
+        let (key, value) = item?;
+        mintable_tokens.push((key, value));
+    }
+    Ok(mintable_tokens)
+}
 
 #[cfg(test)]
 mod tests {
@@ -110,7 +134,7 @@ mod tests {
     }
 
     #[test]
-    fn test_return_random_token_id() {
+    fn test_return_random_token() {
         // Generate vector of 1000 elements from 1 to 1000
         let tokens: Vec<(u32, Token)> = (1..=1000)
             .map(|x| {
@@ -130,7 +154,7 @@ mod tests {
 
         let randomized_list =
             randomize_token_list(tokens.clone(), total_tokens, env.clone()).unwrap();
-        let random_token = return_random_token_id(&randomized_list.clone(), env).unwrap();
+        let random_token = return_random_token(&randomized_list.clone(), env).unwrap();
         // This random token should have a key and a token. The key and token should be between 1 and 1000
         assert!(random_token.0 >= 1 && random_token.0 <= 1000);
         assert!(
@@ -154,7 +178,7 @@ mod tests {
         let mut modified_list = randomized_list.clone(); // Create a mutable copy
 
         loop {
-            let random_token = return_random_token_id(&modified_list, env.clone())
+            let random_token = return_random_token(&modified_list, env.clone())
                 .unwrap()
                 .clone();
             count += 1;
