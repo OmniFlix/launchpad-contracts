@@ -6,7 +6,7 @@ Multi minter contract is a Open edition minter contract with configurable token 
 
 Drop is a configuration for a set of tokens. It includes the following parameters:
 
-- `new_token_details`: Token details such as name, symbol, description, and preview_uri.
+- `token_details`: Token details such as name, symbol, description, and preview_uri.
 - `price`: The price of the token.
 - `start_time`: The start time of the trading.
 - `end_time`: The end time of the trading.
@@ -20,12 +20,13 @@ Similar with the Minter contract, the creator should send Collection details alo
 ### NewDrop
 
 - This function allows the creator to create a new drop with the given parameters. The creator can create multiple drops with different parameters. Active drop will be changed to the new drop. But the previous drop will be still active for minting.
-    - `token_details`: Token details such as name, symbol, description, and preview_uri.
-    - `price`: The price of the token.
-    - `start_time`: The start time of the trading.
-    - `end_time`: The end time of the trading.
-    - `num_tokens`: The maximum supply of the token.
-    - `per_address_limit` : The maximum number of tokens that can be minted by a single address.
+    - `new_token_details`: New token details such as name, symbol, description, and preview_uri.
+    - `new_config`: New configuration for the new drop. It includes the following parameters:
+        - `price`: The price of the token.
+        - `start_time`: The start time of the trading.
+        - `end_time`: The end time of the trading.
+        - `num_tokens`: The maximum supply of the token.
+        - `per_address_limit` : The maximum number of tokens that can be minted by a single address.
 
 ### Mint
 
