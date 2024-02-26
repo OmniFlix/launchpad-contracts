@@ -17,3 +17,5 @@ tarpaulin-report.html
 .idea
 
 /ts/node_modules
+
+.DS_Store
