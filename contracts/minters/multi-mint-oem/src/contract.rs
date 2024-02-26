@@ -79,12 +79,16 @@ pub fn instantiate(
         CREATION_FEE_DENOM.to_string()
     };
 
-    let amount = must_pay(&info, &creation_fee_denom)?;
+    let amount = must_pay(&info.clone(), &creation_fee_denom)?;
     // Exact amount must be paid
     if amount != creation_fee_amount {
         return Err(ContractError::InvalidCreationFee {
-            expected: amount,
-            sent: amount,
+            expected: [Coin {
+                denom: creation_fee_denom,
+                amount: creation_fee_amount,
+            }]
+            .to_vec(),
+            sent: info.funds.clone(),
         });
     }
     // Check if per address limit is 0

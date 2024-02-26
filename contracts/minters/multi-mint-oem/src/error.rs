@@ -1,4 +1,4 @@
-use cosmwasm_std::{StdError, Timestamp, Uint128};
+use cosmwasm_std::{Coin, StdError, Timestamp, Uint128};
 use cw_utils::PaymentError;
 use pauser::PauseError;
 use thiserror::Error;
@@ -24,7 +24,10 @@ pub enum ContractError {
     DivideByZero {},
 
     #[error("Invalid creation fee")]
-    InvalidCreationFee { expected: Uint128, sent: Uint128 },
+    InvalidCreationFee {
+        expected: Vec<Coin>,
+        sent: Vec<Coin>,
+    },
 
     #[error("Minting has not started yet")]
     MintingNotStarted {
