@@ -6,7 +6,7 @@ Multi minter contract is a Open edition minter contract with configurable token 
 
 Drop is a configuration for a set of tokens. It includes the following parameters:
 
-- `token_details`: Token details such as name, symbol, description, and preview_uri.
+- `new_token_details`: Token details such as name, symbol, description, and preview_uri.
 - `price`: The price of the token.
 - `start_time`: The start time of the trading.
 - `end_time`: The end time of the trading.
