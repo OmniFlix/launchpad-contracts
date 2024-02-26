@@ -641,7 +641,7 @@ dependencies = [
 
 [[package]]
 name = "integration-tests"
-version = "0.0.1"
+version = "0.0.0"
 dependencies = [
  "anyhow",
  "bech32",
@@ -742,7 +742,7 @@ dependencies = [
 
 [[package]]
 name = "omniflix-minter"
-version = "0.0.1"
+version = "0.0.0"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -786,7 +786,7 @@ dependencies = [
 
 [[package]]
 name = "omniflix-multi-mint-open-edition-minter"
-version = "0.0.1"
+version = "0.0.0"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -809,7 +809,7 @@ dependencies = [
 
 [[package]]
 name = "omniflix-open-edition-minter"
-version = "0.0.1"
+version = "0.0.0"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -850,7 +850,7 @@ dependencies = [
 
 [[package]]
 name = "omniflix-round-whitelist"
-version = "0.0.1"
+version = "0.0.0"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -869,7 +869,7 @@ dependencies = [
 
 [[package]]
 name = "omniflix-round-whitelist-factory"
-version = "0.0.1"
+version = "0.0.0"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
