@@ -52,7 +52,7 @@ pub fn return_minter_instantiate_msg() -> CreateMinterMsg {
         nsfw: false,
         data: None,
     };
-    
+
     CreateMinterMsg {
         collection_details,
         token_details,
@@ -103,7 +103,7 @@ pub fn return_open_edition_minter_inst_msg() -> OpenEditionMinterCreateMsg {
         nsfw: false,
         data: None,
     };
-    
+
     OpenEditionMinterCreateMsg {
         collection_details,
         init,
@@ -144,6 +144,6 @@ pub fn return_factory_inst_message(code_id: u64) -> InstantiateMsg {
         product_label: "label".to_string(),
         init: Empty {},
     };
-    
+
     InstantiateMsg { params }
 }

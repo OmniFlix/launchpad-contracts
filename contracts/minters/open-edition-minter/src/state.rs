@@ -14,6 +14,5 @@ pub const MINTED_TOKENS: Map<Addr, UserDetails> = Map::new("minted_tokens");
 pub const AUTH_DETAILS: Item<AuthDetails> = Item::new("auth_details");
 
 pub fn last_token_id(store: &mut dyn Storage) -> u32 {
-    
     MINTED_COUNT.load(store).unwrap_or_default()
 }

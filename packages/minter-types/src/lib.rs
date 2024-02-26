@@ -64,8 +64,6 @@ pub struct UserDetails {
     pub public_mint_count: u32,
 }
 
-
-
 #[cw_serde]
 pub struct Token {
     pub token_id: String,
