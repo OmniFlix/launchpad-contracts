@@ -19,3 +19,6 @@ tarpaulin-report.html
 /ts/node_modules
 
 .DS_Store
+
+# Artifacts
+/artifacts
