@@ -20,7 +20,7 @@ pub struct OpenEditionMinterInitExtention {
 }
 
 pub type OpenEditionMinterCreateMsg = MinterInstantiateMsg<OpenEditionMinterInitExtention>;
-
+#[allow(clippy::large_enum_variant)]
 #[cw_serde]
 pub enum ExecuteMsg {
     CreateMinter { msg: OpenEditionMinterCreateMsg },

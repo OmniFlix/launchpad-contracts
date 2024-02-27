@@ -43,12 +43,9 @@ pub fn randomize_token_list(
 }
 
 pub fn return_random_token(
-    token_list: &Vec<(u32, Token)>,
+    token_list: &[(u32, Token)],
     env: Env,
 ) -> Result<(u32, Token), StdError> {
-    // We are expecting mintable tokens and corresponding keys an an vector
-    let tokens = token_list;
-
     // Generate random token id
     let tx_index: u32 = if let Some(tx) = env.transaction {
         tx.index
@@ -67,20 +64,21 @@ pub fn return_random_token(
 
     let is_ascending = r % 2 == 0;
 
-    let lenght = tokens.clone().len() as u32;
-    let random_index = r % lenght;
+    let length = token_list.len() as u32;
+    let random_index = r % length;
 
     match is_ascending {
         true => {
-            let random_token = &tokens.clone()[random_index as usize];
+            let random_token = &token_list[random_index as usize];
             Ok(random_token.clone())
         }
         false => {
-            let random_token = &tokens.clone()[lenght as usize - random_index as usize - 1];
+            let random_token = &token_list[length as usize - random_index as usize - 1];
             Ok(random_token.clone())
         }
     }
 }
+
 pub fn generate_tokens(num_of_tokens: u32) -> Vec<(u32, Token)> {
     let tokens: Vec<(u32, Token)> = (1..=num_of_tokens)
         .map(|x| {

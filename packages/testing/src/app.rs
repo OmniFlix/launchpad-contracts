@@ -6,7 +6,7 @@ use cw_multi_test::{
     no_init, App, AppBuilder, BankKeeper, DistributionKeeper, FailingModule, StakeKeeper,
     WasmKeeper,
 };
-
+#[allow(clippy::type_complexity)]
 pub struct OmniflixApp(
     App<
         BankKeeper,

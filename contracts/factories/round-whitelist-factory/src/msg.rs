@@ -7,7 +7,7 @@ use whitelist_types::InstantiateMsg as WhitelistInstantiateMsg;
 pub struct InstantiateMsg {
     pub params: FactoryParams<Empty>,
 }
-
+#[allow(clippy::large_enum_variant)]
 #[cw_serde]
 pub enum ExecuteMsg {
     CreateWhitelist { msg: WhitelistInstantiateMsg },

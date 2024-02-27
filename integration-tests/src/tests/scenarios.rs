@@ -119,7 +119,7 @@ fn test_scenario_1() {
     ) = setup();
     let admin = test_addresses.admin;
     let creator = test_addresses.creator;
-    let collector = test_addresses.collector;
+    let _collector = test_addresses.collector;
 
     let factory_inst_msg = return_factory_inst_message(minter_code_id);
     let minter_factory_addr = app
@@ -1088,7 +1088,7 @@ fn test_scenario_2() {
         new_token_details,
         new_config,
     };
-    let res = app
+    let _res = app
         .execute_contract(
             new_admin.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
