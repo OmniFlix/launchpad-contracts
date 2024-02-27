@@ -33,6 +33,7 @@ omniflix-open-edition-minter = {path = "../contracts/minters/open-edition-minter
 omniflix-round-whitelist-factory = {path = "../contracts/factories/round-whitelist-factory"}
 omniflix-round-whitelist = {path = "../contracts/whitelists/round-whitelist"}
 omniflix-testing = {path = "../packages/testing"}
+omniflix-multi-mint-open-edition-minter = {path = "../contracts/minters/multi-mint-oem"}
 anyhow = "1.0.79"
 prost = "0.12.3"
 bech32 = "0.9.1"

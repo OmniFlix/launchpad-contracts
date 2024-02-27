@@ -26,6 +26,7 @@ fn test_whitelist_creation() {
         round_whitelist_code_id,
         _open_edition_minter_code_id,
         _open_edition_minter_factory_code_id,
+        _multi_mint_open_edition_minter_code_id,
     ) = setup();
     let admin = test_addresses.admin;
     let creator = test_addresses.creator;

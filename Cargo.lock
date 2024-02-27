@@ -659,6 +659,7 @@ dependencies = [
  "minter-types",
  "omniflix-minter",
  "omniflix-minter-factory",
+ "omniflix-multi-mint-open-edition-minter",
  "omniflix-open-edition-minter",
  "omniflix-open-edition-minter-factory",
  "omniflix-round-whitelist",

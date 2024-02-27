@@ -31,6 +31,7 @@ pub fn test_mint() {
         _round_whitelist_code_id,
         _open_edition_minter_code_id,
         _open_edition_minter_factory_code_id,
+        _multi_mint_open_edition_minter_code_id,
     ) = setup();
     let admin = test_addresses.admin;
     let creator = test_addresses.creator;
@@ -331,6 +332,7 @@ pub fn test_mint_admin() {
         _round_whitelist_code_id,
         _open_edition_minter_code_id,
         _open_edition_minter_factory_code_id,
+        _multi_mint_open_edition_minter_code_id,
     ) = setup();
     let admin = test_addresses.admin;
     let creator = test_addresses.creator;
@@ -525,6 +527,7 @@ pub fn test_mint_with_whitelist() {
         round_whitelist_code_id,
         _open_edition_minter_code_id,
         _open_edition_minter_factory_code_id,
+        _multi_mint_open_edition_minter_code_id,
     ) = setup();
     let admin = test_addresses.admin;
     let creator = test_addresses.creator;

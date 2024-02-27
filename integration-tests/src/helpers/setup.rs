@@ -26,6 +26,12 @@ use omniflix_round_whitelist_factory::contract::{
     query as round_whitelist_factory_query,
 };
 
+use omniflix_multi_mint_open_edition_minter::contract::{
+    execute as multi_mint_open_edition_minter_execute,
+    instantiate as multi_mint_open_edition_minter_instantiate,
+    query as multi_mint_open_edition_minter_query,
+};
+
 use omniflix_testing::app::OmniflixApp;
 pub struct TestAdresses {
     pub admin: Addr,
@@ -33,7 +39,7 @@ pub struct TestAdresses {
     pub collector: Addr,
 }
 
-pub fn setup() -> (OmniflixApp, TestAdresses, u64, u64, u64, u64, u64, u64) {
+pub fn setup() -> (OmniflixApp, TestAdresses, u64, u64, u64, u64, u64, u64, u64) {
     let mut app = OmniflixApp::new();
     let admin = Addr::unchecked("admin");
     let creator = Addr::unchecked("creator");
@@ -99,6 +105,11 @@ pub fn setup() -> (OmniflixApp, TestAdresses, u64, u64, u64, u64, u64, u64) {
         open_edition_minter_instantiate,
         open_edition_minter_query,
     ));
+    let multi_mint_open_edition_minter_contract = Box::new(ContractWrapper::new(
+        multi_mint_open_edition_minter_execute,
+        multi_mint_open_edition_minter_instantiate,
+        multi_mint_open_edition_minter_query,
+    ));
 
     let minter_code_id = app.store_code(minter_contract);
 
@@ -112,6 +123,8 @@ pub fn setup() -> (OmniflixApp, TestAdresses, u64, u64, u64, u64, u64, u64) {
 
     let open_edition_minter_factory_code_id = app.store_code(open_edition_minter_factory_contract);
 
+    let multi_mint_open_edition_minter_code_id =
+        app.store_code(multi_mint_open_edition_minter_contract);
     (
         app,
         TestAdresses {
@@ -125,5 +138,6 @@ pub fn setup() -> (OmniflixApp, TestAdresses, u64, u64, u64, u64, u64, u64) {
         round_whitelist_code_id,
         open_edition_minter_factory_code_id,
         open_edition_minter_code_id,
+        multi_mint_open_edition_minter_code_id,
     )
 }
