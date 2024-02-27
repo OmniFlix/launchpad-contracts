@@ -1,7 +1,9 @@
+use std::str::FromStr;
+
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Addr, Coin, Decimal, StdError, Timestamp};
+use cosmwasm_std::{Addr, Coin, Decimal, QuerierWrapper, StdError, Timestamp, Uint128};
 use omniflix_std::types::omniflix::onft::v1beta1::{
-    Metadata, MsgCreateDenom, MsgMintOnft, WeightedAddress,
+    Metadata, MsgCreateDenom, MsgMintOnft, OnftQuerier, WeightedAddress,
 };
 
 #[cw_serde]
@@ -190,4 +192,35 @@ pub fn generate_create_denom_msg(
         ),
     };
     Ok(create_denom_msg)
+}
+
+#[cfg(test)]
+const CREATION_FEE: Uint128 = Uint128::new(100_000_000);
+#[cfg(test)]
+const CREATION_FEE_DENOM: &str = "uflix";
+
+#[cfg(not(test))]
+#[allow(dead_code)]
+const CREATION_FEE: Uint128 = Uint128::new(0);
+#[allow(dead_code)]
+#[cfg(not(test))]
+const CREATION_FEE_DENOM: &str = "";
+
+pub fn check_collection_creation_fee(querier: QuerierWrapper) -> Result<Coin, StdError> {
+    if CREATION_FEE == Uint128::new(0) {
+        // If creation fee is 0, then it means this is not a test case
+        let onft_querier = OnftQuerier::new(&querier);
+        let params = onft_querier.params()?;
+        let creation_fee = params.params.unwrap().denom_creation_fee.unwrap();
+        Ok(Coin {
+            denom: creation_fee.denom,
+            amount: Uint128::from_str(&creation_fee.amount)?,
+        })
+    } else {
+        let creation_fee = Coin {
+            denom: CREATION_FEE_DENOM.to_string(),
+            amount: CREATION_FEE,
+        };
+        Ok(creation_fee)
+    }
 }

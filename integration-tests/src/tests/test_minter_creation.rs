@@ -1,5 +1,4 @@
 #![cfg(test)]
-
 use cosmwasm_std::Empty;
 use cosmwasm_std::{coin, to_json_binary, Decimal, QueryRequest, Timestamp, Uint128, WasmQuery};
 use cw_multi_test::Executor;

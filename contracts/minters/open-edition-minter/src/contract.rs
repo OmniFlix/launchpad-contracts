@@ -2,12 +2,12 @@
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     to_json_binary, Addr, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo,
-    Response, StdResult, Uint128, WasmMsg,
+    Response, StdResult, WasmMsg,
 };
 use cw_utils::{may_pay, maybe_addr, must_pay, nonpayable};
 use minter_types::{
-    generate_create_denom_msg, generate_mint_message, AuthDetails, CollectionDetails, Config,
-    QueryMsg, Token, TokenDetails, UserDetails,
+    check_collection_creation_fee, generate_create_denom_msg, generate_mint_message, AuthDetails,
+    CollectionDetails, Config, QueryMsg, Token, TokenDetails, UserDetails,
 };
 use std::str::FromStr;
 
@@ -22,7 +22,7 @@ use omniflix_open_edition_minter_factory::msg::{
 };
 use omniflix_round_whitelist::msg::ExecuteMsg as RoundWhitelistExecuteMsg;
 use omniflix_std::types::omniflix::onft::v1beta1::{
-    MsgPurgeDenom, MsgUpdateDenom, OnftQuerier, WeightedAddress,
+    MsgPurgeDenom, MsgUpdateDenom, WeightedAddress,
 };
 use pauser::{PauseState, PAUSED_KEY, PAUSERS_KEY};
 use whitelist_types::{
@@ -32,18 +32,6 @@ use whitelist_types::{
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:omniflix-minter-open-edition-minter";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
-
-#[cfg(not(test))]
-#[allow(dead_code)]
-const CREATION_FEE: Uint128 = Uint128::new(0);
-#[allow(dead_code)]
-#[cfg(not(test))]
-const CREATION_FEE_DENOM: &str = "";
-
-#[cfg(test)]
-const CREATION_FEE: Uint128 = Uint128::new(100_000_000);
-#[cfg(test)]
-const CREATION_FEE_DENOM: &str = "uflix";
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -62,28 +50,15 @@ pub fn instantiate(
     )?;
 
     // This field is implemented only for testing purposes
-    let creation_fee_amount = if CREATION_FEE == Uint128::new(0) {
-        let onft_querier = OnftQuerier::new(&deps.querier);
-        let params = onft_querier.params()?;
-        Uint128::from_str(&params.params.unwrap().denom_creation_fee.unwrap().amount)?
-    } else {
-        CREATION_FEE
-    };
-    let creation_fee_denom = if CREATION_FEE_DENOM.is_empty() {
-        let onft_querier = OnftQuerier::new(&deps.querier);
-        let params = onft_querier.params()?;
-        params.params.unwrap().denom_creation_fee.unwrap().denom
-    } else {
-        CREATION_FEE_DENOM.to_string()
-    };
+    let collection_creation_fee: Coin = check_collection_creation_fee(deps.as_ref().querier)?;
 
-    let amount = must_pay(&info, &creation_fee_denom)?;
+    let amount = must_pay(&info, &collection_creation_fee.denom)?;
     // Exact amount must be paid
-    if amount != creation_fee_amount {
+    if amount != collection_creation_fee.amount {
         return Err(ContractError::InvalidCreationFee {
             expected: [Coin {
-                denom: creation_fee_denom,
-                amount: creation_fee_amount,
+                denom: collection_creation_fee.denom,
+                amount: collection_creation_fee.amount,
             }]
             .to_vec(),
             sent: info.funds,
@@ -161,8 +136,8 @@ pub fn instantiate(
     TOKEN_DETAILS.save(deps.storage, &token_details)?;
 
     let creation_fee = Coin {
-        denom: creation_fee_denom,
-        amount: creation_fee_amount,
+        denom: collection_creation_fee.denom,
+        amount: collection_creation_fee.amount,
     };
 
     let collection_creation_msg: CosmosMsg = generate_create_denom_msg(
