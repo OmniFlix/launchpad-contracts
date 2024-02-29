@@ -10,8 +10,9 @@ use cosmwasm_std::{
 };
 use cw_utils::{may_pay, maybe_addr, must_pay, nonpayable};
 use minter_types::{
-    check_collection_creation_fee, generate_create_denom_msg, generate_mint_message, AuthDetails,
-    CollectionDetails, QueryMsg as BaseMinterQueryMsg, TokenDetails,
+    check_collection_creation_fee, generate_create_denom_msg, generate_mint_message,
+    generate_update_denom_msg, AuthDetails, CollectionDetails, QueryMsg as BaseMinterQueryMsg,
+    TokenDetails,
 };
 use omniflix_minter_factory::msg::QueryMsg::Params as QueryFactoryParams;
 use omniflix_minter_factory::msg::{CreateMinterMsg, ParamsResponse};
@@ -32,9 +33,7 @@ use minter_types::{Config, Token, UserDetails};
 use pauser::{PauseState, PAUSED_KEY, PAUSERS_KEY};
 
 use cw2::set_contract_version;
-use omniflix_std::types::omniflix::onft::v1beta1::{
-    MsgPurgeDenom, MsgUpdateDenom, WeightedAddress,
-};
+use omniflix_std::types::omniflix::onft::v1beta1::{MsgPurgeDenom, WeightedAddress};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:omniflix-minter";
@@ -166,7 +165,7 @@ pub fn instantiate(
         &collection_details,
         env.contract.address,
         collection_creation_fee,
-        admin,
+        payment_collector,
     )?
     .into();
 
@@ -692,18 +691,15 @@ pub fn execute_update_royalty_receivers(
 
     COLLECTION.save(deps.storage, &collection)?;
 
-    let update_msg: CosmosMsg = MsgUpdateDenom {
-        sender: env.contract.address.into_string(),
-        royalty_receivers: receivers,
-        id: collection.id,
-        description: "[do-not-modify]".to_string(),
-        name: "[do-not-modify]".to_string(),
-        preview_uri: "[do-not-modify]".to_string(),
-    }
+    let update_denom_msg: CosmosMsg = generate_update_denom_msg(
+        &collection,
+        auth_details.payment_collector,
+        env.contract.address,
+    )?
     .into();
 
     let res = Response::new()
-        .add_message(update_msg)
+        .add_message(update_denom_msg)
         .add_attribute("action", "update_royalty_receivers");
     Ok(res)
 }
@@ -722,27 +718,28 @@ pub fn execute_update_denom(
     if info.sender != auth_details.admin {
         return Err(ContractError::Unauthorized {});
     }
-
+    // Update the collection details
     collection.collection_name = collection_name
         .clone()
         .unwrap_or(collection.collection_name);
-    collection.description = description.clone();
-    collection.preview_uri = preview_uri.clone();
-    COLLECTION.save(deps.storage, &collection)?;
-
-    let update_msg: CosmosMsg = MsgUpdateDenom {
-        sender: env.contract.address.into_string(),
-        id: collection.id,
-        description: description.unwrap_or("[do-not-modify]".to_string()),
-        name: collection_name.unwrap_or("[do-not-modify]".to_string()),
-        preview_uri: preview_uri.unwrap_or("[do-not-modify]".to_string()),
-        royalty_receivers: [].to_vec(),
+    if let Some(description) = description.clone() {
+        collection.description = Some(description);
     }
+    if let Some(preview_uri) = preview_uri.clone() {
+        collection.preview_uri = Some(preview_uri);
+    }
+    COLLECTION.save(deps.storage, &collection.clone())?;
+    // Generate update denom message with the updated collection details
+    let update_denom_msg: CosmosMsg = generate_update_denom_msg(
+        &collection,
+        auth_details.payment_collector,
+        env.contract.address,
+    )?
     .into();
 
     let res = Response::new()
         .add_attribute("action", "update_denom")
-        .add_message(update_msg);
+        .add_message(update_denom_msg);
     Ok(res)
 }
 fn execute_purge_denom(

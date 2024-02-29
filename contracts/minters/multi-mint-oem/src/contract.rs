@@ -6,8 +6,9 @@ use cosmwasm_std::{
 };
 use cw_utils::{may_pay, maybe_addr, must_pay, nonpayable};
 use minter_types::{
-    check_collection_creation_fee, generate_create_denom_msg, generate_mint_message, AuthDetails,
-    CollectionDetails, Config, QueryMsg as MinterQueryMsg, Token, TokenDetails, UserDetails,
+    check_collection_creation_fee, generate_create_denom_msg, generate_mint_message,
+    generate_update_denom_msg, AuthDetails, CollectionDetails, Config, QueryMsg as MinterQueryMsg,
+    Token, TokenDetails, UserDetails,
 };
 use pauser::{PauseState, PAUSED_KEY, PAUSERS_KEY};
 use std::str::FromStr;
@@ -15,8 +16,8 @@ use std::str::FromStr;
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, QueryMsgExtension};
 use crate::state::{
-    DropParams, UserMintedTokens, AUTH_DETAILS, CURRENT_DROP_ID, DROPS, DROP_MINTED_COUNT,
-    LAST_MINTED_TOKEN_ID, USER_MINTED_TOKENS_KEY,
+    DropParams, UserMintedTokens, AUTH_DETAILS, COLLECTION, CURRENT_DROP_ID, DROPS,
+    DROP_MINTED_COUNT, LAST_MINTED_TOKEN_ID, USER_MINTED_TOKENS_KEY,
 };
 
 use cw2::set_contract_version;
@@ -24,9 +25,7 @@ use omniflix_open_edition_minter_factory::msg::{
     OpenEditionMinterCreateMsg, ParamsResponse, QueryMsg as OpenEditionMinterFactoryQueryMsg,
 };
 use omniflix_round_whitelist::msg::ExecuteMsg as RoundWhitelistExecuteMsg;
-use omniflix_std::types::omniflix::onft::v1beta1::{
-    MsgPurgeDenom, MsgUpdateDenom, WeightedAddress,
-};
+use omniflix_std::types::omniflix::onft::v1beta1::{MsgPurgeDenom, WeightedAddress};
 use whitelist_types::{
     check_if_address_is_member, check_if_whitelist_is_active, check_whitelist_price,
 };
@@ -133,11 +132,11 @@ pub fn instantiate(
     // Save the collection as drop 1
     let drop_params = DropParams {
         config: config.clone(),
-        collection_details: collection_details.clone(),
         token_details,
     };
 
     DROPS.save(deps.storage, 1, &drop_params)?;
+    COLLECTION.save(deps.storage, &collection_details)?;
     CURRENT_DROP_ID.save(deps.storage, &1)?;
     DROP_MINTED_COUNT.save(deps.storage, 1, &0)?;
     LAST_MINTED_TOKEN_ID.save(deps.storage, &0)?;
@@ -150,7 +149,7 @@ pub fn instantiate(
         &collection_details,
         env.contract.address,
         nft_creation_fee,
-        admin,
+        payment_collector,
     )?
     .into();
 
@@ -224,7 +223,7 @@ pub fn execute_mint(
     let drop_params = DROPS.load(deps.storage, drop_id)?;
 
     let config = drop_params.config;
-    let collection_details = drop_params.collection_details;
+    let collection_details = COLLECTION.load(deps.storage)?;
     let token_details = drop_params.token_details;
     let auth_details = AUTH_DETAILS.load(deps.storage)?;
     // Check if any token limit set and if it is reached
@@ -372,7 +371,7 @@ pub fn execute_mint_admin(
     let drop_params = DROPS.load(deps.storage, drop_id)?;
 
     let config = drop_params.config;
-    let collection_details = drop_params.collection_details;
+    let collection_details = COLLECTION.load(deps.storage)?;
     let token_details = drop_params.token_details;
     let auth_details = AUTH_DETAILS.load(deps.storage)?;
     // Check if admin
@@ -634,7 +633,6 @@ pub fn execute_new_drop(
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
     let current_drop_id = CURRENT_DROP_ID.load(deps.storage)?;
-    let current_drop_params = DROPS.load(deps.storage, current_drop_id)?;
     let auth_details = AUTH_DETAILS.load(deps.storage)?;
 
     if info.sender != auth_details.admin {
@@ -681,7 +679,6 @@ pub fn execute_new_drop(
 
     let new_drop_params = DropParams {
         config: config.clone(),
-        collection_details: current_drop_params.collection_details,
         token_details,
     };
     let new_drop_id = current_drop_id + 1;
@@ -702,22 +699,21 @@ pub fn execute_update_royalty_receivers(
     receivers: Vec<WeightedAddress>,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
-    let current_drop_id = CURRENT_DROP_ID.load(deps.storage)?;
-    let drop_params = DROPS.load(deps.storage, current_drop_id)?;
+    let mut collection_details = COLLECTION.load(deps.storage)?;
     let auth_details = AUTH_DETAILS.load(deps.storage)?;
     // Check if sender is admin
     if info.sender != auth_details.admin {
         return Err(ContractError::Unauthorized {});
     }
+    collection_details.royalty_receivers = Some(receivers.clone());
 
-    let update_msg: CosmosMsg = MsgUpdateDenom {
-        sender: env.contract.address.into_string(),
-        id: drop_params.collection_details.id,
-        description: "[do-not-modify]".to_string(),
-        name: "[do-not-modify]".to_string(),
-        preview_uri: "[do-not-modify]".to_string(),
-        royalty_receivers: receivers,
-    }
+    COLLECTION.save(deps.storage, &collection_details)?;
+
+    let update_msg: CosmosMsg = generate_update_denom_msg(
+        &collection_details,
+        auth_details.payment_collector,
+        env.contract.address,
+    )?
     .into();
 
     let res = Response::new()
@@ -734,34 +730,28 @@ pub fn execute_update_denom(
     description: Option<String>,
     preview_uri: Option<String>,
 ) -> Result<Response, ContractError> {
-    let current_drop_id = CURRENT_DROP_ID.load(deps.storage)?;
-    let current_drop_params = DROPS.load(deps.storage, current_drop_id)?;
     let auth_details = AUTH_DETAILS.load(deps.storage)?;
     let admin = auth_details.admin;
     // Current drops admin can update the denom
     if info.sender != admin {
         return Err(ContractError::Unauthorized {});
     }
-    // We would have to update name and description in the collection of all drops
-    for edition_number in 1..=current_drop_id {
-        let mut edition_params = DROPS.load(deps.storage, edition_number)?;
-        edition_params.collection_details.collection_name = name
-            .clone()
-            .unwrap_or(edition_params.collection_details.collection_name);
-        edition_params.collection_details.description = description.clone();
-        edition_params.collection_details.preview_uri = preview_uri.clone();
+    let mut collection_details = COLLECTION.load(deps.storage)?;
+    collection_details.collection_name = name.unwrap_or(collection_details.collection_name);
 
-        DROPS.save(deps.storage, edition_number, &edition_params)?;
+    if let Some(description) = description.clone() {
+        collection_details.description = Some(description);
     }
+    if let Some(preview_uri) = preview_uri.clone() {
+        collection_details.preview_uri = Some(preview_uri);
+    }
+    COLLECTION.save(deps.storage, &collection_details)?;
 
-    let update_msg: CosmosMsg = MsgUpdateDenom {
-        sender: env.contract.address.into_string(),
-        id: current_drop_params.collection_details.id,
-        description: description.unwrap_or("[do-not-modify]".to_string()),
-        name: name.unwrap_or("[do-not-modify]".to_string()),
-        preview_uri: preview_uri.unwrap_or("[do-not-modify]".to_string()),
-        royalty_receivers: vec![],
-    }
+    let update_msg: CosmosMsg = generate_update_denom_msg(
+        &collection_details,
+        auth_details.payment_collector,
+        env.contract.address,
+    )?
     .into();
 
     let res = Response::new()
@@ -774,16 +764,15 @@ fn execute_purge_denom(
     env: Env,
     info: MessageInfo,
 ) -> Result<Response, ContractError> {
-    let current_drop_id = CURRENT_DROP_ID.load(deps.storage)?;
-    let current_drop_params = DROPS.load(deps.storage, current_drop_id)?;
     let auth_details = AUTH_DETAILS.load(deps.storage)?;
 
     if auth_details.admin != info.sender {
         return Err(ContractError::Unauthorized {});
     }
+    let collection_details = COLLECTION.load(deps.storage)?;
 
     let purge_msg: CosmosMsg = MsgPurgeDenom {
-        id: current_drop_params.collection_details.id,
+        id: collection_details.id,
         sender: env.contract.address.into_string(),
     }
     .into();
@@ -796,7 +785,7 @@ fn execute_purge_denom(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: MinterQueryMsg<QueryMsgExtension>) -> StdResult<Binary> {
     match msg {
-        MinterQueryMsg::Collection {} => to_json_binary(&query_collection(deps, env, None)?),
+        MinterQueryMsg::Collection {} => to_json_binary(&query_collection(deps, env)?),
         MinterQueryMsg::TokenDetails {} => to_json_binary(&query_token_details(deps, env, None)?),
         MinterQueryMsg::Config {} => to_json_binary(&query_config(deps, env, None)?),
         MinterQueryMsg::MintedTokens { address } => {
@@ -813,9 +802,6 @@ pub fn query(deps: Deps, env: Env, msg: MinterQueryMsg<QueryMsgExtension>) -> St
                 to_json_binary(&query_current_drop_number(deps, env)?)
             }
             QueryMsgExtension::AllDrops {} => to_json_binary(&query_all_drops(deps, env)?),
-            QueryMsgExtension::Collection { drop_id } => {
-                to_json_binary(&query_collection(deps, env, drop_id)?)
-            }
             QueryMsgExtension::Config { drop_id } => {
                 to_json_binary(&query_config(deps, env, drop_id)?)
             }
@@ -832,13 +818,8 @@ pub fn query(deps: Deps, env: Env, msg: MinterQueryMsg<QueryMsgExtension>) -> St
     }
 }
 
-fn query_collection(
-    deps: Deps,
-    _env: Env,
-    drop_id: Option<u32>,
-) -> Result<CollectionDetails, ContractError> {
-    let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
-    let collection = DROPS.load(deps.storage, drop_id)?.collection_details;
+fn query_collection(deps: Deps, _env: Env) -> Result<CollectionDetails, ContractError> {
+    let collection = COLLECTION.load(deps.storage)?;
     Ok(collection)
 }
 fn query_token_details(

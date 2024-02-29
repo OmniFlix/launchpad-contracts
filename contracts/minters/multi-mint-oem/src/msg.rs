@@ -1,7 +1,7 @@
 use crate::state::DropParams;
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::Coin;
-use minter_types::{CollectionDetails, Config, TokenDetails, UserDetails};
+use minter_types::{Config, TokenDetails, UserDetails};
 use omniflix_std::types::omniflix::onft::v1beta1::WeightedAddress;
 
 #[cw_serde]
@@ -54,8 +54,6 @@ pub enum ExecuteMsg {
 #[cw_serde]
 #[derive(QueryResponses)]
 pub enum QueryMsgExtension {
-    #[returns(CollectionDetails)]
-    Collection { drop_id: Option<u32> },
     #[returns(TokenDetails)]
     TokenDetails { drop_id: Option<u32> },
     #[returns(Config)]

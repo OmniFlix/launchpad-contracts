@@ -3,7 +3,7 @@ use std::str::FromStr;
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Addr, Coin, Decimal, QuerierWrapper, StdError, Timestamp, Uint128};
 use omniflix_std::types::omniflix::onft::v1beta1::{
-    Metadata, MsgCreateDenom, MsgMintOnft, OnftQuerier, WeightedAddress,
+    Metadata, MsgCreateDenom, MsgMintOnft, MsgUpdateDenom, OnftQuerier, WeightedAddress,
 };
 
 #[cw_serde]
@@ -169,8 +169,26 @@ pub fn generate_create_denom_msg(
     collection: &CollectionDetails,
     minter_address: Addr,
     creation_fee: Coin,
-    admin: Addr,
+    payment_collector: Addr,
 ) -> Result<MsgCreateDenom, StdError> {
+    let royalty_receivers = match &collection.royalty_receivers {
+        Some(receivers) => receivers
+            .iter()
+            .map(|r| {
+                let atomics_weight = Decimal::from_str(&r.weight)?.atomics().to_string();
+                Ok(WeightedAddress {
+                    address: r.address.clone(),
+                    weight: atomics_weight,
+                })
+            })
+            .collect::<Result<Vec<WeightedAddress>, StdError>>()?,
+
+        None => vec![WeightedAddress {
+            address: payment_collector.into_string(),
+            weight: Decimal::one().atomics().to_string(),
+        }],
+    };
+
     let create_denom_msg = MsgCreateDenom {
         creation_fee: Some(creation_fee.into()),
         id: collection.id.clone(),
@@ -183,15 +201,46 @@ pub fn generate_create_denom_msg(
         uri: collection.uri.clone().unwrap_or("".to_string()),
         uri_hash: collection.uri_hash.clone().unwrap_or("".to_string()),
         data: collection.data.clone().unwrap_or("".to_string()),
-        royalty_receivers: collection.royalty_receivers.clone().unwrap_or(
-            [WeightedAddress {
-                address: admin.into_string(),
-                weight: Decimal::one().to_string(),
-            }]
-            .to_vec(),
-        ),
+        royalty_receivers: royalty_receivers,
     };
     Ok(create_denom_msg)
+}
+pub fn generate_update_denom_msg(
+    collection: &CollectionDetails,
+    payment_collector: Addr,
+    minter_address: Addr,
+) -> Result<MsgUpdateDenom, StdError> {
+    let atomics_royalty_receivers = match &collection.royalty_receivers {
+        Some(receivers) => receivers
+            .iter()
+            .map(|r| {
+                let atomics_weight = Decimal::from_str(&r.weight)?.atomics().to_string();
+                Ok(WeightedAddress {
+                    address: r.address.clone(),
+                    weight: atomics_weight,
+                })
+            })
+            .collect::<Result<Vec<WeightedAddress>, StdError>>()?,
+        None => vec![WeightedAddress {
+            address: payment_collector.into_string(),
+            weight: Decimal::one().atomics().to_string(),
+        }],
+    };
+    let update_denom_msg = MsgUpdateDenom {
+        id: collection.id.clone(),
+        sender: minter_address.into_string(),
+        name: collection.collection_name.clone(),
+        description: collection
+            .description
+            .clone()
+            .unwrap_or("[do-not-modify]".to_string()),
+        preview_uri: collection
+            .preview_uri
+            .clone()
+            .unwrap_or("[do-not-modify]".to_string()),
+        royalty_receivers: atomics_royalty_receivers,
+    };
+    Ok(update_denom_msg)
 }
 
 #[cfg(test)]

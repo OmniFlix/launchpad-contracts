@@ -14,9 +14,9 @@ pub type DropID = u32;
 #[cw_serde]
 pub struct DropParams {
     pub config: Config,
-    pub collection_details: CollectionDetails,
     pub token_details: TokenDetails,
 }
+pub const COLLECTION: Item<CollectionDetails> = Item::new("collection");
 pub const DROPS: Map<DropID, DropParams> = Map::new("editions");
 
 pub const USER_MINTED_TOKENS_KEY: &str = "user_minted_tokens";

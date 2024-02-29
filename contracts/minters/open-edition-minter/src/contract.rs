@@ -6,8 +6,9 @@ use cosmwasm_std::{
 };
 use cw_utils::{may_pay, maybe_addr, must_pay, nonpayable};
 use minter_types::{
-    check_collection_creation_fee, generate_create_denom_msg, generate_mint_message, AuthDetails,
-    CollectionDetails, Config, QueryMsg, Token, TokenDetails, UserDetails,
+    check_collection_creation_fee, generate_create_denom_msg, generate_mint_message,
+    generate_update_denom_msg, AuthDetails, CollectionDetails, Config, QueryMsg, Token,
+    TokenDetails, UserDetails,
 };
 use std::str::FromStr;
 
@@ -21,9 +22,7 @@ use omniflix_open_edition_minter_factory::msg::{
     OpenEditionMinterCreateMsg, ParamsResponse, QueryMsg as OpenEditionMinterFactoryQueryMsg,
 };
 use omniflix_round_whitelist::msg::ExecuteMsg as RoundWhitelistExecuteMsg;
-use omniflix_std::types::omniflix::onft::v1beta1::{
-    MsgPurgeDenom, MsgUpdateDenom, WeightedAddress,
-};
+use omniflix_std::types::omniflix::onft::v1beta1::{MsgPurgeDenom, WeightedAddress};
 use pauser::{PauseState, PAUSED_KEY, PAUSERS_KEY};
 use whitelist_types::{
     check_if_address_is_member, check_if_whitelist_is_active, check_whitelist_price,
@@ -144,7 +143,7 @@ pub fn instantiate(
         &collection_details,
         env.contract.address.clone(),
         creation_fee,
-        admin,
+        payment_collector,
     )?
     .into();
 
@@ -610,14 +609,11 @@ pub fn execute_update_royalty_receivers(
 
     COLLECTION.save(deps.storage, &collection)?;
 
-    let update_msg: CosmosMsg = MsgUpdateDenom {
-        sender: env.contract.address.into_string(),
-        royalty_receivers: receivers,
-        id: collection.id,
-        description: "[do-not-modify]".to_string(),
-        name: "[do-not-modify]".to_string(),
-        preview_uri: "[do-not-modify]".to_string(),
-    }
+    let update_msg: CosmosMsg = generate_update_denom_msg(
+        &collection,
+        auth_details.payment_collector,
+        env.contract.address,
+    )?
     .into();
 
     let res = Response::new()
@@ -644,18 +640,19 @@ pub fn execute_update_denom(
     collection.collection_name = collection_name
         .clone()
         .unwrap_or(collection.collection_name);
-    collection.description = description.clone();
-    collection.preview_uri = preview_uri.clone();
+    if let Some(description) = description.clone() {
+        collection.description = Some(description);
+    }
+    if let Some(preview_uri) = preview_uri.clone() {
+        collection.preview_uri = Some(preview_uri);
+    }
     COLLECTION.save(deps.storage, &collection)?;
 
-    let update_msg: CosmosMsg = MsgUpdateDenom {
-        sender: env.contract.address.into_string(),
-        id: collection.id,
-        description: description.unwrap_or("[do-not-modify]".to_string()),
-        name: collection_name.unwrap_or("[do-not-modify]".to_string()),
-        preview_uri: preview_uri.unwrap_or("[do-not-modify]".to_string()),
-        royalty_receivers: collection.royalty_receivers.unwrap_or(vec![]),
-    }
+    let update_msg: CosmosMsg = generate_update_denom_msg(
+        &collection,
+        auth_details.payment_collector,
+        env.contract.address,
+    )?
     .into();
 
     let res = Response::new()
