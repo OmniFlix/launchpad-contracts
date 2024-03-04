@@ -243,6 +243,29 @@ pub fn generate_update_denom_msg(
     Ok(update_denom_msg)
 }
 
+pub fn update_collection_details(
+    collection: &CollectionDetails,
+    collection_name: Option<String>,
+    description: Option<String>,
+    preview_uri: Option<String>,
+    royalty_receivers: Option<Vec<WeightedAddress>>,
+) -> CollectionDetails {
+    let mut new_collection = collection.clone();
+    if let Some(name) = collection_name {
+        new_collection.collection_name = name;
+    }
+    if let Some(desc) = description {
+        new_collection.description = Some(desc);
+    }
+    if let Some(preview) = preview_uri {
+        new_collection.preview_uri = Some(preview);
+    }
+    if let Some(receivers) = royalty_receivers {
+        new_collection.royalty_receivers = Some(receivers);
+    }
+    new_collection
+}
+
 #[cfg(test)]
 const CREATION_FEE: Uint128 = Uint128::new(100_000_000);
 #[cfg(test)]

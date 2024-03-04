@@ -7,8 +7,8 @@ use cosmwasm_std::{
 use cw_utils::{may_pay, maybe_addr, must_pay, nonpayable};
 use minter_types::{
     check_collection_creation_fee, generate_create_denom_msg, generate_mint_message,
-    generate_update_denom_msg, AuthDetails, CollectionDetails, Config, QueryMsg, Token,
-    TokenDetails, UserDetails,
+    generate_update_denom_msg, update_collection_details, AuthDetails, CollectionDetails, Config,
+    QueryMsg, Token, TokenDetails, UserDetails,
 };
 use std::str::FromStr;
 
@@ -604,18 +604,19 @@ pub fn execute_update_royalty_receivers(
     receivers: Vec<WeightedAddress>,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
-    let mut collection = COLLECTION.load(deps.storage)?;
+    let collection_details = COLLECTION.load(deps.storage)?;
     let auth_details = AUTH_DETAILS.load(deps.storage)?;
     // Check if admin
     if info.sender != auth_details.admin {
         return Err(ContractError::Unauthorized {});
     }
-    collection.royalty_receivers = Some(receivers.clone());
+    let new_collection_details =
+        update_collection_details(&collection_details, None, None, None, Some(receivers));
 
-    COLLECTION.save(deps.storage, &collection)?;
+    COLLECTION.save(deps.storage, &new_collection_details)?;
 
     let update_msg: CosmosMsg = generate_update_denom_msg(
-        &collection,
+        &new_collection_details,
         auth_details.payment_collector,
         env.contract.address,
     )?
@@ -636,25 +637,23 @@ pub fn execute_update_denom(
     preview_uri: Option<String>,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
-    let mut collection = COLLECTION.load(deps.storage)?;
+    let collection_details = COLLECTION.load(deps.storage)?;
     let auth_details = AUTH_DETAILS.load(deps.storage)?;
     // Check if admin
     if info.sender != auth_details.admin {
         return Err(ContractError::Unauthorized {});
     }
-    collection.collection_name = collection_name
-        .clone()
-        .unwrap_or(collection.collection_name);
-    if let Some(description) = description.clone() {
-        collection.description = Some(description);
-    }
-    if let Some(preview_uri) = preview_uri.clone() {
-        collection.preview_uri = Some(preview_uri);
-    }
-    COLLECTION.save(deps.storage, &collection)?;
+    let new_collection_details = update_collection_details(
+        &collection_details,
+        collection_name,
+        description,
+        preview_uri,
+        None,
+    );
+    COLLECTION.save(deps.storage, &new_collection_details)?;
 
     let update_msg: CosmosMsg = generate_update_denom_msg(
-        &collection,
+        &new_collection_details,
         auth_details.payment_collector,
         env.contract.address,
     )?
