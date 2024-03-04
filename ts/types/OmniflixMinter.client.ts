@@ -6,14 +6,14 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { StdFee } from "@cosmjs/amino";
-import { Timestamp, Uint64, Uint128, Decimal, InstantiateMsg, CollectionDetails, WeightedAddress, MinterInitExtention, Coin, TokenDetails, ExecuteMsg, QueryMsg, MinterExtensionQueryMsg, Addr, AuthDetails, Config, Uint32, Boolean, UserDetails, Token, ArrayOfAddr } from "./OmniflixMinter.types";
+import { Timestamp, Uint64, Uint128, Decimal, InstantiateMsg, CollectionDetails, WeightedAddress, MinterInitExtention, Coin, TokenDetails, ExecuteMsg, QueryMsg, MinterExtensionQueryMsg, Addr, AuthDetails, Config, Uint32, Boolean, ArrayOfAddr, UserDetails, Token } from "./OmniflixMinter.types";
 export interface OmniflixMinterReadOnlyInterface {
   contractAddress: string;
   collection: () => Promise<CollectionDetails>;
   tokenDetails: () => Promise<TokenDetails>;
   authDetails: () => Promise<AuthDetails>;
   config: () => Promise<Config>;
-  mintedTokens: ({
+  userMintingDetails: ({
     address
   }: {
     address: string;
@@ -34,7 +34,7 @@ export class OmniflixMinterQueryClient implements OmniflixMinterReadOnlyInterfac
     this.tokenDetails = this.tokenDetails.bind(this);
     this.authDetails = this.authDetails.bind(this);
     this.config = this.config.bind(this);
-    this.mintedTokens = this.mintedTokens.bind(this);
+    this.userMintingDetails = this.userMintingDetails.bind(this);
     this.isPaused = this.isPaused.bind(this);
     this.pausers = this.pausers.bind(this);
     this.extension = this.extension.bind(this);
@@ -61,13 +61,13 @@ export class OmniflixMinterQueryClient implements OmniflixMinterReadOnlyInterfac
       config: {}
     });
   };
-  mintedTokens = async ({
+  userMintingDetails = async ({
     address
   }: {
     address: string;
   }): Promise<UserDetails> => {
     return this.client.queryContractSmart(this.contractAddress, {
-      minted_tokens: {
+      user_minting_details: {
         address
       }
     });

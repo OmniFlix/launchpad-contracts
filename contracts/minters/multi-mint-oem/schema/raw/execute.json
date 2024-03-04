@@ -200,14 +200,14 @@
         "new_drop": {
           "type": "object",
           "required": [
-            "new_config",
-            "new_token_details"
+            "config",
+            "token_details"
           ],
           "properties": {
-            "new_config": {
+            "config": {
               "$ref": "#/definitions/Config"
             },
-            "new_token_details": {
+            "token_details": {
               "$ref": "#/definitions/TokenDetails"
             }
           },

@@ -7,7 +7,7 @@
 import { MsgExecuteContractEncodeObject } from "@cosmjs/cosmwasm-stargate";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { toUtf8 } from "@cosmjs/encoding";
-import { Timestamp, Uint64, Uint128, Decimal, InstantiateMsg, CollectionDetails, WeightedAddress, OpenEditionMinterInitExtention, Coin, TokenDetails, ExecuteMsg, QueryMsg, OEMQueryExtension, Addr, AuthDetails, Config, Uint32, Boolean, UserDetails, Token, ArrayOfAddr } from "./OmniflixOpenEditionMinter.types";
+import { Timestamp, Uint64, Uint128, Decimal, InstantiateMsg, CollectionDetails, WeightedAddress, OpenEditionMinterInitExtention, Coin, TokenDetails, ExecuteMsg, QueryMsg, OEMQueryExtension, Addr, AuthDetails, Config, Uint32, Boolean, ArrayOfAddr, UserDetails, Token } from "./OmniflixOpenEditionMinter.types";
 export interface OmniflixOpenEditionMinterMsg {
   contractAddress: string;
   sender: string;

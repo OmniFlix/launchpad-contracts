@@ -11,7 +11,7 @@ export type Decimal = string;
 export interface InstantiateMsg {
   collection_details: CollectionDetails;
   init: OpenEditionMinterInitExtention;
-  token_details: TokenDetails;
+  token_details?: TokenDetails | null;
 }
 export interface CollectionDetails {
   collection_name: string;
@@ -90,8 +90,8 @@ export type ExecuteMsg = {
   };
 } | {
   new_drop: {
-    new_config: Config;
-    new_token_details: TokenDetails;
+    config: Config;
+    token_details: TokenDetails;
   };
 } | {
   update_royalty_receivers: {
@@ -132,7 +132,7 @@ export type QueryMsg = {
 } | {
   config: {};
 } | {
-  minted_tokens: {
+  user_minting_details: {
     address: string;
   };
 } | {
@@ -145,10 +145,6 @@ export type QueryMsg = {
   total_minted_count: {};
 };
 export type QueryMsgExtension = {
-  collection: {
-    drop_id?: number | null;
-  };
-} | {
   token_details: {
     drop_id?: number | null;
   };
@@ -157,12 +153,12 @@ export type QueryMsgExtension = {
     drop_id?: number | null;
   };
 } | {
-  minted_tokens: {
+  user_minting_details: {
     address: string;
     drop_id?: number | null;
   };
 } | {
-  tokens_remaining: {
+  tokens_remaining_in_drop: {
     drop_id?: number | null;
   };
 } | {
@@ -176,6 +172,7 @@ export interface AuthDetails {
 }
 export type Uint32 = number;
 export type Boolean = boolean;
+export type ArrayOfAddr = Addr[];
 export interface UserDetails {
   minted_tokens: Token[];
   public_mint_count: number;
@@ -184,4 +181,3 @@ export interface UserDetails {
 export interface Token {
   token_id: string;
 }
-export type ArrayOfAddr = Addr[];

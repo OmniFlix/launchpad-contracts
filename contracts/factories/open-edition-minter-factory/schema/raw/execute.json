@@ -5,10 +5,10 @@
     {
       "type": "object",
       "required": [
-        "create_minter"
+        "create_open_edition_minter"
       ],
       "properties": {
-        "create_minter": {
+        "create_open_edition_minter": {
           "type": "object",
           "required": [
             "msg"
@@ -16,6 +16,27 @@
           "properties": {
             "msg": {
               "$ref": "#/definitions/MinterInstantiateMsg_for_OpenEditionMinterInitExtention"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "create_multi_mint_open_edition_minter"
+      ],
+      "properties": {
+        "create_multi_mint_open_edition_minter": {
+          "type": "object",
+          "required": [
+            "msg"
+          ],
+          "properties": {
+            "msg": {
+              "$ref": "#/definitions/MinterInstantiateMsg_for_MultiMinterInitExtention"
             }
           },
           "additionalProperties": false
@@ -99,6 +120,50 @@
           ],
           "properties": {
             "minter_code_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "update_multi_minter_creation_fee"
+      ],
+      "properties": {
+        "update_multi_minter_creation_fee": {
+          "type": "object",
+          "required": [
+            "multi_minter_creation_fee"
+          ],
+          "properties": {
+            "multi_minter_creation_fee": {
+              "$ref": "#/definitions/Coin"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "update_multi_minter_contract_id"
+      ],
+      "properties": {
+        "update_multi_minter_contract_id": {
+          "type": "object",
+          "required": [
+            "multi_minter_contract_id"
+          ],
+          "properties": {
+            "multi_minter_contract_id": {
               "type": "integer",
               "format": "uint64",
               "minimum": 0.0
@@ -195,12 +260,37 @@
       "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
       "type": "string"
     },
+    "MinterInstantiateMsg_for_MultiMinterInitExtention": {
+      "type": "object",
+      "required": [
+        "collection_details",
+        "init"
+      ],
+      "properties": {
+        "collection_details": {
+          "$ref": "#/definitions/CollectionDetails"
+        },
+        "init": {
+          "$ref": "#/definitions/MultiMinterInitExtention"
+        },
+        "token_details": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/TokenDetails"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
     "MinterInstantiateMsg_for_OpenEditionMinterInitExtention": {
       "type": "object",
       "required": [
         "collection_details",
-        "init",
-        "token_details"
+        "init"
       ],
       "properties": {
         "collection_details": {
@@ -210,7 +300,32 @@
           "$ref": "#/definitions/OpenEditionMinterInitExtention"
         },
         "token_details": {
-          "$ref": "#/definitions/TokenDetails"
+          "anyOf": [
+            {
+              "$ref": "#/definitions/TokenDetails"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "MultiMinterInitExtention": {
+      "type": "object",
+      "required": [
+        "admin"
+      ],
+      "properties": {
+        "admin": {
+          "type": "string"
+        },
+        "payment_collector": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "additionalProperties": false

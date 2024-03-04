@@ -4,8 +4,7 @@
   "type": "object",
   "required": [
     "collection_details",
-    "init",
-    "token_details"
+    "init"
   ],
   "properties": {
     "collection_details": {
@@ -15,7 +14,14 @@
       "$ref": "#/definitions/OpenEditionMinterInitExtention"
     },
     "token_details": {
-      "$ref": "#/definitions/TokenDetails"
+      "anyOf": [
+        {
+          "$ref": "#/definitions/TokenDetails"
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   },
   "additionalProperties": false,

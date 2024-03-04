@@ -6,14 +6,14 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { StdFee } from "@cosmjs/amino";
-import { Timestamp, Uint64, Uint128, Decimal, InstantiateMsg, CollectionDetails, WeightedAddress, OpenEditionMinterInitExtention, Coin, TokenDetails, ExecuteMsg, QueryMsg, OEMQueryExtension, Addr, AuthDetails, Config, Uint32, Boolean, UserDetails, Token, ArrayOfAddr } from "./OmniflixOpenEditionMinter.types";
+import { Timestamp, Uint64, Uint128, Decimal, InstantiateMsg, CollectionDetails, WeightedAddress, OpenEditionMinterInitExtention, Coin, TokenDetails, ExecuteMsg, QueryMsg, OEMQueryExtension, Addr, AuthDetails, Config, Uint32, Boolean, ArrayOfAddr, UserDetails, Token } from "./OmniflixOpenEditionMinter.types";
 export interface OmniflixOpenEditionMinterReadOnlyInterface {
   contractAddress: string;
   collection: () => Promise<CollectionDetails>;
   tokenDetails: () => Promise<TokenDetails>;
   authDetails: () => Promise<AuthDetails>;
   config: () => Promise<Config>;
-  mintedTokens: ({
+  userMintingDetails: ({
     address
   }: {
     address: string;
@@ -34,7 +34,7 @@ export class OmniflixOpenEditionMinterQueryClient implements OmniflixOpenEdition
     this.tokenDetails = this.tokenDetails.bind(this);
     this.authDetails = this.authDetails.bind(this);
     this.config = this.config.bind(this);
-    this.mintedTokens = this.mintedTokens.bind(this);
+    this.userMintingDetails = this.userMintingDetails.bind(this);
     this.isPaused = this.isPaused.bind(this);
     this.pausers = this.pausers.bind(this);
     this.extension = this.extension.bind(this);
@@ -61,13 +61,13 @@ export class OmniflixOpenEditionMinterQueryClient implements OmniflixOpenEdition
       config: {}
     });
   };
-  mintedTokens = async ({
+  userMintingDetails = async ({
     address
   }: {
     address: string;
   }): Promise<UserDetails> => {
     return this.client.queryContractSmart(this.contractAddress, {
-      minted_tokens: {
+      user_minting_details: {
         address
       }
     });

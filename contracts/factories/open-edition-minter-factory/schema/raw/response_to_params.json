@@ -7,7 +7,7 @@
   ],
   "properties": {
     "params": {
-      "$ref": "#/definitions/FactoryParams_for_Empty"
+      "$ref": "#/definitions/FactoryParams_for_MultiMinterFactoryExtension"
     }
   },
   "additionalProperties": false,
@@ -31,11 +31,7 @@
         }
       }
     },
-    "Empty": {
-      "description": "An empty struct that serves as a placeholder in different places, such as contracts that don't set a custom message.\n\nIt is designed to be expressable in correct JSON and JSON Schema but contains no meaningful data. Previously we used enums without cases, but those cannot represented as valid JSON Schema (https://github.com/CosmWasm/cosmwasm/issues/451)",
-      "type": "object"
-    },
-    "FactoryParams_for_Empty": {
+    "FactoryParams_for_MultiMinterFactoryExtension": {
       "type": "object",
       "required": [
         "admin",
@@ -61,10 +57,28 @@
           "$ref": "#/definitions/Addr"
         },
         "init": {
-          "$ref": "#/definitions/Empty"
+          "$ref": "#/definitions/MultiMinterFactoryExtension"
         },
         "product_label": {
           "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "MultiMinterFactoryExtension": {
+      "type": "object",
+      "required": [
+        "multi_minter_contract_id",
+        "multi_minter_creation_fee"
+      ],
+      "properties": {
+        "multi_minter_contract_id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "multi_minter_creation_fee": {
+          "$ref": "#/definitions/Coin"
         }
       },
       "additionalProperties": false
