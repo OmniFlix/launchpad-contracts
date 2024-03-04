@@ -88,6 +88,9 @@ pub enum ContractError {
 
     #[error("Token limit not set")]
     TokenLimitNotSet {},
+
+    #[error("Invalid token details")]
+    InvalidTokenDetails {},
 }
 impl From<ContractError> for StdError {
     fn from(err: ContractError) -> StdError {

@@ -51,6 +51,14 @@ pub fn instantiate(
     // This field is implemented only for testing purposes
     let collection_creation_fee: Coin = check_collection_creation_fee(deps.as_ref().querier)?;
 
+    // Check if the token details are present
+    if msg.token_details.is_none() {
+        return Err(ContractError::InvalidTokenDetails {});
+    }
+    let token_details = msg.token_details.clone().unwrap();
+    let collection_details = msg.collection_details.clone();
+    let init = msg.init.clone();
+
     let amount = must_pay(&info, &collection_creation_fee.denom)?;
     // Exact amount must be paid
     if amount != collection_creation_fee.amount {
@@ -64,37 +72,37 @@ pub fn instantiate(
         });
     }
     // Check if per address limit is 0
-    if let Some(per_address_limit) = msg.init.per_address_limit {
+    if let Some(per_address_limit) = init.per_address_limit {
         if per_address_limit == 0 {
             return Err(ContractError::PerAddressLimitZero {});
         }
     }
     // Check if num tokens is 0
-    if let Some(num_tokens) = msg.init.num_tokens {
+    if let Some(num_tokens) = init.num_tokens {
         if num_tokens == 0 {
             return Err(ContractError::InvalidNumTokens {});
         }
     }
 
     // Check start time
-    if msg.init.start_time < env.block.time {
+    if init.start_time < env.block.time {
         return Err(ContractError::InvalidStartTime {});
     }
     // Check end time
-    if let Some(end_time) = msg.init.end_time {
-        if end_time < msg.init.start_time {
+    if let Some(end_time) = init.end_time {
+        if end_time < init.start_time {
             return Err(ContractError::InvalidEndTime {});
         }
     }
 
     // Check royalty ratio we expect decimal number
-    let royalty_ratio = msg.token_details.royalty_ratio;
+    let royalty_ratio = token_details.royalty_ratio;
     if royalty_ratio < Decimal::zero() || royalty_ratio > Decimal::one() {
         return Err(ContractError::InvalidRoyaltyRatio {});
     }
 
     // Check if whitelist already active
-    if let Some(whitelist_address) = msg.init.whitelist_address.clone() {
+    if let Some(whitelist_address) = init.whitelist_address.clone() {
         let is_active = check_if_whitelist_is_active(
             &deps.api.addr_validate(&whitelist_address)?,
             deps.as_ref(),
@@ -103,18 +111,18 @@ pub fn instantiate(
             return Err(ContractError::WhitelistAlreadyActive {});
         }
     }
-    let admin = deps.api.addr_validate(&msg.init.admin)?;
+    let admin = deps.api.addr_validate(&init.admin)?;
 
     let payment_collector =
-        maybe_addr(deps.api, msg.init.payment_collector.clone())?.unwrap_or(info.sender.clone());
+        maybe_addr(deps.api, init.payment_collector.clone())?.unwrap_or(info.sender.clone());
 
     let config = Config {
-        per_address_limit: msg.init.per_address_limit,
-        start_time: msg.init.start_time,
-        mint_price: msg.init.mint_price,
-        whitelist_address: maybe_addr(deps.api, msg.init.whitelist_address.clone())?,
-        end_time: msg.init.end_time,
-        num_tokens: msg.init.num_tokens,
+        per_address_limit: init.per_address_limit,
+        start_time: init.start_time,
+        mint_price: init.mint_price,
+        whitelist_address: maybe_addr(deps.api, init.whitelist_address.clone())?,
+        end_time: init.end_time,
+        num_tokens: init.num_tokens,
     };
     let auth_details = AuthDetails {
         admin: admin.clone(),
@@ -127,9 +135,6 @@ pub fn instantiate(
 
     let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
     pause_state.set_pausers(deps.storage, info.sender.clone(), vec![admin.clone()])?;
-
-    let collection_details = msg.collection_details;
-    let token_details = msg.token_details;
 
     COLLECTION.save(deps.storage, &collection_details)?;
     TOKEN_DETAILS.save(deps.storage, &token_details)?;

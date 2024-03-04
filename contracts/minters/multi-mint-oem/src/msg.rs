@@ -31,8 +31,8 @@ pub enum ExecuteMsg {
         pausers: Vec<String>,
     },
     NewDrop {
-        new_token_details: TokenDetails,
-        new_config: Config,
+        token_details: TokenDetails,
+        config: Config,
     },
     UpdateRoyaltyReceivers {
         receivers: Vec<WeightedAddress>,
@@ -59,12 +59,12 @@ pub enum QueryMsgExtension {
     #[returns(Config)]
     Config { drop_id: Option<u32> },
     #[returns(UserDetails)]
-    MintedTokens {
+    UserMintedTokens {
         address: String,
         drop_id: Option<u32>,
     },
     #[returns(u32)]
-    TokensRemaining { drop_id: Option<u32> },
+    TokensRemainingInDrop { drop_id: Option<u32> },
     #[returns(u32)]
     CurrentDropNumber {},
     #[returns(Vec<(u32,DropParams)>)]

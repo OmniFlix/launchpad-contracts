@@ -54,7 +54,7 @@ pub struct AuthDetails {
 #[cw_serde]
 pub struct MinterInstantiateMsg<T> {
     pub collection_details: CollectionDetails,
-    pub token_details: TokenDetails,
+    pub token_details: Option<TokenDetails>,
     pub init: T,
 }
 

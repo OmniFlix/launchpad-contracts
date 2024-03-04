@@ -1,6 +1,6 @@
 #![cfg(test)]
-use cosmwasm_std::Decimal;
 use cosmwasm_std::{coin, coins, Addr, BlockInfo, Timestamp, Uint128};
+use cosmwasm_std::{Decimal, StdError};
 use cw_multi_test::Executor;
 use minter_types::QueryMsg as CommonMinterQueryMsg;
 use minter_types::TokenDetails;
@@ -13,9 +13,10 @@ use omniflix_multi_mint_open_edition_minter::error::ContractError as MultiMintOp
 use omniflix_multi_mint_open_edition_minter::msg::ExecuteMsg as MultiMintOpenEditionMinterExecuteMsg;
 use omniflix_multi_mint_open_edition_minter::msg::QueryMsgExtension as MultiMintOpenEditionMinterQueryMsgExtension;
 
-use omniflix_open_edition_minter_factory::msg::ExecuteMsg as OpenEditionMinterFactoryExecuteMsg;
+use omniflix_multi_mint_open_edition_minter::state::DropParams;
 use omniflix_open_edition_minter_factory::msg::{
-    OpenEditionMinterCreateMsg, OpenEditionMinterInitExtention,
+    ExecuteMsg as OpenEditionMinterFactoryExecuteMsg, MultiMinterCreateMsg,
+    MultiMinterInitExtention,
 };
 use omniflix_round_whitelist::msg::ExecuteMsg as RoundWhitelistExecuteMsg;
 use whitelist_types::Round;
@@ -26,6 +27,7 @@ type MultiMintOpenEditionMinterQueryMsg =
 
 use crate::helpers::utils::{
     get_contract_address_from_res, mint_to_address, return_factory_inst_message,
+    return_open_edition_minter_factory_inst_message,
 };
 
 use crate::{helpers::setup::setup, helpers::utils::query_onft_collection};
@@ -206,7 +208,7 @@ fn test_scenario_1() {
             data: Some("data".to_string()),
             royalty_receivers: None,
         },
-        token_details: TokenDetails {
+        token_details: Some(TokenDetails {
             transferable: true,
             token_name: "token_name".to_string(),
             description: Some("description".to_string()),
@@ -216,7 +218,7 @@ fn test_scenario_1() {
             nsfw: false,
             royalty_ratio: Decimal::percent(10),
             data: None,
-        },
+        }),
         init: MinterInitExtention {
             admin: creator.to_string(),
             mint_price: coin(5_000_000, "uflix"),
@@ -588,7 +590,10 @@ fn test_scenario_2() {
     let collector = test_addresses.collector;
     // Instantiate the minter factory
     let open_edition_minter_factory_instantiate_msg =
-        return_factory_inst_message(multi_minter_code_id);
+        return_open_edition_minter_factory_inst_message(
+            open_edition_minter_factory_code_id,
+            multi_minter_code_id,
+        );
 
     let open_edition_minter_factory_address = app
         .instantiate_contract(
@@ -671,6 +676,62 @@ fn test_scenario_2() {
         data: Some("data".to_string()),
         royalty_receivers: None,
     };
+    let init = MultiMinterInitExtention {
+        admin: creator.to_string(),
+        payment_collector: Some(creator.to_string()),
+    };
+
+    let multi_minter_inst_msg = MultiMinterCreateMsg {
+        collection_details,
+        init,
+        token_details: None,
+    };
+
+    let res = app
+        .execute_contract(
+            creator.clone(),
+            open_edition_minter_factory_address.clone(),
+            &OpenEditionMinterFactoryExecuteMsg::CreateMultiMintOpenEditionMinter {
+                msg: multi_minter_inst_msg,
+            },
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap();
+    let multi_minter_addr = get_contract_address_from_res(res);
+    let drops_error: Result<Vec<(u32, DropParams)>, _> = app.wrap().query_wasm_smart(
+        multi_minter_addr.clone(),
+        &MultiMintOpenEditionMinterQueryMsg::Extension(
+            MultiMintOpenEditionMinterQueryMsgExtension::AllDrops {},
+        ),
+    );
+    // On instantiation, no drop should be available, drop number should be 0
+    assert_eq!(
+        drops_error.unwrap_err(),
+        StdError::generic_err("Querier contract error: Generic error: No drop available")
+    );
+    let current_drop_number: u32 = app
+        .wrap()
+        .query_wasm_smart(
+            multi_minter_addr.clone(),
+            &MultiMintOpenEditionMinterQueryMsg::Extension(
+                MultiMintOpenEditionMinterQueryMsgExtension::CurrentDropNumber {},
+            ),
+        )
+        .unwrap();
+    assert_eq!(current_drop_number, 0);
+
+    let tokens_remaining_error: Result<u32, _> = app.wrap().query_wasm_smart(
+        multi_minter_addr.clone(),
+        &MultiMintOpenEditionMinterQueryMsg::Extension(
+            MultiMintOpenEditionMinterQueryMsgExtension::TokensRemainingInDrop { drop_id: Some(1) },
+        ),
+    );
+    assert_eq!(
+        tokens_remaining_error.unwrap_err(),
+        StdError::generic_err("Querier contract error: Generic error: Invalid drop id")
+    );
+
+    // Create first drop
     let token_details = TokenDetails {
         token_name: "Drop number 1".to_string(),
         description: Some("Drop number 1 description".to_string()),
@@ -682,34 +743,26 @@ fn test_scenario_2() {
         nsfw: false,
         data: Some("Drop number 1 data".to_string()),
     };
-    let init = OpenEditionMinterInitExtention {
-        admin: creator.to_string(),
+    let config = Config {
         mint_price: coin(5_000_000, "uflix"),
         start_time: Timestamp::from_nanos(10_000_000),
         end_time: Some(Timestamp::from_nanos(50_500_000)),
         per_address_limit: Some(100),
-        payment_collector: None,
-        whitelist_address: Some(round_whitelist_addr.clone()),
+        whitelist_address: Some(Addr::unchecked(round_whitelist_addr.clone())),
         num_tokens: Some(100),
     };
 
-    let multi_minter_inst_msg = OpenEditionMinterCreateMsg {
-        collection_details,
-        init,
-        token_details,
-    };
-
-    let res = app
+    let _res = app
         .execute_contract(
             creator.clone(),
-            open_edition_minter_factory_address.clone(),
-            &OpenEditionMinterFactoryExecuteMsg::CreateMinter {
-                msg: multi_minter_inst_msg,
+            Addr::unchecked(multi_minter_addr.clone()),
+            &MultiMintOpenEditionMinterExecuteMsg::NewDrop {
+                token_details,
+                config,
             },
             &[coin(2000000, "uflix")],
         )
         .unwrap();
-    let multi_minter_addr = get_contract_address_from_res(res);
 
     // Set time to first round
     app.set_block(BlockInfo {
@@ -1085,8 +1138,8 @@ fn test_scenario_2() {
         num_tokens: Some(100),
     };
     let new_drop_msg = MultiMintOpenEditionMinterExecuteMsg::NewDrop {
-        new_token_details,
-        new_config,
+        token_details: new_token_details,
+        config: new_config,
     };
     let _res = app
         .execute_contract(

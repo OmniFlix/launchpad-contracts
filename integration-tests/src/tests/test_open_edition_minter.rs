@@ -7,7 +7,8 @@ use minter_types::{CollectionDetails, Config};
 use omniflix_open_edition_minter_factory::msg::ExecuteMsg as OpenEditionMinterFactoryExecuteMsg;
 
 use crate::helpers::utils::{
-    get_contract_address_from_res, return_factory_inst_message, return_open_edition_minter_inst_msg,
+    get_contract_address_from_res, return_open_edition_minter_factory_inst_message,
+    return_open_edition_minter_inst_msg,
 };
 
 use crate::{helpers::setup::setup, helpers::utils::query_onft_collection};
@@ -38,7 +39,10 @@ fn test_open_edition_minter_creation() {
 
     // Instantiate the minter factory
     let open_edition_minter_factory_instantiate_msg =
-        return_factory_inst_message(open_edition_minter_code_id);
+        return_open_edition_minter_factory_inst_message(
+            open_edition_minter_code_id,
+            open_edition_minter_code_id,
+        );
 
     let open_edition_minter_factory_address = app
         .instantiate_contract(
@@ -53,7 +57,7 @@ fn test_open_edition_minter_creation() {
 
     // Create a minter
     let open_edition_minter_instantiate_msg = return_open_edition_minter_inst_msg();
-    let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateMinter {
+    let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateOpenEditionMinter {
         msg: open_edition_minter_instantiate_msg,
     };
     // Send no funds
@@ -146,7 +150,7 @@ fn test_open_edition_minter_creation() {
     // Send zero token limit
     let mut open_edition_minter_instantiate_msg = return_open_edition_minter_inst_msg();
     open_edition_minter_instantiate_msg.init.num_tokens = Some(0);
-    let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateMinter {
+    let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateOpenEditionMinter {
         msg: open_edition_minter_instantiate_msg,
     };
     let res = app
@@ -166,7 +170,7 @@ fn test_open_edition_minter_creation() {
     // Send zero per address limit
     let mut open_edition_minter_instantiate_msg = return_open_edition_minter_inst_msg();
     open_edition_minter_instantiate_msg.init.per_address_limit = Some(0);
-    let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateMinter {
+    let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateOpenEditionMinter {
         msg: open_edition_minter_instantiate_msg,
     };
     let res = app
@@ -187,8 +191,10 @@ fn test_open_edition_minter_creation() {
     let mut open_edition_minter_instantiate_msg = return_open_edition_minter_inst_msg();
     open_edition_minter_instantiate_msg
         .token_details
+        .as_mut()
+        .unwrap()
         .royalty_ratio = Decimal::percent(101);
-    let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateMinter {
+    let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateOpenEditionMinter {
         msg: open_edition_minter_instantiate_msg,
     };
     let res = app
@@ -208,7 +214,7 @@ fn test_open_edition_minter_creation() {
     // Send incorrect mint price this should not fail because mint price can be set to zero on open edition minter
     let mut open_edition_minter_instantiate_msg = return_open_edition_minter_inst_msg();
     open_edition_minter_instantiate_msg.init.mint_price.amount = Uint128::zero();
-    let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateMinter {
+    let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateOpenEditionMinter {
         msg: open_edition_minter_instantiate_msg,
     };
     let _res = app
@@ -223,7 +229,7 @@ fn test_open_edition_minter_creation() {
     // Send incorrect start time
     let mut open_edition_minter_instantiate_msg = return_open_edition_minter_inst_msg();
     open_edition_minter_instantiate_msg.init.start_time = Timestamp::from_nanos(0);
-    let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateMinter {
+    let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateOpenEditionMinter {
         msg: open_edition_minter_instantiate_msg,
     };
     let res = app
@@ -249,7 +255,7 @@ fn test_open_edition_minter_creation() {
 
     // Create a minter
     let open_edition_minter_instantiate_msg = return_open_edition_minter_inst_msg();
-    let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateMinter {
+    let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateOpenEditionMinter {
         msg: open_edition_minter_instantiate_msg,
     };
     let res = app
