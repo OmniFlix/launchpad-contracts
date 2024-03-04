@@ -190,7 +190,7 @@ fn test_open_edition_minting() {
     );
 
     // Query minter
-    let query_msg = OpenEditionMinterQueryMsg::MintedTokens {
+    let query_msg = OpenEditionMinterQueryMsg::UserMintingDetails {
         address: collector.to_string(),
     };
     let res: UserDetails = app
@@ -244,7 +244,7 @@ fn test_open_edition_minting() {
             .unwrap();
 
         // Query minter
-        let query_msg = OpenEditionMinterQueryMsg::MintedTokens {
+        let query_msg = OpenEditionMinterQueryMsg::UserMintingDetails {
             address: collector.to_string(),
         };
         let res: UserDetails = app

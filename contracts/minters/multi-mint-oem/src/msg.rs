@@ -59,7 +59,7 @@ pub enum QueryMsgExtension {
     #[returns(Config)]
     Config { drop_id: Option<u32> },
     #[returns(UserDetails)]
-    UserMintedTokens {
+    UserMintingDetails {
         address: String,
         drop_id: Option<u32>,
     },

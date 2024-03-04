@@ -16,8 +16,8 @@ use std::str::FromStr;
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, QueryMsgExtension};
 use crate::state::{
-    DropParams, UserMintedTokens, AUTH_DETAILS, COLLECTION, CURRENT_DROP_ID, DROPS,
-    DROP_MINTED_COUNT, LAST_MINTED_TOKEN_ID, USER_MINTED_TOKENS_KEY,
+    DropParams, UserMintingDetails, AUTH_DETAILS, COLLECTION, CURRENT_DROP_ID, DROPS,
+    DROP_MINTED_COUNT, LAST_MINTED_TOKEN_ID, USER_MINTING_DETAILS_KEY,
 };
 use crate::utils::get_drop;
 
@@ -184,9 +184,9 @@ pub fn execute_mint(
             return Err(ContractError::PublicMintingEnded {});
         }
     };
-    let user_minted_tokens = UserMintedTokens::new(USER_MINTED_TOKENS_KEY);
+    let user_minting_details = UserMintingDetails::new(USER_MINTING_DETAILS_KEY);
 
-    let mut user_details = user_minted_tokens
+    let mut user_details = user_minting_details
         .load(deps.storage, drop_id, info.sender.clone())
         .unwrap_or_default();
     // Load and increment the minted count
@@ -249,7 +249,7 @@ pub fn execute_mint(
         token_id: token_id.to_string(),
     });
     // Save the user details
-    user_minted_tokens.save(deps.storage, drop_id, info.sender.clone(), &user_details);
+    user_minting_details.save(deps.storage, drop_id, info.sender.clone(), &user_details);
 
     // Check the payment
     // Can be set to zero so use may_pay
@@ -344,9 +344,9 @@ pub fn execute_mint_admin(
     let last_token_id = LAST_MINTED_TOKEN_ID.load(deps.storage)?;
     let token_id = last_token_id + 1;
 
-    let user_minted_tokens = UserMintedTokens::new(USER_MINTED_TOKENS_KEY);
+    let user_minting_details = UserMintingDetails::new(USER_MINTING_DETAILS_KEY);
 
-    let mut user_details = user_minted_tokens
+    let mut user_details = user_minting_details
         .load(deps.storage, drop_id, recipient.clone())
         .unwrap_or_default();
     // We are only updating these params but not checking the mint limit
@@ -356,7 +356,7 @@ pub fn execute_mint_admin(
     });
 
     // Save the user details
-    user_minted_tokens.save(deps.storage, drop_id, recipient.clone(), &user_details);
+    user_minting_details.save(deps.storage, drop_id, recipient.clone(), &user_details);
 
     // Load current drops minted count and increment it
     let mut drop_minted_count = DROP_MINTED_COUNT.load(deps.storage, drop_id)?;
@@ -733,8 +733,8 @@ pub fn query(deps: Deps, env: Env, msg: MinterQueryMsg<QueryMsgExtension>) -> St
         MinterQueryMsg::Collection {} => to_json_binary(&query_collection(deps, env)?),
         MinterQueryMsg::TokenDetails {} => to_json_binary(&query_token_details(deps, env, None)?),
         MinterQueryMsg::Config {} => to_json_binary(&query_config(deps, env, None)?),
-        MinterQueryMsg::MintedTokens { address } => {
-            to_json_binary(&query_user_minted_tokens(deps, env, address, None)?)
+        MinterQueryMsg::UserMintingDetails { address } => {
+            to_json_binary(&query_user_minting_details(deps, env, address, None)?)
         }
         MinterQueryMsg::TotalMintedCount {} => {
             to_json_binary(&query_total_tokens_minted(deps, env)?)
@@ -750,8 +750,8 @@ pub fn query(deps: Deps, env: Env, msg: MinterQueryMsg<QueryMsgExtension>) -> St
             QueryMsgExtension::Config { drop_id } => {
                 to_json_binary(&query_config(deps, env, drop_id)?)
             }
-            QueryMsgExtension::UserMintedTokens { address, drop_id } => {
-                to_json_binary(&query_user_minted_tokens(deps, env, address, drop_id)?)
+            QueryMsgExtension::UserMintingDetails { address, drop_id } => {
+                to_json_binary(&query_user_minting_details(deps, env, address, drop_id)?)
             }
             QueryMsgExtension::TokensRemainingInDrop { drop_id } => {
                 to_json_binary(&query_tokens_remaining_in_drop(deps, env, drop_id)?)
@@ -785,7 +785,7 @@ fn query_config(deps: Deps, _env: Env, drop_id: Option<u32>) -> Result<Config, C
     Ok(config)
 }
 
-fn query_user_minted_tokens(
+fn query_user_minting_details(
     deps: Deps,
     _env: Env,
     address: String,
@@ -793,8 +793,8 @@ fn query_user_minted_tokens(
 ) -> Result<UserDetails, ContractError> {
     let address = deps.api.addr_validate(&address)?;
     let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
-    let minted_tokens = UserMintedTokens::new(USER_MINTED_TOKENS_KEY);
-    let user_details = minted_tokens.load(deps.storage, drop_id, address)?;
+    let user_minting_details = UserMintingDetails::new(USER_MINTING_DETAILS_KEY);
+    let user_details = user_minting_details.load(deps.storage, drop_id, address)?;
     Ok(user_details)
 }
 

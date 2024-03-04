@@ -15,7 +15,8 @@ use std::str::FromStr;
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, OEMQueryExtension};
 use crate::state::{
-    last_token_id, AUTH_DETAILS, COLLECTION, CONFIG, MINTED_COUNT, MINTED_TOKENS, TOKEN_DETAILS,
+    last_token_id, AUTH_DETAILS, COLLECTION, CONFIG, MINTED_COUNT, TOKEN_DETAILS,
+    USER_MINTING_DETAILS,
 };
 use cw2::set_contract_version;
 use omniflix_open_edition_minter_factory::msg::{
@@ -216,7 +217,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
         }
     }
 
-    let mut user_details = MINTED_TOKENS
+    let mut user_details = USER_MINTING_DETAILS
         .may_load(deps.storage, info.sender.clone())?
         .unwrap_or(UserDetails::default());
 
@@ -234,7 +235,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
         token_id: token_id.to_string(),
     });
 
-    MINTED_TOKENS.save(deps.storage, info.sender.clone(), &user_details)?;
+    USER_MINTING_DETAILS.save(deps.storage, info.sender.clone(), &user_details)?;
 
     let mut mint_price = config.mint_price;
     // Check if minting is started
@@ -297,7 +298,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     })?;
 
     // Save the user details
-    MINTED_TOKENS.save(deps.storage, info.sender.clone(), &user_details)?;
+    USER_MINTING_DETAILS.save(deps.storage, info.sender.clone(), &user_details)?;
 
     // Create the mint message
     let mint_msg: CosmosMsg = generate_mint_message(
@@ -371,7 +372,7 @@ pub fn execute_mint_admin(
 
     let token_id = last_token_id(deps.storage) + 1;
 
-    let mut user_details = MINTED_TOKENS
+    let mut user_details = USER_MINTING_DETAILS
         .may_load(deps.storage, recipient.clone())?
         .unwrap_or(UserDetails::default());
 
@@ -380,7 +381,7 @@ pub fn execute_mint_admin(
         token_id: token_id.to_string(),
     });
 
-    MINTED_TOKENS.save(deps.storage, recipient.clone(), &user_details)?;
+    USER_MINTING_DETAILS.save(deps.storage, recipient.clone(), &user_details)?;
 
     let mint_msg: CosmosMsg = generate_mint_message(
         &collection,
@@ -695,8 +696,8 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg<OEMQueryExtension>) -> StdResul
         QueryMsg::Collection {} => to_json_binary(&query_collection(deps, env)?),
         QueryMsg::TokenDetails {} => to_json_binary(&query_token_details(deps, env)?),
         QueryMsg::Config {} => to_json_binary(&query_config(deps, env)?),
-        QueryMsg::MintedTokens { address } => {
-            to_json_binary(&query_minted_tokens(deps, env, address)?)
+        QueryMsg::UserMintingDetails { address } => {
+            to_json_binary(&query_user_minting_details(deps, env, address)?)
         }
         QueryMsg::TotalMintedCount {} => to_json_binary(&query_total_tokens_minted(deps, env)?),
         QueryMsg::IsPaused {} => to_json_binary(&query_is_paused(deps, env)?),
@@ -725,14 +726,14 @@ fn query_config(deps: Deps, _env: Env) -> Result<Config, ContractError> {
     Ok(config)
 }
 
-fn query_minted_tokens(
+fn query_user_minting_details(
     deps: Deps,
     _env: Env,
     address: String,
 ) -> Result<UserDetails, ContractError> {
     let address = deps.api.addr_validate(&address)?;
-    let minted_tokens = MINTED_TOKENS.load(deps.storage, address)?;
-    Ok(minted_tokens)
+    let user_details = USER_MINTING_DETAILS.load(deps.storage, address)?;
+    Ok(user_details)
 }
 
 fn query_total_tokens_minted(deps: Deps, _env: Env) -> Result<u32, ContractError> {

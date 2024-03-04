@@ -13,5 +13,5 @@ pub const MINTABLE_TOKENS: Map<u32, Token> = Map::new("mintable_tokens");
 // Total number of tokens
 pub const TOTAL_TOKENS_REMAINING: Item<u32> = Item::new("total_tokens_remaining");
 // Address and number of tokens minted
-pub const MINTED_TOKENS: Map<Addr, UserDetails> = Map::new("minted_tokens");
+pub const USER_MINTING_DETAILS: Map<Addr, UserDetails> = Map::new("minted_tokens");
 pub const AUTH_DETAILS: Item<AuthDetails> = Item::new("auth_details");

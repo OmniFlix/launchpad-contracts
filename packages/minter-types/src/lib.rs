@@ -83,7 +83,7 @@ pub enum QueryMsg<T> {
     #[returns(Config)]
     Config {},
     #[returns(UserDetails)]
-    MintedTokens { address: String },
+    UserMintingDetails { address: String },
     #[returns(bool)]
     IsPaused {},
     #[returns(Vec<Addr>)]

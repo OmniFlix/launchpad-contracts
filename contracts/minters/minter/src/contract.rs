@@ -23,8 +23,8 @@ use whitelist_types::{
 
 use crate::error::ContractError;
 use crate::state::{
-    AUTH_DETAILS, COLLECTION, CONFIG, MINTABLE_TOKENS, MINTED_TOKENS, TOKEN_DETAILS,
-    TOTAL_TOKENS_REMAINING,
+    AUTH_DETAILS, COLLECTION, CONFIG, MINTABLE_TOKENS, TOKEN_DETAILS, TOTAL_TOKENS_REMAINING,
+    USER_MINTING_DETAILS,
 };
 use crate::utils::{
     collect_mintable_tokens, generate_tokens, randomize_token_list, return_random_token,
@@ -238,7 +238,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     if total_tokens_remaining == 0 {
         return Err(ContractError::NoTokensLeftToMint {});
     }
-    let mut user_details = MINTED_TOKENS
+    let mut user_details = USER_MINTING_DETAILS
         .may_load(deps.storage, info.sender.clone())?
         .unwrap_or(UserDetails::default());
 
@@ -311,7 +311,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     // Add the minted token to the user details
     user_details.minted_tokens.push(random_token.1.clone());
 
-    MINTED_TOKENS.save(deps.storage, info.sender.clone(), &user_details)?;
+    USER_MINTING_DETAILS.save(deps.storage, info.sender.clone(), &user_details)?;
 
     // Check the payment
     let amount = may_pay(&info, &mint_price.denom)?;
@@ -421,14 +421,14 @@ pub fn execute_mint_admin(
     })?;
 
     // Increment the minted tokens for the addres
-    let mut user_details = MINTED_TOKENS
+    let mut user_details = USER_MINTING_DETAILS
         .may_load(deps.storage, recipient.clone())?
         .unwrap_or(UserDetails::default());
     // We are updating parameter ourself and not using add_minted_token function because we want to override per address limit checks
     user_details.minted_tokens.push(token.1.clone());
     user_details.total_minted_count += 1;
     // Save details
-    MINTED_TOKENS.save(deps.storage, recipient.clone(), &user_details)?;
+    USER_MINTING_DETAILS.save(deps.storage, recipient.clone(), &user_details)?;
 
     let token_id = token.1.token_id;
 
@@ -780,8 +780,8 @@ pub fn query(
     match msg {
         BaseMinterQueryMsg::Collection {} => to_json_binary(&query_collection(deps, env)?),
         BaseMinterQueryMsg::Config {} => to_json_binary(&query_config(deps, env)?),
-        BaseMinterQueryMsg::MintedTokens { address } => {
-            to_json_binary(&query_minted_tokens(deps, env, address)?)
+        BaseMinterQueryMsg::UserMintingDetails { address } => {
+            to_json_binary(&query_user_minting_details(deps, env, address)?)
         }
         BaseMinterQueryMsg::AuthDetails {} => to_json_binary(&query_auth_details(deps, env)?),
         BaseMinterQueryMsg::IsPaused {} => to_json_binary(&query_is_paused(deps, env)?),
@@ -826,14 +826,14 @@ fn query_mintable_tokens(deps: Deps, _env: Env) -> Result<Vec<Token>, ContractEr
     Ok(mintable_tokens)
 }
 
-fn query_minted_tokens(
+fn query_user_minting_details(
     deps: Deps,
     _env: Env,
     address: String,
 ) -> Result<UserDetails, ContractError> {
     let address = deps.api.addr_validate(&address)?;
-    let minted_tokens = MINTED_TOKENS.load(deps.storage, address)?;
-    Ok(minted_tokens)
+    let user_minting_details = USER_MINTING_DETAILS.load(deps.storage, address)?;
+    Ok(user_minting_details)
 }
 
 fn query_total_tokens(deps: Deps, _env: Env) -> Result<u32, ContractError> {
