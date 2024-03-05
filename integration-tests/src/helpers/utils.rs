@@ -140,7 +140,7 @@ pub fn return_factory_inst_message(code_id: u64) -> InstantiateMsg {
     let params = factory_types::FactoryParams {
         admin: Addr::unchecked("admin".to_string()),
         creation_fee: Coin::new(1000000, "uflix"),
-        contract_id: code_id,
+        code_id: code_id,
         fee_collector_address: Addr::unchecked("admin".to_string()),
         product_label: "label".to_string(),
         init: Empty {},
@@ -156,11 +156,11 @@ pub fn return_open_edition_minter_factory_inst_message(
     let params = factory_types::FactoryParams::<MultiMinterFactoryExtension> {
         admin: Addr::unchecked("admin".to_string()),
         creation_fee: Coin::new(1000000, "uflix"),
-        contract_id: oem_code_id,
+        code_id: oem_code_id,
         fee_collector_address: Addr::unchecked("admin".to_string()),
         product_label: "label".to_string(),
         init: MultiMinterFactoryExtension {
-            multi_minter_contract_id: multi_mint_oem_code_id,
+            multi_minter_code_id: multi_mint_oem_code_id,
             multi_minter_creation_fee: Coin::new(1000000, "uflix"),
         },
     };

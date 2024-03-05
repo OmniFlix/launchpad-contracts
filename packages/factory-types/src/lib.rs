@@ -63,7 +63,7 @@ pub struct FactoryParams<T> {
     pub admin: Addr,
     pub creation_fee: Coin,
     pub fee_collector_address: Addr,
-    pub contract_id: u64,
+    pub code_id: u64,
     pub product_label: String,
     pub init: T,
 }

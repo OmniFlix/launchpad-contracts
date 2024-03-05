@@ -8,7 +8,7 @@ pub struct InstantiateMsg {
 }
 #[cw_serde]
 pub struct MultiMinterFactoryExtension {
-    pub multi_minter_contract_id: u64,
+    pub multi_minter_code_id: u64,
     pub multi_minter_creation_fee: Coin,
 }
 
@@ -42,7 +42,7 @@ pub enum ExecuteMsg {
     UpdateMinterCreationFee { minter_creation_fee: Coin },
     UpdateMinterCodeId { minter_code_id: u64 },
     UpdateMultiMinterCreationFee { multi_minter_creation_fee: Coin },
-    UpdateMultiMinterContractId { multi_minter_contract_id: u64 },
+    UpdateMultiMinterCodeId { multi_minter_code_id: u64 },
 }
 
 #[cw_serde]

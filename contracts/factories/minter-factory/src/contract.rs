@@ -68,7 +68,7 @@ fn create_minter(
     let mut msgs = Vec::<CosmosMsg>::new();
     msgs.push(CosmosMsg::Wasm(WasmMsg::Instantiate {
         admin: Some(msg.init.admin.to_string()),
-        code_id: params.contract_id,
+        code_id: params.code_id,
         msg: to_json_binary(&msg)?,
         funds: vec![collection_creation_fee.clone()],
         label: params.product_label,
@@ -132,7 +132,7 @@ fn update_params_minter_code_id(
     if params.admin != info.sender {
         return Err(ContractError::Unauthorized {});
     }
-    params.contract_id = minter_code_id;
+    params.code_id = minter_code_id;
     PARAMS.save(deps.storage, &params)?;
     Ok(Response::default()
         .add_attribute("action", "update_minter_code_id")
@@ -183,7 +183,7 @@ mod tests {
             params: factory_types::FactoryParams::<Empty> {
                 admin: Addr::unchecked("admin"),
                 fee_collector_address: Addr::unchecked("fee_collector_address"),
-                contract_id: 1,
+                code_id: 1,
                 creation_fee: Coin {
                     amount: Uint128::new(100),
                     denom: "uusd".to_string(),
@@ -202,7 +202,7 @@ mod tests {
             factory_types::FactoryParams::<Empty> {
                 admin: Addr::unchecked("admin"),
                 fee_collector_address: Addr::unchecked("fee_collector_address"),
-                contract_id: 1,
+                code_id: 1,
                 creation_fee: Coin {
                     amount: Uint128::new(100),
                     denom: "uusd".to_string(),
