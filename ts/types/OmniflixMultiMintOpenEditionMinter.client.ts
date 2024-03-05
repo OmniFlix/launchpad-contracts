@@ -6,14 +6,14 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { StdFee } from "@cosmjs/amino";
-import { Timestamp, Uint64, Uint128, Decimal, InstantiateMsg, CollectionDetails, WeightedAddress, OpenEditionMinterInitExtention, Coin, TokenDetails, ExecuteMsg, Addr, Config, QueryMsg, QueryMsgExtension, AuthDetails, Uint32, Boolean, UserDetails, Token, ArrayOfAddr } from "./OmniflixMultiMintOpenEditionMinter.types";
+import { Timestamp, Uint64, Uint128, Decimal, InstantiateMsg, CollectionDetails, WeightedAddress, OpenEditionMinterInitExtention, Coin, TokenDetails, ExecuteMsg, Addr, Config, QueryMsg, QueryMsgExtension, AuthDetails, Uint32, Boolean, ArrayOfAddr, UserDetails, Token } from "./OmniflixMultiMintOpenEditionMinter.types";
 export interface OmniflixMultiMintOpenEditionMinterReadOnlyInterface {
   contractAddress: string;
   collection: () => Promise<CollectionDetails>;
   tokenDetails: () => Promise<TokenDetails>;
   authDetails: () => Promise<AuthDetails>;
   config: () => Promise<Config>;
-  mintedTokens: ({
+  userMintingDetails: ({
     address
   }: {
     address: string;
@@ -34,7 +34,7 @@ export class OmniflixMultiMintOpenEditionMinterQueryClient implements OmniflixMu
     this.tokenDetails = this.tokenDetails.bind(this);
     this.authDetails = this.authDetails.bind(this);
     this.config = this.config.bind(this);
-    this.mintedTokens = this.mintedTokens.bind(this);
+    this.userMintingDetails = this.userMintingDetails.bind(this);
     this.isPaused = this.isPaused.bind(this);
     this.pausers = this.pausers.bind(this);
     this.extension = this.extension.bind(this);
@@ -61,13 +61,13 @@ export class OmniflixMultiMintOpenEditionMinterQueryClient implements OmniflixMu
       config: {}
     });
   };
-  mintedTokens = async ({
+  userMintingDetails = async ({
     address
   }: {
     address: string;
   }): Promise<UserDetails> => {
     return this.client.queryContractSmart(this.contractAddress, {
-      minted_tokens: {
+      user_minting_details: {
         address
       }
     });
@@ -137,11 +137,11 @@ export interface OmniflixMultiMintOpenEditionMinterInterface extends OmniflixMul
     pausers: string[];
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   newDrop: ({
-    newConfig,
-    newTokenDetails
+    config,
+    tokenDetails
   }: {
-    newConfig: Config;
-    newTokenDetails: TokenDetails;
+    config: Config;
+    tokenDetails: TokenDetails;
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   updateRoyaltyReceivers: ({
     receivers
@@ -284,16 +284,16 @@ export class OmniflixMultiMintOpenEditionMinterClient extends OmniflixMultiMintO
     }, fee, memo, _funds);
   };
   newDrop = async ({
-    newConfig,
-    newTokenDetails
+    config,
+    tokenDetails
   }: {
-    newConfig: Config;
-    newTokenDetails: TokenDetails;
+    config: Config;
+    tokenDetails: TokenDetails;
   }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       new_drop: {
-        new_config: newConfig,
-        new_token_details: newTokenDetails
+        config,
+        token_details: tokenDetails
       }
     }, fee, memo, _funds);
   };

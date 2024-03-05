@@ -86,6 +86,9 @@ pub enum ContractError {
 
     #[error("Public minting ended")]
     PublicMintingEnded {},
+
+    #[error("Invalid token details")]
+    InvalidTokenDetails {},
 }
 
 impl From<ContractError> for StdError {

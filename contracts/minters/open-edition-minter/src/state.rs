@@ -10,7 +10,7 @@ pub const COLLECTION: Item<CollectionDetails> = Item::new("collection");
 pub const TOKEN_DETAILS: Item<TokenDetails> = Item::new("token_details");
 pub const MINTED_COUNT: Item<u32> = Item::new("minted_count");
 // Address and number of tokens minted
-pub const MINTED_TOKENS: Map<Addr, UserDetails> = Map::new("minted_tokens");
+pub const USER_MINTING_DETAILS: Map<Addr, UserDetails> = Map::new("user_minting_details");
 pub const AUTH_DETAILS: Item<AuthDetails> = Item::new("auth_details");
 
 pub fn last_token_id(store: &mut dyn Storage) -> u32 {

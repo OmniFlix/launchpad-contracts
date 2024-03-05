@@ -4,6 +4,7 @@ use minter_types::{CollectionDetails, TokenDetails};
 use omniflix_minter_factory::msg::InstantiateMsg;
 use omniflix_minter_factory::msg::{CreateMinterMsg, MinterInitExtention};
 use omniflix_open_edition_minter_factory::msg::{
+    InstantiateMsg as OpenEditionMinterInstantiateMsg, MultiMinterFactoryExtension,
     OpenEditionMinterCreateMsg, OpenEditionMinterInitExtention,
 };
 use omniflix_std::types::omniflix::onft::v1beta1::Collection;
@@ -55,7 +56,7 @@ pub fn return_minter_instantiate_msg() -> CreateMinterMsg {
 
     CreateMinterMsg {
         collection_details,
-        token_details,
+        token_details: Some(token_details),
         init: MinterInitExtention {
             admin: "creator".to_string(),
             mint_price: Coin::new(1000000, "uflix"),
@@ -107,7 +108,7 @@ pub fn return_open_edition_minter_inst_msg() -> OpenEditionMinterCreateMsg {
     OpenEditionMinterCreateMsg {
         collection_details,
         init,
-        token_details,
+        token_details: Some(token_details),
     }
 }
 
@@ -146,4 +147,23 @@ pub fn return_factory_inst_message(code_id: u64) -> InstantiateMsg {
     };
 
     InstantiateMsg { params }
+}
+
+pub fn return_open_edition_minter_factory_inst_message(
+    oem_code_id: u64,
+    multi_mint_oem_code_id: u64,
+) -> OpenEditionMinterInstantiateMsg {
+    let params = factory_types::FactoryParams::<MultiMinterFactoryExtension> {
+        admin: Addr::unchecked("admin".to_string()),
+        creation_fee: Coin::new(1000000, "uflix"),
+        contract_id: oem_code_id,
+        fee_collector_address: Addr::unchecked("admin".to_string()),
+        product_label: "label".to_string(),
+        init: MultiMinterFactoryExtension {
+            multi_minter_contract_id: multi_mint_oem_code_id,
+            multi_minter_creation_fee: Coin::new(1000000, "uflix"),
+        },
+    };
+
+    OpenEditionMinterInstantiateMsg { params }
 }

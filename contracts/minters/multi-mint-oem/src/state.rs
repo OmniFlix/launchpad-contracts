@@ -19,12 +19,12 @@ pub struct DropParams {
 pub const COLLECTION: Item<CollectionDetails> = Item::new("collection");
 pub const DROPS: Map<DropID, DropParams> = Map::new("editions");
 
-pub const USER_MINTED_TOKENS_KEY: &str = "user_minted_tokens";
-pub struct UserMintedTokens<'a>(Map<'a, (DropID, Addr), UserDetails>);
+pub const USER_MINTING_DETAILS_KEY: &str = "user_minting_details";
+pub struct UserMintingDetails<'a>(Map<'a, (DropID, Addr), UserDetails>);
 
-impl<'a> UserMintedTokens<'a> {
+impl<'a> UserMintingDetails<'a> {
     pub const fn new(storage_key: &'a str) -> Self {
-        UserMintedTokens(Map::new(storage_key))
+        UserMintingDetails(Map::new(storage_key))
     }
 
     pub fn load(

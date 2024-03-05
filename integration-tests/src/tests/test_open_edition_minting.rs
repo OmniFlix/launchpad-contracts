@@ -7,7 +7,8 @@ use omniflix_open_edition_minter_factory::msg::ExecuteMsg as OpenEditionMinterFa
 
 use crate::helpers::utils::{
     get_contract_address_from_res, return_factory_inst_message,
-    return_open_edition_minter_inst_msg, return_rounds,
+    return_open_edition_minter_factory_inst_message, return_open_edition_minter_inst_msg,
+    return_rounds,
 };
 
 use crate::{helpers::setup::setup, helpers::utils::query_onft_collection};
@@ -38,7 +39,10 @@ fn test_open_edition_minting() {
 
     // Instantiate the minter factory
     let open_edition_minter_factory_instantiate_msg =
-        return_factory_inst_message(open_edition_minter_code_id);
+        return_open_edition_minter_factory_inst_message(
+            open_edition_minter_code_id,
+            open_edition_minter_code_id,
+        );
 
     let open_edition_minter_factory_address = app
         .instantiate_contract(
@@ -53,7 +57,7 @@ fn test_open_edition_minting() {
 
     // Create a minter
     let open_edition_minter_instantiate_msg = return_open_edition_minter_inst_msg();
-    let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateMinter {
+    let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateOpenEditionMinter {
         msg: open_edition_minter_instantiate_msg,
     };
 
@@ -186,7 +190,7 @@ fn test_open_edition_minting() {
     );
 
     // Query minter
-    let query_msg = OpenEditionMinterQueryMsg::MintedTokens {
+    let query_msg = OpenEditionMinterQueryMsg::UserMintingDetails {
         address: collector.to_string(),
     };
     let res: UserDetails = app
@@ -240,7 +244,7 @@ fn test_open_edition_minting() {
             .unwrap();
 
         // Query minter
-        let query_msg = OpenEditionMinterQueryMsg::MintedTokens {
+        let query_msg = OpenEditionMinterQueryMsg::UserMintingDetails {
             address: collector.to_string(),
         };
         let res: UserDetails = app
@@ -300,7 +304,10 @@ fn test_open_edition_minter_private_minting() {
 
     // Instantiate the minter factory
     let open_edition_minter_factory_instantiate_msg =
-        return_factory_inst_message(open_edition_minter_code_id);
+        return_open_edition_minter_factory_inst_message(
+            open_edition_minter_code_id,
+            open_edition_minter_code_id,
+        );
     let open_edition_minter_factory_address = app
         .instantiate_contract(
             open_edition_minter_factory_code_id,
@@ -347,7 +354,7 @@ fn test_open_edition_minter_private_minting() {
     // Create a minter
     let mut open_edition_minter_instantiate_msg = return_open_edition_minter_inst_msg();
     open_edition_minter_instantiate_msg.init.whitelist_address = Some(whitelist_address.clone());
-    let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateMinter {
+    let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateOpenEditionMinter {
         msg: open_edition_minter_instantiate_msg,
     };
 

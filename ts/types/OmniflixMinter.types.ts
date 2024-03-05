@@ -11,7 +11,7 @@ export type Decimal = string;
 export interface InstantiateMsg {
   collection_details: CollectionDetails;
   init: MinterInitExtention;
-  token_details: TokenDetails;
+  token_details?: TokenDetails | null;
 }
 export interface CollectionDetails {
   collection_name: string;
@@ -117,7 +117,7 @@ export type QueryMsg = {
 } | {
   config: {};
 } | {
-  minted_tokens: {
+  user_minting_details: {
     address: string;
   };
 } | {
@@ -149,6 +149,7 @@ export interface Config {
 }
 export type Uint32 = number;
 export type Boolean = boolean;
+export type ArrayOfAddr = Addr[];
 export interface UserDetails {
   minted_tokens: Token[];
   public_mint_count: number;
@@ -157,4 +158,3 @@ export interface UserDetails {
 export interface Token {
   token_id: string;
 }
-export type ArrayOfAddr = Addr[];

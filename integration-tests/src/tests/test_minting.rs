@@ -193,7 +193,7 @@ pub fn test_mint() {
         .query(&QueryRequest::Wasm(WasmQuery::Smart {
             contract_addr: minter_address.clone(),
             msg: to_json_binary::<MinterQueryMsg<MinterExtensionQueryMsg>>(
-                &MinterQueryMsg::MintedTokens {
+                &MinterQueryMsg::UserMintingDetails {
                     address: collector.clone().into_string(),
                 },
             )
@@ -286,7 +286,7 @@ pub fn test_mint() {
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
                 contract_addr: minter_address.clone(),
                 msg: to_json_binary::<MinterQueryMsg<MinterExtensionQueryMsg>>(
-                    &MinterQueryMsg::MintedTokens {
+                    &MinterQueryMsg::UserMintingDetails {
                         address: Addr::unchecked(format!("{}{}", collector, i)).to_string(),
                     },
                 )
@@ -448,7 +448,7 @@ pub fn test_mint_admin() {
         .wrap()
         .query(&QueryRequest::Wasm(WasmQuery::Smart {
             contract_addr: minter_address.clone(),
-            msg: to_json_binary(&MinterQueryMsg::<Empty>::MintedTokens {
+            msg: to_json_binary(&MinterQueryMsg::<Empty>::UserMintingDetails {
                 address: "gift_recipient".to_string(),
             })
             .unwrap(),
@@ -507,7 +507,7 @@ pub fn test_mint_admin() {
         .wrap()
         .query(&QueryRequest::Wasm(WasmQuery::Smart {
             contract_addr: minter_address.clone(),
-            msg: to_json_binary(&MinterQueryMsg::<Empty>::MintedTokens {
+            msg: to_json_binary(&MinterQueryMsg::<Empty>::UserMintingDetails {
                 address: "gift_recipient".to_string(),
             })
             .unwrap(),

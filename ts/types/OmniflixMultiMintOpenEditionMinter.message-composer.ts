@@ -7,7 +7,7 @@
 import { MsgExecuteContractEncodeObject } from "@cosmjs/cosmwasm-stargate";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { toUtf8 } from "@cosmjs/encoding";
-import { Timestamp, Uint64, Uint128, Decimal, InstantiateMsg, CollectionDetails, WeightedAddress, OpenEditionMinterInitExtention, Coin, TokenDetails, ExecuteMsg, Addr, Config, QueryMsg, QueryMsgExtension, AuthDetails, Uint32, Boolean, UserDetails, Token, ArrayOfAddr } from "./OmniflixMultiMintOpenEditionMinter.types";
+import { Timestamp, Uint64, Uint128, Decimal, InstantiateMsg, CollectionDetails, WeightedAddress, OpenEditionMinterInitExtention, Coin, TokenDetails, ExecuteMsg, Addr, Config, QueryMsg, QueryMsgExtension, AuthDetails, Uint32, Boolean, ArrayOfAddr, UserDetails, Token } from "./OmniflixMultiMintOpenEditionMinter.types";
 export interface OmniflixMultiMintOpenEditionMinterMsg {
   contractAddress: string;
   sender: string;
@@ -52,11 +52,11 @@ export interface OmniflixMultiMintOpenEditionMinterMsg {
     pausers: string[];
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   newDrop: ({
-    newConfig,
-    newTokenDetails
+    config,
+    tokenDetails
   }: {
-    newConfig: Config;
-    newTokenDetails: TokenDetails;
+    config: Config;
+    tokenDetails: TokenDetails;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   updateRoyaltyReceivers: ({
     receivers
@@ -260,11 +260,11 @@ export class OmniflixMultiMintOpenEditionMinterMsgComposer implements OmniflixMu
     };
   };
   newDrop = ({
-    newConfig,
-    newTokenDetails
+    config,
+    tokenDetails
   }: {
-    newConfig: Config;
-    newTokenDetails: TokenDetails;
+    config: Config;
+    tokenDetails: TokenDetails;
   }, _funds?: Coin[]): MsgExecuteContractEncodeObject => {
     return {
       typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
@@ -273,8 +273,8 @@ export class OmniflixMultiMintOpenEditionMinterMsgComposer implements OmniflixMu
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
           new_drop: {
-            new_config: newConfig,
-            new_token_details: newTokenDetails
+            config,
+            token_details: tokenDetails
           }
         })),
         funds: _funds

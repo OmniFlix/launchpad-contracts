@@ -91,6 +91,12 @@ pub enum ContractError {
 
     #[error("Token limit not set")]
     TokenLimitNotSet {},
+
+    #[error("No drop available")]
+    NoDropAvailable {},
+
+    #[error("Invalid drop id")]
+    InvalidDropId {},
 }
 impl From<ContractError> for StdError {
     fn from(err: ContractError) -> StdError {

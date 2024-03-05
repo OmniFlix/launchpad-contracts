@@ -129,7 +129,11 @@ fn test_minter_creation() {
 
     // Send royalty ratio more than 100%
     let mut minter_inst_msg = return_minter_instantiate_msg();
-    minter_inst_msg.token_details.royalty_ratio = Decimal::percent(101);
+    minter_inst_msg
+        .token_details
+        .as_mut()
+        .unwrap()
+        .royalty_ratio = Decimal::percent(101);
     let create_minter_msg = FactoryExecuteMsg::CreateMinter {
         msg: minter_inst_msg,
     };

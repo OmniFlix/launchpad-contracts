@@ -8,8 +8,7 @@
     "type": "object",
     "required": [
       "collection_details",
-      "init",
-      "token_details"
+      "init"
     ],
     "properties": {
       "collection_details": {
@@ -19,7 +18,14 @@
         "$ref": "#/definitions/OpenEditionMinterInitExtention"
       },
       "token_details": {
-        "$ref": "#/definitions/TokenDetails"
+        "anyOf": [
+          {
+            "$ref": "#/definitions/TokenDetails"
+          },
+          {
+            "type": "null"
+          }
+        ]
       }
     },
     "additionalProperties": false,
@@ -609,10 +615,10 @@
       {
         "type": "object",
         "required": [
-          "minted_tokens"
+          "user_minting_details"
         ],
         "properties": {
-          "minted_tokens": {
+          "user_minting_details": {
             "type": "object",
             "required": [
               "address"
@@ -913,49 +919,6 @@
       "title": "Boolean",
       "type": "boolean"
     },
-    "minted_tokens": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "UserDetails",
-      "type": "object",
-      "required": [
-        "minted_tokens",
-        "public_mint_count",
-        "total_minted_count"
-      ],
-      "properties": {
-        "minted_tokens": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Token"
-          }
-        },
-        "public_mint_count": {
-          "type": "integer",
-          "format": "uint32",
-          "minimum": 0.0
-        },
-        "total_minted_count": {
-          "type": "integer",
-          "format": "uint32",
-          "minimum": 0.0
-        }
-      },
-      "additionalProperties": false,
-      "definitions": {
-        "Token": {
-          "type": "object",
-          "required": [
-            "token_id"
-          ],
-          "properties": {
-            "token_id": {
-              "type": "string"
-            }
-          },
-          "additionalProperties": false
-        }
-      }
-    },
     "pausers": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Array_of_Addr",
@@ -1034,6 +997,49 @@
       "type": "integer",
       "format": "uint32",
       "minimum": 0.0
+    },
+    "user_minting_details": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserDetails",
+      "type": "object",
+      "required": [
+        "minted_tokens",
+        "public_mint_count",
+        "total_minted_count"
+      ],
+      "properties": {
+        "minted_tokens": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Token"
+          }
+        },
+        "public_mint_count": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "total_minted_count": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        }
+      },
+      "additionalProperties": false,
+      "definitions": {
+        "Token": {
+          "type": "object",
+          "required": [
+            "token_id"
+          ],
+          "properties": {
+            "token_id": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
     }
   }
 }

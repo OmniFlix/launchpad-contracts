@@ -11,8 +11,8 @@ use cosmwasm_std::{
 use cw_utils::{may_pay, maybe_addr, must_pay, nonpayable};
 use minter_types::{
     check_collection_creation_fee, generate_create_denom_msg, generate_mint_message,
-    generate_update_denom_msg, AuthDetails, CollectionDetails, QueryMsg as BaseMinterQueryMsg,
-    TokenDetails,
+    generate_update_denom_msg, update_collection_details, AuthDetails, CollectionDetails,
+    QueryMsg as BaseMinterQueryMsg, TokenDetails,
 };
 use omniflix_minter_factory::msg::QueryMsg::Params as QueryFactoryParams;
 use omniflix_minter_factory::msg::{CreateMinterMsg, ParamsResponse};
@@ -23,8 +23,8 @@ use whitelist_types::{
 
 use crate::error::ContractError;
 use crate::state::{
-    AUTH_DETAILS, COLLECTION, CONFIG, MINTABLE_TOKENS, MINTED_TOKENS, TOKEN_DETAILS,
-    TOTAL_TOKENS_REMAINING,
+    AUTH_DETAILS, COLLECTION, CONFIG, MINTABLE_TOKENS, TOKEN_DETAILS, TOTAL_TOKENS_REMAINING,
+    USER_MINTING_DETAILS,
 };
 use crate::utils::{
     collect_mintable_tokens, generate_tokens, randomize_token_list, return_random_token,
@@ -57,6 +57,14 @@ pub fn instantiate(
     // This field is implemented only for testing purposes
     let collection_creation_fee: Coin = check_collection_creation_fee(deps.as_ref().querier)?;
 
+    // Check if the token details are present
+    if msg.token_details.is_none() {
+        return Err(ContractError::InvalidTokenDetails {});
+    }
+    let token_details = msg.token_details.clone().unwrap();
+    let collection_details = msg.collection_details.clone();
+    let init = msg.init.clone();
+
     let amount = must_pay(&info, &collection_creation_fee.denom)?;
     // Exact amount must be paid
     if amount != collection_creation_fee.amount {
@@ -70,33 +78,33 @@ pub fn instantiate(
         });
     }
     // Check if per address limit is 0
-    if let Some(per_address_limit) = msg.init.per_address_limit {
+    if let Some(per_address_limit) = init.per_address_limit {
         if per_address_limit == 0 {
             return Err(ContractError::PerAddressLimitZero {});
         }
     }
     // Check num_tokens
-    if msg.init.num_tokens == 0 {
+    if init.num_tokens == 0 {
         return Err(ContractError::InvalidNumTokens {});
     }
     // Check start time
-    if msg.init.start_time < env.block.time {
+    if init.start_time < env.block.time {
         return Err(ContractError::InvalidStartTime {});
     }
     // Check end time
-    if let Some(end_time) = msg.init.end_time {
-        if end_time < msg.init.start_time {
+    if let Some(end_time) = init.end_time {
+        if end_time < init.start_time {
             return Err(ContractError::InvalidEndTime {});
         }
     }
 
     // Check royalty ratio we expect decimal number
-    let royalty_ratio = msg.token_details.royalty_ratio;
+    let royalty_ratio = token_details.royalty_ratio;
     if royalty_ratio < Decimal::zero() || royalty_ratio > Decimal::one() {
         return Err(ContractError::InvalidRoyaltyRatio {});
     }
     // Check if whitelist already active
-    if let Some(whitelist_address) = msg.init.whitelist_address.clone() {
+    if let Some(whitelist_address) = init.whitelist_address.clone() {
         let is_active = check_if_whitelist_is_active(
             &deps.api.addr_validate(&whitelist_address)?,
             deps.as_ref(),
@@ -107,23 +115,23 @@ pub fn instantiate(
     }
 
     // Check mint price
-    if msg.init.mint_price.amount == Uint128::new(0) {
+    if init.mint_price.amount == Uint128::new(0) {
         return Err(ContractError::InvalidMintPrice {});
     }
 
-    let admin = deps.api.addr_validate(&msg.init.admin)?;
+    let admin = deps.api.addr_validate(&init.admin)?;
 
     let payment_collector =
         maybe_addr(deps.api, msg.init.payment_collector.clone())?.unwrap_or(admin.clone());
 
-    let num_tokens = msg.init.num_tokens;
+    let num_tokens = init.num_tokens;
 
     let config = Config {
-        per_address_limit: msg.init.per_address_limit,
-        start_time: msg.init.start_time,
-        mint_price: msg.init.mint_price,
-        whitelist_address: maybe_addr(deps.api, msg.init.whitelist_address.clone())?,
-        end_time: msg.init.end_time,
+        per_address_limit: init.per_address_limit,
+        start_time: init.start_time,
+        mint_price: init.mint_price,
+        whitelist_address: maybe_addr(deps.api, init.whitelist_address.clone())?,
+        end_time: init.end_time,
         num_tokens: Some(num_tokens),
     };
     CONFIG.save(deps.storage, &config)?;
@@ -136,8 +144,6 @@ pub fn instantiate(
         },
     )?;
 
-    let collection_details = msg.collection_details;
-    let token_details = msg.token_details;
     COLLECTION.save(deps.storage, &collection_details.clone())?;
     TOKEN_DETAILS.save(deps.storage, &token_details)?;
 
@@ -232,7 +238,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     if total_tokens_remaining == 0 {
         return Err(ContractError::NoTokensLeftToMint {});
     }
-    let mut user_details = MINTED_TOKENS
+    let mut user_details = USER_MINTING_DETAILS
         .may_load(deps.storage, info.sender.clone())?
         .unwrap_or(UserDetails::default());
 
@@ -305,7 +311,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     // Add the minted token to the user details
     user_details.minted_tokens.push(random_token.1.clone());
 
-    MINTED_TOKENS.save(deps.storage, info.sender.clone(), &user_details)?;
+    USER_MINTING_DETAILS.save(deps.storage, info.sender.clone(), &user_details)?;
 
     // Check the payment
     let amount = may_pay(&info, &mint_price.denom)?;
@@ -415,14 +421,14 @@ pub fn execute_mint_admin(
     })?;
 
     // Increment the minted tokens for the addres
-    let mut user_details = MINTED_TOKENS
+    let mut user_details = USER_MINTING_DETAILS
         .may_load(deps.storage, recipient.clone())?
         .unwrap_or(UserDetails::default());
     // We are updating parameter ourself and not using add_minted_token function because we want to override per address limit checks
     user_details.minted_tokens.push(token.1.clone());
     user_details.total_minted_count += 1;
     // Save details
-    MINTED_TOKENS.save(deps.storage, recipient.clone(), &user_details)?;
+    USER_MINTING_DETAILS.save(deps.storage, recipient.clone(), &user_details)?;
 
     let token_id = token.1.token_id;
 
@@ -682,17 +688,18 @@ pub fn execute_update_royalty_receivers(
     receivers: Vec<WeightedAddress>,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
-    let mut collection = COLLECTION.load(deps.storage)?;
+    let collection_details = COLLECTION.load(deps.storage)?;
     let auth_details = AUTH_DETAILS.load(deps.storage)?;
     if info.sender != auth_details.admin {
         return Err(ContractError::Unauthorized {});
     }
-    collection.royalty_receivers = Some(receivers.clone());
+    let new_collection_details =
+        update_collection_details(&collection_details, None, None, None, Some(receivers));
 
-    COLLECTION.save(deps.storage, &collection)?;
+    COLLECTION.save(deps.storage, &new_collection_details)?;
 
     let update_denom_msg: CosmosMsg = generate_update_denom_msg(
-        &collection,
+        &new_collection_details,
         auth_details.payment_collector,
         env.contract.address,
     )?
@@ -713,25 +720,23 @@ pub fn execute_update_denom(
     preview_uri: Option<String>,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
-    let mut collection = COLLECTION.load(deps.storage)?;
+    let collection_details = COLLECTION.load(deps.storage)?;
     let auth_details = AUTH_DETAILS.load(deps.storage)?;
     if info.sender != auth_details.admin {
         return Err(ContractError::Unauthorized {});
     }
-    // Update the collection details
-    collection.collection_name = collection_name
-        .clone()
-        .unwrap_or(collection.collection_name);
-    if let Some(description) = description.clone() {
-        collection.description = Some(description);
-    }
-    if let Some(preview_uri) = preview_uri.clone() {
-        collection.preview_uri = Some(preview_uri);
-    }
-    COLLECTION.save(deps.storage, &collection.clone())?;
+    let new_collection_details = update_collection_details(
+        &collection_details,
+        collection_name,
+        description,
+        preview_uri,
+        None,
+    );
+
+    COLLECTION.save(deps.storage, &new_collection_details)?;
     // Generate update denom message with the updated collection details
     let update_denom_msg: CosmosMsg = generate_update_denom_msg(
-        &collection,
+        &new_collection_details,
         auth_details.payment_collector,
         env.contract.address,
     )?
@@ -775,8 +780,8 @@ pub fn query(
     match msg {
         BaseMinterQueryMsg::Collection {} => to_json_binary(&query_collection(deps, env)?),
         BaseMinterQueryMsg::Config {} => to_json_binary(&query_config(deps, env)?),
-        BaseMinterQueryMsg::MintedTokens { address } => {
-            to_json_binary(&query_minted_tokens(deps, env, address)?)
+        BaseMinterQueryMsg::UserMintingDetails { address } => {
+            to_json_binary(&query_user_minting_details(deps, env, address)?)
         }
         BaseMinterQueryMsg::AuthDetails {} => to_json_binary(&query_auth_details(deps, env)?),
         BaseMinterQueryMsg::IsPaused {} => to_json_binary(&query_is_paused(deps, env)?),
@@ -821,14 +826,14 @@ fn query_mintable_tokens(deps: Deps, _env: Env) -> Result<Vec<Token>, ContractEr
     Ok(mintable_tokens)
 }
 
-fn query_minted_tokens(
+fn query_user_minting_details(
     deps: Deps,
     _env: Env,
     address: String,
 ) -> Result<UserDetails, ContractError> {
     let address = deps.api.addr_validate(&address)?;
-    let minted_tokens = MINTED_TOKENS.load(deps.storage, address)?;
-    Ok(minted_tokens)
+    let user_minting_details = USER_MINTING_DETAILS.load(deps.storage, address)?;
+    Ok(user_minting_details)
 }
 
 fn query_total_tokens(deps: Deps, _env: Env) -> Result<u32, ContractError> {

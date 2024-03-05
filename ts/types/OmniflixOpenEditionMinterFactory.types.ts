@@ -7,14 +7,14 @@
 export type Addr = string;
 export type Uint128 = string;
 export interface InstantiateMsg {
-  params: FactoryParamsForEmpty;
+  params: FactoryParamsForMultiMinterFactoryExtension;
 }
-export interface FactoryParamsForEmpty {
+export interface FactoryParamsForMultiMinterFactoryExtension {
   admin: Addr;
   contract_id: number;
   creation_fee: Coin;
   fee_collector_address: Addr;
-  init: Empty;
+  init: MultiMinterFactoryExtension;
   product_label: string;
 }
 export interface Coin {
@@ -22,12 +22,17 @@ export interface Coin {
   denom: string;
   [k: string]: unknown;
 }
-export interface Empty {
-  [k: string]: unknown;
+export interface MultiMinterFactoryExtension {
+  multi_minter_contract_id: number;
+  multi_minter_creation_fee: Coin;
 }
 export type ExecuteMsg = {
-  create_minter: {
+  create_open_edition_minter: {
     msg: MinterInstantiateMsgForOpenEditionMinterInitExtention;
+  };
+} | {
+  create_multi_mint_open_edition_minter: {
+    msg: MinterInstantiateMsgForMultiMinterInitExtention;
   };
 } | {
   update_admin: {
@@ -45,6 +50,14 @@ export type ExecuteMsg = {
   update_minter_code_id: {
     minter_code_id: number;
   };
+} | {
+  update_multi_minter_creation_fee: {
+    multi_minter_creation_fee: Coin;
+  };
+} | {
+  update_multi_minter_contract_id: {
+    multi_minter_contract_id: number;
+  };
 };
 export type Timestamp = Uint64;
 export type Uint64 = string;
@@ -52,7 +65,7 @@ export type Decimal = string;
 export interface MinterInstantiateMsgForOpenEditionMinterInitExtention {
   collection_details: CollectionDetails;
   init: OpenEditionMinterInitExtention;
-  token_details: TokenDetails;
+  token_details?: TokenDetails | null;
 }
 export interface CollectionDetails {
   collection_name: string;
@@ -92,9 +105,18 @@ export interface TokenDetails {
   token_name: string;
   transferable: boolean;
 }
+export interface MinterInstantiateMsgForMultiMinterInitExtention {
+  collection_details: CollectionDetails;
+  init: MultiMinterInitExtention;
+  token_details?: TokenDetails | null;
+}
+export interface MultiMinterInitExtention {
+  admin: string;
+  payment_collector?: string | null;
+}
 export type QueryMsg = {
   params: {};
 };
 export interface ParamsResponse {
-  params: FactoryParamsForEmpty;
+  params: FactoryParamsForMultiMinterFactoryExtension;
 }
