@@ -19,8 +19,7 @@ pub fn instantiate(
 ) -> Result<Response, ContractError> {
     let _admin = deps
         .api
-        .addr_validate(&msg.params.clone().admin.into_string())
-        .unwrap_or(info.sender.clone());
+        .addr_validate(&msg.params.clone().admin.into_string())?;
     let _fee_collector_address = deps
         .api
         .addr_validate(&msg.params.fee_collector_address.clone().into_string())
@@ -60,9 +59,9 @@ pub fn create_whitelist(
     msg: WhitelistInstantiateMsg,
 ) -> Result<Response, ContractError> {
     let params = PARAMS.load(deps.storage)?;
-    let creation_fee = params.creation_fee;
+    let creation_fee = params.whitelist_creation_fee;
     let fee_collector_address = params.fee_collector_address;
-    let whitelist_code_id = params.code_id;
+    let whitelist_code_id = params.whitelist_code_id;
     let mut messages: Vec<CosmosMsg> = vec![];
 
     let amount = may_pay(&info, &creation_fee.clone().denom)?;
@@ -131,7 +130,7 @@ pub fn update_whitelist_creation_fee(
     if info.sender != params.admin {
         return Err(ContractError::Unauthorized {});
     }
-    params.creation_fee = whitelist_creation_fee;
+    params.whitelist_creation_fee = whitelist_creation_fee;
     PARAMS.save(deps.storage, &params)?;
     Ok(Response::new().add_attribute("action", "update_whitelist_creation_fee"))
 }
@@ -146,7 +145,7 @@ pub fn update_whitelist_code_id(
     if info.sender != params.admin {
         return Err(ContractError::Unauthorized {});
     }
-    params.code_id = whitelist_code_id;
+    params.whitelist_code_id = whitelist_code_id;
     PARAMS.save(deps.storage, &params)?;
     Ok(Response::new().add_attribute("action", "update_whitelist_code_id"))
 }

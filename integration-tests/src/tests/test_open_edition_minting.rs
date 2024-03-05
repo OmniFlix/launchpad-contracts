@@ -6,8 +6,8 @@ use minter_types::{QueryMsg, UserDetails};
 use omniflix_open_edition_minter_factory::msg::ExecuteMsg as OpenEditionMinterFactoryExecuteMsg;
 
 use crate::helpers::utils::{
-    get_contract_address_from_res, return_factory_inst_message,
-    return_open_edition_minter_factory_inst_message, return_open_edition_minter_inst_msg,
+    get_contract_address_from_res, return_open_edition_minter_factory_inst_message,
+    return_open_edition_minter_inst_msg, return_round_whitelist_factory_inst_message,
     return_rounds,
 };
 
@@ -319,7 +319,8 @@ fn test_open_edition_minter_private_minting() {
         )
         .unwrap();
 
-    let round_whitelist_factory_inst_msg = return_factory_inst_message(round_whitelist_code_id);
+    let round_whitelist_factory_inst_msg =
+        return_round_whitelist_factory_inst_message(round_whitelist_code_id);
     let round_whitelist_factory_addr = app
         .instantiate_contract(
             round_whitelist_factory_code_id,

@@ -26,8 +26,8 @@ type MultiMintOpenEditionMinterQueryMsg =
     CommonMinterQueryMsg<MultiMintOpenEditionMinterQueryMsgExtension>;
 
 use crate::helpers::utils::{
-    get_contract_address_from_res, mint_to_address, return_factory_inst_message,
-    return_open_edition_minter_factory_inst_message,
+    get_contract_address_from_res, mint_to_address, return_minter_factory_inst_message,
+    return_open_edition_minter_factory_inst_message, return_round_whitelist_factory_inst_message,
 };
 
 use crate::{helpers::setup::setup, helpers::utils::query_onft_collection};
@@ -123,18 +123,19 @@ fn test_scenario_1() {
     let creator = test_addresses.creator;
     let _collector = test_addresses.collector;
 
-    let factory_inst_msg = return_factory_inst_message(minter_code_id);
+    let minter_factory_inst_msg = return_minter_factory_inst_message(minter_code_id);
     let minter_factory_addr = app
         .instantiate_contract(
             minter_factory_code_id,
             admin.clone(),
-            &factory_inst_msg,
+            &minter_factory_inst_msg,
             &[],
             "factory",
             None,
         )
         .unwrap();
-    let round_whitelist_factory_inst_msg = return_factory_inst_message(round_whitelist_code_id);
+    let round_whitelist_factory_inst_msg =
+        return_round_whitelist_factory_inst_message(round_whitelist_code_id);
     let round_whitelist_factory_addr = app
         .instantiate_contract(
             round_whitelist_factory_code_id,
@@ -605,7 +606,8 @@ fn test_scenario_2() {
             None,
         )
         .unwrap();
-    let round_whitelist_factory_inst_msg = return_factory_inst_message(round_whitelist_code_id);
+    let round_whitelist_factory_inst_msg =
+        return_round_whitelist_factory_inst_message(round_whitelist_code_id);
     let round_whitelist_factory_addr = app
         .instantiate_contract(
             round_whitelist_factory_code_id,

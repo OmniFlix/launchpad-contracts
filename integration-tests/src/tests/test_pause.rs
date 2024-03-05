@@ -10,7 +10,8 @@ use omniflix_minter::msg::ExecuteMsg as MinterExecuteMsg;
 use omniflix_minter_factory::msg::ExecuteMsg as FactoryExecuteMsg;
 
 use crate::helpers::utils::{
-    get_contract_address_from_res, return_factory_inst_message, return_minter_instantiate_msg,
+    get_contract_address_from_res, return_minter_factory_inst_message,
+    return_minter_instantiate_msg,
 };
 
 use crate::helpers::setup::setup;
@@ -33,7 +34,7 @@ fn test_pause_minter() {
     let creator = test_addresses.creator;
     let collector = test_addresses.collector;
 
-    let factory_inst_msg = return_factory_inst_message(minter_code_id);
+    let factory_inst_msg = return_minter_factory_inst_message(minter_code_id);
     let factory_addr = app
         .instantiate_contract(
             minter_factory_code_id,

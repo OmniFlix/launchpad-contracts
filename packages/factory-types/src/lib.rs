@@ -1,5 +1,4 @@
-use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, StdError};
+use cosmwasm_std::StdError;
 use cosmwasm_std::{Coin, Uint128};
 use thiserror::Error;
 
@@ -57,15 +56,6 @@ pub fn check_payment(
     }
 
     Ok(())
-}
-#[cw_serde]
-pub struct FactoryParams<T> {
-    pub admin: Addr,
-    pub creation_fee: Coin,
-    pub fee_collector_address: Addr,
-    pub code_id: u64,
-    pub product_label: String,
-    pub init: T,
 }
 
 // Test check_payment

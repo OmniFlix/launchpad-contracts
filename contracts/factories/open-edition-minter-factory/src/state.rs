@@ -1,6 +1,5 @@
 use cw_storage_plus::Item;
-use factory_types::FactoryParams;
 
-use crate::msg::MultiMinterFactoryExtension;
+use crate::msg::OpenEditionMinterFactoryParams;
 
-pub const PARAMS: Item<FactoryParams<MultiMinterFactoryExtension>> = Item::new("params");
+pub const PARAMS: Item<OpenEditionMinterFactoryParams> = Item::new("params");

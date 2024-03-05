@@ -1,10 +1,9 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Coin, Empty, Timestamp};
-use factory_types::FactoryParams;
+use cosmwasm_std::{Addr, Coin, Timestamp};
 use minter_types::MinterInstantiateMsg;
 #[cw_serde]
 pub struct InstantiateMsg {
-    pub params: FactoryParams<Empty>,
+    pub params: MinterFactoryParams,
 }
 
 #[cw_serde]
@@ -36,7 +35,15 @@ pub enum ExecuteMsg {
 
 #[cw_serde]
 pub struct ParamsResponse {
-    pub params: FactoryParams<Empty>,
+    pub params: MinterFactoryParams,
+}
+#[cw_serde]
+pub struct MinterFactoryParams {
+    pub minter_code_id: u64,
+    pub minter_creation_fee: Coin,
+    pub fee_collector_address: Addr,
+    pub admin: Addr,
+    pub product_label: String,
 }
 
 #[cw_serde]
