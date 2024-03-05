@@ -587,6 +587,8 @@ pub fn execute_new_drop(
     if info.sender != auth_details.admin {
         return Err(ContractError::Unauthorized {});
     }
+    // Check integrity of token details
+    token_details.check_integrity()?;
     // Check if token limit is 0
     if let Some(num_tokens) = config.num_tokens {
         if num_tokens == 0 {
@@ -619,13 +621,6 @@ pub fn execute_new_drop(
             return Err(ContractError::WhitelistAlreadyActive {});
         }
     }
-    // Check royalty ratio we expect decimal number
-    let royalty_ratio = token_details.royalty_ratio;
-
-    if royalty_ratio < Decimal::zero() || royalty_ratio > Decimal::one() {
-        return Err(ContractError::InvalidRoyaltyRatio {});
-    }
-
     let new_drop_params = DropParams {
         config: config.clone(),
         token_details,

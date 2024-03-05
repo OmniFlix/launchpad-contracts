@@ -4,6 +4,7 @@ use cosmwasm_std::{
     CheckedFromRatioError, Coin, ConversionOverflowError, StdError, Timestamp, Uint128,
 };
 use cw_utils::PaymentError;
+use minter_types::TokenDetailsError;
 use pauser::PauseError;
 use thiserror::Error;
 
@@ -14,6 +15,9 @@ pub enum ContractError {
 
     #[error(transparent)]
     Pause(#[from] PauseError),
+
+    #[error(transparent)]
+    TokenDetailsError(#[from] TokenDetailsError),
 
     #[error("Unauthorized")]
     Unauthorized {},

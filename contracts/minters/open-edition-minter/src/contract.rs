@@ -56,6 +56,8 @@ pub fn instantiate(
     if msg.token_details.is_none() {
         return Err(ContractError::InvalidTokenDetails {});
     }
+    // Check integrity of token details
+    msg.token_details.clone().unwrap().check_integrity()?;
     let token_details = msg.token_details.clone().unwrap();
     let collection_details = msg.collection_details.clone();
     let init = msg.init.clone();
@@ -95,13 +97,6 @@ pub fn instantiate(
             return Err(ContractError::InvalidEndTime {});
         }
     }
-
-    // Check royalty ratio we expect decimal number
-    let royalty_ratio = token_details.royalty_ratio;
-    if royalty_ratio < Decimal::zero() || royalty_ratio > Decimal::one() {
-        return Err(ContractError::InvalidRoyaltyRatio {});
-    }
-
     // Check if whitelist already active
     if let Some(whitelist_address) = init.whitelist_address.clone() {
         let is_active = check_if_whitelist_is_active(

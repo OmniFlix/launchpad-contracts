@@ -148,7 +148,12 @@ fn test_minter_creation() {
         .unwrap_err();
     let res = error.source().unwrap().source().unwrap();
     let error = res.downcast_ref::<MinterContractError>().unwrap();
-    assert_eq!(error, &MinterContractError::InvalidRoyaltyRatio {});
+    assert_eq!(
+        error,
+        &MinterContractError::TokenDetailsError(
+            minter_types::TokenDetailsError::InvalidRoyaltyRatio {}
+        )
+    );
 
     // Send mint price 0
     let mut minter_inst_msg = return_minter_instantiate_msg();
