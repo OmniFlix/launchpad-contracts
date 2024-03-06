@@ -6,7 +6,7 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { StdFee } from "@cosmjs/amino";
-import { Addr, Uint128, InstantiateMsg, FactoryParamsForEmpty, Coin, Empty, ExecuteMsg, Timestamp, Uint64, Round, QueryMsg, ParamsResponse } from "./OmniflixRoundWhitelistFactory.types";
+import { Addr, Uint128, InstantiateMsg, RoundWhitelistFactoryParams, Coin, ExecuteMsg, Timestamp, Uint64, Round, QueryMsg, ParamsResponse } from "./OmniflixRoundWhitelistFactory.types";
 export interface OmniflixRoundWhitelistFactoryReadOnlyInterface {
   contractAddress: string;
   params: () => Promise<ParamsResponse>;

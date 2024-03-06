@@ -10,20 +10,16 @@ export interface InstantiateMsg {
   admin: string;
   rounds: Round[];
 }
-export interface FactoryParamsForEmpty {
+export interface RoundWhitelistFactoryParams {
   admin: Addr;
-  contract_id: number;
-  creation_fee: Coin;
   fee_collector_address: Addr;
-  init: Empty;
   product_label: string;
+  whitelist_code_id: number;
+  whitelist_creation_fee: Coin;
 }
 export interface Coin {
   amount: Uint128;
   denom: string;
-  [k: string]: unknown;
-}
-export interface Empty {
   [k: string]: unknown;
 }
 export type ExecuteMsg = {
@@ -60,5 +56,5 @@ export type QueryMsg = {
   params: {};
 };
 export interface ParamsResponse {
-  params: FactoryParamsForEmpty;
+  params: RoundWhitelistFactoryParams;
 }

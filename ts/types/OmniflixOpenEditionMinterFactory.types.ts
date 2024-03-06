@@ -7,24 +7,25 @@
 export type Addr = string;
 export type Uint128 = string;
 export interface InstantiateMsg {
-  params: FactoryParamsForMultiMinterFactoryExtension;
+  params: OpenEditionMinterFactoryParams;
 }
-export interface FactoryParamsForMultiMinterFactoryExtension {
+export interface OpenEditionMinterFactoryParams {
   admin: Addr;
-  contract_id: number;
-  creation_fee: Coin;
   fee_collector_address: Addr;
-  init: MultiMinterFactoryExtension;
-  product_label: string;
+  multi_minter_params?: MultiMinterParams | null;
+  oem_product_label: string;
+  open_edition_minter_code_id: number;
+  open_edition_minter_creation_fee: Coin;
+}
+export interface MultiMinterParams {
+  multi_minter_code_id: number;
+  multi_minter_creation_fee: Coin;
+  multi_minter_product_label: string;
 }
 export interface Coin {
   amount: Uint128;
   denom: string;
   [k: string]: unknown;
-}
-export interface MultiMinterFactoryExtension {
-  multi_minter_contract_id: number;
-  multi_minter_creation_fee: Coin;
 }
 export type ExecuteMsg = {
   create_open_edition_minter: {
@@ -43,20 +44,20 @@ export type ExecuteMsg = {
     fee_collector_address: string;
   };
 } | {
-  update_minter_creation_fee: {
-    minter_creation_fee: Coin;
+  update_open_edition_minter_creation_fee: {
+    open_edition_minter_creation_fee: Coin;
   };
 } | {
-  update_minter_code_id: {
-    minter_code_id: number;
+  update_open_edition_minter_code_id: {
+    open_edition_minter_code_id: number;
   };
 } | {
   update_multi_minter_creation_fee: {
     multi_minter_creation_fee: Coin;
   };
 } | {
-  update_multi_minter_contract_id: {
-    multi_minter_contract_id: number;
+  update_multi_minter_code_id: {
+    multi_minter_code_id: number;
   };
 };
 export type Timestamp = Uint64;
@@ -118,5 +119,5 @@ export type QueryMsg = {
   params: {};
 };
 export interface ParamsResponse {
-  params: FactoryParamsForMultiMinterFactoryExtension;
+  params: OpenEditionMinterFactoryParams;
 }
