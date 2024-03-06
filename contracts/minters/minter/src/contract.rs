@@ -828,7 +828,9 @@ fn query_user_minting_details(
     address: String,
 ) -> Result<UserDetails, ContractError> {
     let address = deps.api.addr_validate(&address)?;
-    let user_minting_details = USER_MINTING_DETAILS.load(deps.storage, address)?;
+    let user_minting_details = USER_MINTING_DETAILS
+        .load(deps.storage, address)
+        .unwrap_or_default();
     Ok(user_minting_details)
 }
 

@@ -789,7 +789,9 @@ fn query_user_minting_details(
     let address = deps.api.addr_validate(&address)?;
     let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
     let user_minting_details = UserMintingDetails::new(USER_MINTING_DETAILS_KEY);
-    let user_details = user_minting_details.load(deps.storage, drop_id, address)?;
+    let user_details = user_minting_details
+        .load(deps.storage, drop_id, address)
+        .unwrap_or_default();
     Ok(user_details)
 }
 
