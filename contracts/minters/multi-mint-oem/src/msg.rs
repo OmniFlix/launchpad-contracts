@@ -66,6 +66,8 @@ pub enum QueryMsgExtension {
     #[returns(u32)]
     TokensRemainingInDrop { drop_id: Option<u32> },
     #[returns(u32)]
+    TotalTokensMintedInDrop { drop_id: Option<u32> },
+    #[returns(u32)]
     CurrentDropNumber {},
     #[returns(Vec<(u32,DropParams)>)]
     AllDrops {},

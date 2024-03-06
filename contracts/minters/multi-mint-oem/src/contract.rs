@@ -754,6 +754,9 @@ pub fn query(deps: Deps, env: Env, msg: MinterQueryMsg<QueryMsgExtension>) -> St
             QueryMsgExtension::TokenDetails { drop_id } => {
                 to_json_binary(&query_token_details(deps, env, drop_id)?)
             }
+            QueryMsgExtension::TotalTokensMintedInDrop { drop_id } => {
+                to_json_binary(&query_total_tokens_minted_in_drop(deps, env, drop_id)?)
+            }
         },
     }
 }
@@ -851,4 +854,14 @@ fn query_all_drops(deps: Deps, _env: Env) -> Result<Vec<(u32, DropParams)>, Cont
 fn query_auth_details(deps: Deps, _env: Env) -> Result<AuthDetails, ContractError> {
     let auth_details = AUTH_DETAILS.load(deps.storage)?;
     Ok(auth_details)
+}
+
+fn query_total_tokens_minted_in_drop(
+    deps: Deps,
+    _env: Env,
+    drop_id: Option<u32>,
+) -> Result<u32, ContractError> {
+    let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
+    let drop_minted_count = DROP_MINTED_COUNT.load(deps.storage, drop_id).unwrap_or(0);
+    Ok(drop_minted_count)
 }
