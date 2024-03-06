@@ -153,7 +153,7 @@ pub fn generate_mint_message(
     match is_edition {
         false => {
             let metadata = Metadata {
-                name: format!("{} # {}", token_details.token_name.clone(), token_id),
+                name: format!("{} #{}", token_details.token_name.clone(), token_id),
                 description: token_details.description.clone().unwrap_or("".to_string()),
                 media_uri: format!("{}/{}", token_details.base_token_uri.clone(), token_id),
                 preview_uri: format!(
@@ -183,7 +183,7 @@ pub fn generate_mint_message(
         true => {
             let metadata = Metadata {
                 name: format!(
-                    "{} # {}",
+                    "{} #{}",
                     token_details.token_name.clone(),
                     drop_token_number.unwrap_or(token_id.clone())
                 ),
