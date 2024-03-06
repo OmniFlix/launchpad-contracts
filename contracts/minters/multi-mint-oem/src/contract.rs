@@ -754,8 +754,8 @@ pub fn query(deps: Deps, env: Env, msg: MinterQueryMsg<QueryMsgExtension>) -> St
             QueryMsgExtension::TokenDetails { drop_id } => {
                 to_json_binary(&query_token_details(deps, env, drop_id)?)
             }
-            QueryMsgExtension::TotalTokensMintedInDrop { drop_id } => {
-                to_json_binary(&query_total_tokens_minted_in_drop(deps, env, drop_id)?)
+            QueryMsgExtension::TokensMintedInDrop { drop_id } => {
+                to_json_binary(&query_tokens_minted_in_drop(deps, env, drop_id)?)
             }
         },
     }
@@ -856,7 +856,7 @@ fn query_auth_details(deps: Deps, _env: Env) -> Result<AuthDetails, ContractErro
     Ok(auth_details)
 }
 
-fn query_total_tokens_minted_in_drop(
+fn query_tokens_minted_in_drop(
     deps: Deps,
     _env: Env,
     drop_id: Option<u32>,
