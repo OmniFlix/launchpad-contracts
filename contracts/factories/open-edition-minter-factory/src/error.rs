@@ -28,4 +28,7 @@ pub enum ContractError {
 
     #[error("Missing minter creation fee")]
     MissingMinterCreationFee {},
+
+    #[error("MultiMinter not enabled")]
+    MultiMinterNotEnabled {},
 }

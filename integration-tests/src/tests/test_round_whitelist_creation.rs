@@ -7,7 +7,7 @@ use cw_multi_test::Executor;
 use whitelist_types::{Round, RoundWhitelistQueryMsgs};
 
 use crate::helpers::utils::{
-    get_contract_address_from_res, return_factory_inst_message, return_rounds,
+    get_contract_address_from_res, return_round_whitelist_factory_inst_message, return_rounds,
 };
 
 use crate::helpers::setup::setup;
@@ -32,7 +32,8 @@ fn test_whitelist_creation() {
     let creator = test_addresses.creator;
     let _collector = test_addresses.collector;
 
-    let round_whitelist_factory_inst_msg = return_factory_inst_message(round_whitelist_code_id);
+    let round_whitelist_factory_inst_msg =
+        return_round_whitelist_factory_inst_message(round_whitelist_code_id);
     let round_whitelist_factory_addr = app
         .instantiate_contract(
             round_whitelist_factory_code_id,

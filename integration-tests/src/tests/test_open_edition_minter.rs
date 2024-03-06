@@ -209,7 +209,40 @@ fn test_open_edition_minter_creation() {
     let err = res.source().unwrap().source().unwrap();
 
     let error = err.downcast_ref::<OpenEditionMinterError>().unwrap();
-    assert_eq!(OpenEditionMinterError::InvalidRoyaltyRatio {}, *error);
+    assert_eq!(
+        OpenEditionMinterError::TokenDetailsError(
+            minter_types::TokenDetailsError::InvalidRoyaltyRatio {}
+        ),
+        *error
+    );
+    // Send too long description
+    let mut open_edition_minter_instantiate_msg = return_open_edition_minter_inst_msg();
+    open_edition_minter_instantiate_msg
+        .token_details
+        .as_mut()
+        .unwrap()
+        .description = Some("a".repeat(5001));
+    let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateOpenEditionMinter {
+        msg: open_edition_minter_instantiate_msg,
+    };
+    let res = app
+        .execute_contract(
+            creator.clone(),
+            open_edition_minter_factory_address.clone(),
+            &create_minter_msg,
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap_err();
+
+    let err = res.source().unwrap().source().unwrap();
+
+    let error = err.downcast_ref::<OpenEditionMinterError>().unwrap();
+    assert_eq!(
+        OpenEditionMinterError::TokenDetailsError(
+            minter_types::TokenDetailsError::TokenDescriptionTooLong {}
+        ),
+        *error
+    );
 
     // Send incorrect mint price this should not fail because mint price can be set to zero on open edition minter
     let mut open_edition_minter_instantiate_msg = return_open_edition_minter_inst_msg();

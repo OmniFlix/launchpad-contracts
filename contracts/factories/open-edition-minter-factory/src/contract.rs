@@ -50,18 +50,25 @@ pub fn execute(
         ExecuteMsg::UpdateFeeCollectorAddress {
             fee_collector_address,
         } => update_params_fee_collector_address(deps, env, info, fee_collector_address),
-        ExecuteMsg::UpdateMinterCodeId { minter_code_id } => {
-            update_params_minter_code_id(deps, env, info, minter_code_id)
+        ExecuteMsg::UpdateOpenEditionMinterCodeId {
+            open_edition_minter_code_id,
+        } => {
+            update_params_open_edition_minter_code_id(deps, env, info, open_edition_minter_code_id)
         }
-        ExecuteMsg::UpdateMinterCreationFee {
-            minter_creation_fee,
-        } => update_params_minter_creation_fee(deps, env, info, minter_creation_fee),
+        ExecuteMsg::UpdateOpenEditionMinterCreationFee {
+            open_edition_minter_creation_fee,
+        } => update_params_open_edition_minter_creation_fee(
+            deps,
+            env,
+            info,
+            open_edition_minter_creation_fee,
+        ),
         ExecuteMsg::UpdateMultiMinterCreationFee {
             multi_minter_creation_fee,
         } => update_params_multi_minter_creation_fee(deps, env, info, multi_minter_creation_fee),
-        ExecuteMsg::UpdateMultiMinterContractId {
-            multi_minter_contract_id,
-        } => update_params_multi_minter_contract_id(deps, env, info, multi_minter_contract_id),
+        ExecuteMsg::UpdateMultiMinterCodeId {
+            multi_minter_code_id,
+        } => update_params_multi_minter_code_id(deps, env, info, multi_minter_code_id),
     }
 }
 
@@ -76,21 +83,24 @@ fn create_oem(
 
     check_payment(
         &info.funds,
-        &[collection_creation_fee.clone(), params.creation_fee.clone()],
+        &[
+            collection_creation_fee.clone(),
+            params.open_edition_minter_creation_fee.clone(),
+        ],
     )?;
     let mut msgs = Vec::<CosmosMsg>::new();
 
     msgs.push(CosmosMsg::Wasm(WasmMsg::Instantiate {
         admin: Some(msg.init.admin.to_string()),
-        code_id: params.contract_id,
+        code_id: params.open_edition_minter_code_id,
         msg: to_json_binary(&msg)?,
         funds: vec![collection_creation_fee.clone()],
-        label: params.product_label,
+        label: params.oem_product_label,
     }));
-    if params.creation_fee.amount > Uint128::new(0) {
+    if params.open_edition_minter_creation_fee.amount > Uint128::new(0) {
         msgs.push(CosmosMsg::Bank(BankMsg::Send {
             to_address: params.fee_collector_address.to_string(),
-            amount: vec![params.creation_fee.clone()],
+            amount: vec![params.open_edition_minter_creation_fee.clone()],
         }));
     }
     let res = Response::new()
@@ -106,28 +116,32 @@ fn create_multi_mint_oem(
     msg: MultiMinterCreateMsg,
 ) -> Result<Response, ContractError> {
     let params = PARAMS.load(deps.storage)?;
+    if params.multi_minter_params.is_none() {
+        return Err(ContractError::MultiMinterNotEnabled {});
+    }
+    let multi_minter_params = params.multi_minter_params.unwrap();
     let collection_creation_fee: Coin = check_collection_creation_fee(deps.as_ref().querier)?;
 
     check_payment(
         &info.funds,
         &[
             collection_creation_fee.clone(),
-            params.init.multi_minter_creation_fee.clone(),
+            multi_minter_params.multi_minter_creation_fee.clone(),
         ],
     )?;
     let mut msgs = Vec::<CosmosMsg>::new();
 
     msgs.push(CosmosMsg::Wasm(WasmMsg::Instantiate {
         admin: Some(msg.init.admin.to_string()),
-        code_id: params.init.multi_minter_contract_id,
+        code_id: multi_minter_params.multi_minter_code_id,
         msg: to_json_binary(&msg)?,
         funds: vec![collection_creation_fee.clone()],
-        label: params.product_label,
+        label: multi_minter_params.multi_minter_product_label,
     }));
-    if params.init.multi_minter_creation_fee.amount > Uint128::new(0) {
+    if multi_minter_params.multi_minter_creation_fee.amount > Uint128::new(0) {
         msgs.push(CosmosMsg::Bank(BankMsg::Send {
             to_address: params.fee_collector_address.to_string(),
-            amount: vec![params.init.multi_minter_creation_fee.clone()],
+            amount: vec![multi_minter_params.multi_minter_creation_fee.clone()],
         }));
     }
     let res = Response::new()
@@ -173,39 +187,45 @@ fn update_params_fee_collector_address(
         ))
 }
 
-fn update_params_minter_code_id(
+fn update_params_open_edition_minter_code_id(
     deps: DepsMut,
     _env: Env,
     info: MessageInfo,
-    minter_code_id: u64,
+    open_edition_minter_code_id: u64,
 ) -> Result<Response, ContractError> {
     let mut params = PARAMS.load(deps.storage)?;
     if params.admin != info.sender {
         return Err(ContractError::Unauthorized {});
     }
-    params.contract_id = minter_code_id;
+    params.open_edition_minter_code_id = open_edition_minter_code_id;
     PARAMS.save(deps.storage, &params)?;
     Ok(Response::default()
         .add_attribute("action", "update_minter_code_id")
-        .add_attribute("new_minter_code_id", minter_code_id.to_string()))
+        .add_attribute(
+            "new_minter_code_id",
+            open_edition_minter_code_id.to_string(),
+        ))
 }
 
-fn update_params_minter_creation_fee(
+fn update_params_open_edition_minter_creation_fee(
     deps: DepsMut,
     _env: Env,
     info: MessageInfo,
-    minter_creation_fee: Coin,
+    open_edition_minter_creation_fee: Coin,
 ) -> Result<Response, ContractError> {
     let mut params = PARAMS.load(deps.storage)?;
     if params.admin != info.sender {
         return Err(ContractError::Unauthorized {});
     }
-    params.creation_fee = minter_creation_fee.clone();
+    params.open_edition_minter_creation_fee = open_edition_minter_creation_fee.clone();
 
     PARAMS.save(deps.storage, &params)?;
     Ok(Response::default()
         .add_attribute("action", "update_minter_creation_fee")
-        .add_attribute("new_minter_creation_fee", minter_creation_fee.to_string()))
+        .add_attribute(
+            "new_minter_creation_fee",
+            open_edition_minter_creation_fee.to_string(),
+        ))
 }
 
 fn update_params_multi_minter_creation_fee(
@@ -218,7 +238,14 @@ fn update_params_multi_minter_creation_fee(
     if params.admin != info.sender {
         return Err(ContractError::Unauthorized {});
     }
-    params.init.multi_minter_creation_fee = multi_minter_creation_fee.clone();
+    if params.multi_minter_params.is_none() {
+        return Err(ContractError::MultiMinterNotEnabled {});
+    }
+    params
+        .multi_minter_params
+        .as_mut()
+        .unwrap()
+        .multi_minter_creation_fee = multi_minter_creation_fee.clone();
 
     PARAMS.save(deps.storage, &params)?;
     Ok(Response::default()
@@ -229,24 +256,29 @@ fn update_params_multi_minter_creation_fee(
         ))
 }
 
-fn update_params_multi_minter_contract_id(
+fn update_params_multi_minter_code_id(
     deps: DepsMut,
     _env: Env,
     info: MessageInfo,
-    multi_minter_contract_id: u64,
+    multi_minter_code_id: u64,
 ) -> Result<Response, ContractError> {
     let mut params = PARAMS.load(deps.storage)?;
     if params.admin != info.sender {
         return Err(ContractError::Unauthorized {});
     }
-    params.init.multi_minter_contract_id = multi_minter_contract_id;
+    if params.multi_minter_params.is_none() {
+        return Err(ContractError::MultiMinterNotEnabled {});
+    }
+    params
+        .multi_minter_params
+        .as_mut()
+        .unwrap()
+        .multi_minter_code_id = multi_minter_code_id;
+
     PARAMS.save(deps.storage, &params)?;
     Ok(Response::default()
-        .add_attribute("action", "update_multi_minter_contract_id")
-        .add_attribute(
-            "new_multi_minter_contract_id",
-            multi_minter_contract_id.to_string(),
-        ))
+        .add_attribute("action", "update_multi_minter_code_id")
+        .add_attribute("new_multi_minter_code_id", multi_minter_code_id.to_string()))
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -263,8 +295,7 @@ fn query_params(deps: Deps) -> StdResult<ParamsResponse> {
 
 #[cfg(test)]
 mod tests {
-
-    use crate::msg::MultiMinterFactoryExtension;
+    use crate::msg::{MultiMinterParams, OpenEditionMinterFactoryParams};
 
     use super::*;
     use cosmwasm_std::{
@@ -276,24 +307,26 @@ mod tests {
     fn test_instantiate() {
         let mut deps = mock_dependencies();
         let msg = InstantiateMsg {
-            params: factory_types::FactoryParams::<MultiMinterFactoryExtension> {
+            params: OpenEditionMinterFactoryParams {
                 admin: Addr::unchecked("creator"),
                 fee_collector_address: Addr::unchecked("fee_collector_address"),
-                contract_id: 1,
-                creation_fee: Coin {
-                    amount: Uint128::new(100),
-                    denom: "uusd".to_string(),
-                },
-                product_label: "omniflix-open-edition-minter".to_string(),
-                init: MultiMinterFactoryExtension {
-                    multi_minter_contract_id: 1,
+                multi_minter_params: Some(MultiMinterParams {
+                    multi_minter_code_id: 1,
                     multi_minter_creation_fee: Coin {
                         amount: Uint128::new(100),
                         denom: "uusd".to_string(),
                     },
+                    multi_minter_product_label: "omniflix-multi-minter".to_string(),
+                }),
+                open_edition_minter_code_id: 1,
+                open_edition_minter_creation_fee: Coin {
+                    amount: Uint128::new(100),
+                    denom: "uusd".to_string(),
                 },
+                oem_product_label: "omniflix-open-edition-minter".to_string(),
             },
         };
+
         let info = mock_info("creator", &[]);
         let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
 
@@ -301,22 +334,23 @@ mod tests {
         let params = query_params(deps.as_ref()).unwrap();
         assert_eq!(
             params.params,
-            factory_types::FactoryParams::<MultiMinterFactoryExtension> {
+            OpenEditionMinterFactoryParams {
                 admin: Addr::unchecked("creator"),
                 fee_collector_address: Addr::unchecked("fee_collector_address"),
-                contract_id: 1,
-                creation_fee: Coin {
-                    amount: Uint128::new(100),
-                    denom: "uusd".to_string(),
-                },
-                product_label: "omniflix-open-edition-minter".to_string(),
-                init: MultiMinterFactoryExtension {
-                    multi_minter_contract_id: 1,
+                multi_minter_params: Some(MultiMinterParams {
+                    multi_minter_code_id: 1,
                     multi_minter_creation_fee: Coin {
                         amount: Uint128::new(100),
                         denom: "uusd".to_string(),
                     },
+                    multi_minter_product_label: "omniflix-multi-minter".to_string(),
+                }),
+                open_edition_minter_code_id: 1,
+                open_edition_minter_creation_fee: Coin {
+                    amount: Uint128::new(100),
+                    denom: "uusd".to_string(),
                 },
+                oem_product_label: "omniflix-open-edition-minter".to_string(),
             }
         );
     }

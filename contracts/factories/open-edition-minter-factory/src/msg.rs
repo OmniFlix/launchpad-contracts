@@ -1,15 +1,9 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Coin, Timestamp};
-use factory_types::FactoryParams;
+use cosmwasm_std::{Addr, Coin, Timestamp};
 use minter_types::MinterInstantiateMsg;
 #[cw_serde]
 pub struct InstantiateMsg {
-    pub params: FactoryParams<MultiMinterFactoryExtension>,
-}
-#[cw_serde]
-pub struct MultiMinterFactoryExtension {
-    pub multi_minter_contract_id: u64,
-    pub multi_minter_creation_fee: Coin,
+    pub params: OpenEditionMinterFactoryParams,
 }
 
 #[cw_serde]
@@ -35,19 +29,50 @@ pub type MultiMinterCreateMsg = MinterInstantiateMsg<MultiMinterInitExtention>;
 #[allow(clippy::large_enum_variant)]
 #[cw_serde]
 pub enum ExecuteMsg {
-    CreateOpenEditionMinter { msg: OpenEditionMinterCreateMsg },
-    CreateMultiMintOpenEditionMinter { msg: MultiMinterCreateMsg },
-    UpdateAdmin { admin: String },
-    UpdateFeeCollectorAddress { fee_collector_address: String },
-    UpdateMinterCreationFee { minter_creation_fee: Coin },
-    UpdateMinterCodeId { minter_code_id: u64 },
-    UpdateMultiMinterCreationFee { multi_minter_creation_fee: Coin },
-    UpdateMultiMinterContractId { multi_minter_contract_id: u64 },
+    CreateOpenEditionMinter {
+        msg: OpenEditionMinterCreateMsg,
+    },
+    CreateMultiMintOpenEditionMinter {
+        msg: MultiMinterCreateMsg,
+    },
+    UpdateAdmin {
+        admin: String,
+    },
+    UpdateFeeCollectorAddress {
+        fee_collector_address: String,
+    },
+    UpdateOpenEditionMinterCreationFee {
+        open_edition_minter_creation_fee: Coin,
+    },
+    UpdateOpenEditionMinterCodeId {
+        open_edition_minter_code_id: u64,
+    },
+    UpdateMultiMinterCreationFee {
+        multi_minter_creation_fee: Coin,
+    },
+    UpdateMultiMinterCodeId {
+        multi_minter_code_id: u64,
+    },
 }
 
 #[cw_serde]
 pub struct ParamsResponse {
-    pub params: FactoryParams<MultiMinterFactoryExtension>,
+    pub params: OpenEditionMinterFactoryParams,
+}
+#[cw_serde]
+pub struct MultiMinterParams {
+    pub multi_minter_code_id: u64,
+    pub multi_minter_creation_fee: Coin,
+    pub multi_minter_product_label: String,
+}
+#[cw_serde]
+pub struct OpenEditionMinterFactoryParams {
+    pub open_edition_minter_code_id: u64,
+    pub open_edition_minter_creation_fee: Coin,
+    pub fee_collector_address: Addr,
+    pub admin: Addr,
+    pub oem_product_label: String,
+    pub multi_minter_params: Option<MultiMinterParams>,
 }
 
 #[cw_serde]

@@ -587,6 +587,8 @@ pub fn execute_new_drop(
     if info.sender != auth_details.admin {
         return Err(ContractError::Unauthorized {});
     }
+    // Check integrity of token details
+    token_details.check_integrity()?;
     // Check if token limit is 0
     if let Some(num_tokens) = config.num_tokens {
         if num_tokens == 0 {
@@ -619,13 +621,6 @@ pub fn execute_new_drop(
             return Err(ContractError::WhitelistAlreadyActive {});
         }
     }
-    // Check royalty ratio we expect decimal number
-    let royalty_ratio = token_details.royalty_ratio;
-
-    if royalty_ratio < Decimal::zero() || royalty_ratio > Decimal::one() {
-        return Err(ContractError::InvalidRoyaltyRatio {});
-    }
-
     let new_drop_params = DropParams {
         config: config.clone(),
         token_details,
@@ -759,6 +754,9 @@ pub fn query(deps: Deps, env: Env, msg: MinterQueryMsg<QueryMsgExtension>) -> St
             QueryMsgExtension::TokenDetails { drop_id } => {
                 to_json_binary(&query_token_details(deps, env, drop_id)?)
             }
+            QueryMsgExtension::TokensMintedInDrop { drop_id } => {
+                to_json_binary(&query_tokens_minted_in_drop(deps, env, drop_id)?)
+            }
         },
     }
 }
@@ -794,7 +792,9 @@ fn query_user_minting_details(
     let address = deps.api.addr_validate(&address)?;
     let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
     let user_minting_details = UserMintingDetails::new(USER_MINTING_DETAILS_KEY);
-    let user_details = user_minting_details.load(deps.storage, drop_id, address)?;
+    let user_details = user_minting_details
+        .load(deps.storage, drop_id, address)
+        .unwrap_or_default();
     Ok(user_details)
 }
 
@@ -854,4 +854,14 @@ fn query_all_drops(deps: Deps, _env: Env) -> Result<Vec<(u32, DropParams)>, Cont
 fn query_auth_details(deps: Deps, _env: Env) -> Result<AuthDetails, ContractError> {
     let auth_details = AUTH_DETAILS.load(deps.storage)?;
     Ok(auth_details)
+}
+
+fn query_tokens_minted_in_drop(
+    deps: Deps,
+    _env: Env,
+    drop_id: Option<u32>,
+) -> Result<u32, ContractError> {
+    let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
+    let drop_minted_count = DROP_MINTED_COUNT.load(deps.storage, drop_id).unwrap_or(0);
+    Ok(drop_minted_count)
 }

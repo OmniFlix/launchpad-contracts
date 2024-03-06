@@ -5,7 +5,23 @@ use cosmwasm_std::{Addr, Coin, Decimal, QuerierWrapper, StdError, Timestamp, Uin
 use omniflix_std::types::omniflix::onft::v1beta1::{
     Metadata, MsgCreateDenom, MsgMintOnft, MsgUpdateDenom, OnftQuerier, WeightedAddress,
 };
+use thiserror::Error;
 
+#[derive(Error, Debug, PartialEq)]
+pub enum TokenDetailsError {
+    #[error("Invalid royalty ratio")]
+    InvalidRoyaltyRatio {},
+    #[error("Base token uri too long")]
+    BaseTokenUriTooLong {},
+    #[error("Preview uri too long")]
+    PreviewUriTooLong {},
+    #[error("Token description too long")]
+    TokenDescriptionTooLong {},
+    #[error("Token name too long")]
+    TokenNameTooLong {},
+    #[error("Data too long")]
+    DataTooLong {},
+}
 #[cw_serde]
 pub struct CollectionDetails {
     pub description: Option<String>,
@@ -34,6 +50,36 @@ pub struct TokenDetails {
     // This preview_uri is used for the preview of the token. If provided, it will be used as the preview_uri+token_id
     // This is the base token uri. If provided, it will be used as the base_token_uri+token_id should be pointing at a json file.
     pub base_token_uri: String,
+}
+impl TokenDetails {
+    pub fn check_integrity(&self) -> Result<(), TokenDetailsError> {
+        if self.royalty_ratio < Decimal::zero() || self.royalty_ratio > Decimal::one() {
+            return Err(TokenDetailsError::InvalidRoyaltyRatio {});
+        }
+        if self.base_token_uri.chars().count() > 256 {
+            return Err(TokenDetailsError::BaseTokenUriTooLong {});
+        }
+        if let Some(preview_uri) = &self.preview_uri {
+            if preview_uri.chars().count() > 256 {
+                return Err(TokenDetailsError::PreviewUriTooLong {});
+            }
+        }
+        if let Some(description) = &self.description {
+            if description.chars().count() > 4096 {
+                return Err(TokenDetailsError::TokenDescriptionTooLong {});
+            }
+        }
+        if self.token_name.chars().count() > 256 {
+            return Err(TokenDetailsError::TokenNameTooLong {});
+        }
+
+        if let Some(data) = &self.data {
+            if data.chars().count() > 4096 {
+                return Err(TokenDetailsError::DataTooLong {});
+            }
+        }
+        Ok(())
+    }
 }
 #[cw_serde]
 pub struct Config {
@@ -107,7 +153,7 @@ pub fn generate_mint_message(
     match is_edition {
         false => {
             let metadata = Metadata {
-                name: format!("{} # {}", token_details.token_name.clone(), token_id),
+                name: format!("{} #{}", token_details.token_name.clone(), token_id),
                 description: token_details.description.clone().unwrap_or("".to_string()),
                 media_uri: format!("{}/{}", token_details.base_token_uri.clone(), token_id),
                 preview_uri: format!(
@@ -137,7 +183,7 @@ pub fn generate_mint_message(
         true => {
             let metadata = Metadata {
                 name: format!(
-                    "{} # {}",
+                    "{} #{}",
                     token_details.token_name.clone(),
                     drop_token_number.unwrap_or(token_id.clone())
                 ),

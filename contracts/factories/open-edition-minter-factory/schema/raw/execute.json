@@ -89,16 +89,16 @@
     {
       "type": "object",
       "required": [
-        "update_minter_creation_fee"
+        "update_open_edition_minter_creation_fee"
       ],
       "properties": {
-        "update_minter_creation_fee": {
+        "update_open_edition_minter_creation_fee": {
           "type": "object",
           "required": [
-            "minter_creation_fee"
+            "open_edition_minter_creation_fee"
           ],
           "properties": {
-            "minter_creation_fee": {
+            "open_edition_minter_creation_fee": {
               "$ref": "#/definitions/Coin"
             }
           },
@@ -110,16 +110,16 @@
     {
       "type": "object",
       "required": [
-        "update_minter_code_id"
+        "update_open_edition_minter_code_id"
       ],
       "properties": {
-        "update_minter_code_id": {
+        "update_open_edition_minter_code_id": {
           "type": "object",
           "required": [
-            "minter_code_id"
+            "open_edition_minter_code_id"
           ],
           "properties": {
-            "minter_code_id": {
+            "open_edition_minter_code_id": {
               "type": "integer",
               "format": "uint64",
               "minimum": 0.0
@@ -154,16 +154,16 @@
     {
       "type": "object",
       "required": [
-        "update_multi_minter_contract_id"
+        "update_multi_minter_code_id"
       ],
       "properties": {
-        "update_multi_minter_contract_id": {
+        "update_multi_minter_code_id": {
           "type": "object",
           "required": [
-            "multi_minter_contract_id"
+            "multi_minter_code_id"
           ],
           "properties": {
-            "multi_minter_contract_id": {
+            "multi_minter_code_id": {
               "type": "integer",
               "format": "uint64",
               "minimum": 0.0

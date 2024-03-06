@@ -7,7 +7,7 @@
 import { MsgExecuteContractEncodeObject } from "@cosmjs/cosmwasm-stargate";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { toUtf8 } from "@cosmjs/encoding";
-import { Addr, Uint128, InstantiateMsg, FactoryParamsForMultiMinterFactoryExtension, Coin, MultiMinterFactoryExtension, ExecuteMsg, Timestamp, Uint64, Decimal, MinterInstantiateMsgForOpenEditionMinterInitExtention, CollectionDetails, WeightedAddress, OpenEditionMinterInitExtention, TokenDetails, MinterInstantiateMsgForMultiMinterInitExtention, MultiMinterInitExtention, QueryMsg, ParamsResponse } from "./OmniflixOpenEditionMinterFactory.types";
+import { Addr, Uint128, InstantiateMsg, OpenEditionMinterFactoryParams, MultiMinterParams, Coin, ExecuteMsg, Timestamp, Uint64, Decimal, MinterInstantiateMsgForOpenEditionMinterInitExtention, CollectionDetails, WeightedAddress, OpenEditionMinterInitExtention, TokenDetails, MinterInstantiateMsgForMultiMinterInitExtention, MultiMinterInitExtention, QueryMsg, ParamsResponse } from "./OmniflixOpenEditionMinterFactory.types";
 export interface OmniflixOpenEditionMinterFactoryMsg {
   contractAddress: string;
   sender: string;
@@ -31,25 +31,25 @@ export interface OmniflixOpenEditionMinterFactoryMsg {
   }: {
     feeCollectorAddress: string;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
-  updateMinterCreationFee: ({
-    minterCreationFee
+  updateOpenEditionMinterCreationFee: ({
+    openEditionMinterCreationFee
   }: {
-    minterCreationFee: Coin;
+    openEditionMinterCreationFee: Coin;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
-  updateMinterCodeId: ({
-    minterCodeId
+  updateOpenEditionMinterCodeId: ({
+    openEditionMinterCodeId
   }: {
-    minterCodeId: number;
+    openEditionMinterCodeId: number;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   updateMultiMinterCreationFee: ({
     multiMinterCreationFee
   }: {
     multiMinterCreationFee: Coin;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
-  updateMultiMinterContractId: ({
-    multiMinterContractId
+  updateMultiMinterCodeId: ({
+    multiMinterCodeId
   }: {
-    multiMinterContractId: number;
+    multiMinterCodeId: number;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
 }
 export class OmniflixOpenEditionMinterFactoryMsgComposer implements OmniflixOpenEditionMinterFactoryMsg {
@@ -63,10 +63,10 @@ export class OmniflixOpenEditionMinterFactoryMsgComposer implements OmniflixOpen
     this.createMultiMintOpenEditionMinter = this.createMultiMintOpenEditionMinter.bind(this);
     this.updateAdmin = this.updateAdmin.bind(this);
     this.updateFeeCollectorAddress = this.updateFeeCollectorAddress.bind(this);
-    this.updateMinterCreationFee = this.updateMinterCreationFee.bind(this);
-    this.updateMinterCodeId = this.updateMinterCodeId.bind(this);
+    this.updateOpenEditionMinterCreationFee = this.updateOpenEditionMinterCreationFee.bind(this);
+    this.updateOpenEditionMinterCodeId = this.updateOpenEditionMinterCodeId.bind(this);
     this.updateMultiMinterCreationFee = this.updateMultiMinterCreationFee.bind(this);
-    this.updateMultiMinterContractId = this.updateMultiMinterContractId.bind(this);
+    this.updateMultiMinterCodeId = this.updateMultiMinterCodeId.bind(this);
   }
 
   createOpenEditionMinter = ({
@@ -145,10 +145,10 @@ export class OmniflixOpenEditionMinterFactoryMsgComposer implements OmniflixOpen
       })
     };
   };
-  updateMinterCreationFee = ({
-    minterCreationFee
+  updateOpenEditionMinterCreationFee = ({
+    openEditionMinterCreationFee
   }: {
-    minterCreationFee: Coin;
+    openEditionMinterCreationFee: Coin;
   }, _funds?: Coin[]): MsgExecuteContractEncodeObject => {
     return {
       typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
@@ -156,18 +156,18 @@ export class OmniflixOpenEditionMinterFactoryMsgComposer implements OmniflixOpen
         sender: this.sender,
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
-          update_minter_creation_fee: {
-            minter_creation_fee: minterCreationFee
+          update_open_edition_minter_creation_fee: {
+            open_edition_minter_creation_fee: openEditionMinterCreationFee
           }
         })),
         funds: _funds
       })
     };
   };
-  updateMinterCodeId = ({
-    minterCodeId
+  updateOpenEditionMinterCodeId = ({
+    openEditionMinterCodeId
   }: {
-    minterCodeId: number;
+    openEditionMinterCodeId: number;
   }, _funds?: Coin[]): MsgExecuteContractEncodeObject => {
     return {
       typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
@@ -175,8 +175,8 @@ export class OmniflixOpenEditionMinterFactoryMsgComposer implements OmniflixOpen
         sender: this.sender,
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
-          update_minter_code_id: {
-            minter_code_id: minterCodeId
+          update_open_edition_minter_code_id: {
+            open_edition_minter_code_id: openEditionMinterCodeId
           }
         })),
         funds: _funds
@@ -202,10 +202,10 @@ export class OmniflixOpenEditionMinterFactoryMsgComposer implements OmniflixOpen
       })
     };
   };
-  updateMultiMinterContractId = ({
-    multiMinterContractId
+  updateMultiMinterCodeId = ({
+    multiMinterCodeId
   }: {
-    multiMinterContractId: number;
+    multiMinterCodeId: number;
   }, _funds?: Coin[]): MsgExecuteContractEncodeObject => {
     return {
       typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
@@ -213,8 +213,8 @@ export class OmniflixOpenEditionMinterFactoryMsgComposer implements OmniflixOpen
         sender: this.sender,
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
-          update_multi_minter_contract_id: {
-            multi_minter_contract_id: multiMinterContractId
+          update_multi_minter_code_id: {
+            multi_minter_code_id: multiMinterCodeId
           }
         })),
         funds: _funds

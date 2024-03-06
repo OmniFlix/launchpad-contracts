@@ -7,22 +7,18 @@
 export type Addr = string;
 export type Uint128 = string;
 export interface InstantiateMsg {
-  params: FactoryParamsForEmpty;
+  params: MinterFactoryParams;
 }
-export interface FactoryParamsForEmpty {
+export interface MinterFactoryParams {
   admin: Addr;
-  contract_id: number;
-  creation_fee: Coin;
   fee_collector_address: Addr;
-  init: Empty;
+  minter_code_id: number;
+  minter_creation_fee: Coin;
   product_label: string;
 }
 export interface Coin {
   amount: Uint128;
   denom: string;
-  [k: string]: unknown;
-}
-export interface Empty {
   [k: string]: unknown;
 }
 export type ExecuteMsg = {
@@ -52,7 +48,7 @@ export type Decimal = string;
 export interface MinterInstantiateMsgForMinterInitExtention {
   collection_details: CollectionDetails;
   init: MinterInitExtention;
-  token_details: TokenDetails;
+  token_details?: TokenDetails | null;
 }
 export interface CollectionDetails {
   collection_name: string;
@@ -96,5 +92,5 @@ export type QueryMsg = {
   params: {};
 };
 export interface ParamsResponse {
-  params: FactoryParamsForEmpty;
+  params: MinterFactoryParams;
 }

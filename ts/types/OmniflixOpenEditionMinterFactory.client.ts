@@ -6,7 +6,7 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { StdFee } from "@cosmjs/amino";
-import { Addr, Uint128, InstantiateMsg, FactoryParamsForMultiMinterFactoryExtension, Coin, MultiMinterFactoryExtension, ExecuteMsg, Timestamp, Uint64, Decimal, MinterInstantiateMsgForOpenEditionMinterInitExtention, CollectionDetails, WeightedAddress, OpenEditionMinterInitExtention, TokenDetails, MinterInstantiateMsgForMultiMinterInitExtention, MultiMinterInitExtention, QueryMsg, ParamsResponse } from "./OmniflixOpenEditionMinterFactory.types";
+import { Addr, Uint128, InstantiateMsg, OpenEditionMinterFactoryParams, MultiMinterParams, Coin, ExecuteMsg, Timestamp, Uint64, Decimal, MinterInstantiateMsgForOpenEditionMinterInitExtention, CollectionDetails, WeightedAddress, OpenEditionMinterInitExtention, TokenDetails, MinterInstantiateMsgForMultiMinterInitExtention, MultiMinterInitExtention, QueryMsg, ParamsResponse } from "./OmniflixOpenEditionMinterFactory.types";
 export interface OmniflixOpenEditionMinterFactoryReadOnlyInterface {
   contractAddress: string;
   params: () => Promise<ParamsResponse>;
@@ -50,25 +50,25 @@ export interface OmniflixOpenEditionMinterFactoryInterface extends OmniflixOpenE
   }: {
     feeCollectorAddress: string;
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
-  updateMinterCreationFee: ({
-    minterCreationFee
+  updateOpenEditionMinterCreationFee: ({
+    openEditionMinterCreationFee
   }: {
-    minterCreationFee: Coin;
+    openEditionMinterCreationFee: Coin;
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
-  updateMinterCodeId: ({
-    minterCodeId
+  updateOpenEditionMinterCodeId: ({
+    openEditionMinterCodeId
   }: {
-    minterCodeId: number;
+    openEditionMinterCodeId: number;
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   updateMultiMinterCreationFee: ({
     multiMinterCreationFee
   }: {
     multiMinterCreationFee: Coin;
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
-  updateMultiMinterContractId: ({
-    multiMinterContractId
+  updateMultiMinterCodeId: ({
+    multiMinterCodeId
   }: {
-    multiMinterContractId: number;
+    multiMinterCodeId: number;
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
 }
 export class OmniflixOpenEditionMinterFactoryClient extends OmniflixOpenEditionMinterFactoryQueryClient implements OmniflixOpenEditionMinterFactoryInterface {
@@ -85,10 +85,10 @@ export class OmniflixOpenEditionMinterFactoryClient extends OmniflixOpenEditionM
     this.createMultiMintOpenEditionMinter = this.createMultiMintOpenEditionMinter.bind(this);
     this.updateAdmin = this.updateAdmin.bind(this);
     this.updateFeeCollectorAddress = this.updateFeeCollectorAddress.bind(this);
-    this.updateMinterCreationFee = this.updateMinterCreationFee.bind(this);
-    this.updateMinterCodeId = this.updateMinterCodeId.bind(this);
+    this.updateOpenEditionMinterCreationFee = this.updateOpenEditionMinterCreationFee.bind(this);
+    this.updateOpenEditionMinterCodeId = this.updateOpenEditionMinterCodeId.bind(this);
     this.updateMultiMinterCreationFee = this.updateMultiMinterCreationFee.bind(this);
-    this.updateMultiMinterContractId = this.updateMultiMinterContractId.bind(this);
+    this.updateMultiMinterCodeId = this.updateMultiMinterCodeId.bind(this);
   }
 
   createOpenEditionMinter = async ({
@@ -135,25 +135,25 @@ export class OmniflixOpenEditionMinterFactoryClient extends OmniflixOpenEditionM
       }
     }, fee, memo, _funds);
   };
-  updateMinterCreationFee = async ({
-    minterCreationFee
+  updateOpenEditionMinterCreationFee = async ({
+    openEditionMinterCreationFee
   }: {
-    minterCreationFee: Coin;
+    openEditionMinterCreationFee: Coin;
   }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
-      update_minter_creation_fee: {
-        minter_creation_fee: minterCreationFee
+      update_open_edition_minter_creation_fee: {
+        open_edition_minter_creation_fee: openEditionMinterCreationFee
       }
     }, fee, memo, _funds);
   };
-  updateMinterCodeId = async ({
-    minterCodeId
+  updateOpenEditionMinterCodeId = async ({
+    openEditionMinterCodeId
   }: {
-    minterCodeId: number;
+    openEditionMinterCodeId: number;
   }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
-      update_minter_code_id: {
-        minter_code_id: minterCodeId
+      update_open_edition_minter_code_id: {
+        open_edition_minter_code_id: openEditionMinterCodeId
       }
     }, fee, memo, _funds);
   };
@@ -168,14 +168,14 @@ export class OmniflixOpenEditionMinterFactoryClient extends OmniflixOpenEditionM
       }
     }, fee, memo, _funds);
   };
-  updateMultiMinterContractId = async ({
-    multiMinterContractId
+  updateMultiMinterCodeId = async ({
+    multiMinterCodeId
   }: {
-    multiMinterContractId: number;
+    multiMinterCodeId: number;
   }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
-      update_multi_minter_contract_id: {
-        multi_minter_contract_id: multiMinterContractId
+      update_multi_minter_code_id: {
+        multi_minter_code_id: multiMinterCodeId
       }
     }, fee, memo, _funds);
   };

@@ -11,8 +11,8 @@ use omniflix_minter::msg::{ExecuteMsg as MinterExecuteMsg, MinterExtensionQueryM
 use omniflix_minter_factory::msg::ExecuteMsg as FactoryExecuteMsg;
 
 use crate::helpers::utils::{
-    get_contract_address_from_res, return_factory_inst_message, return_minter_instantiate_msg,
-    return_rounds,
+    get_contract_address_from_res, return_minter_factory_inst_message,
+    return_minter_instantiate_msg, return_round_whitelist_factory_inst_message, return_rounds,
 };
 
 use crate::{helpers::setup::setup, helpers::utils::query_onft_collection};
@@ -37,7 +37,7 @@ pub fn test_mint() {
     let creator = test_addresses.creator;
     let collector = test_addresses.collector;
 
-    let factory_inst_msg = return_factory_inst_message(minter_code_id);
+    let factory_inst_msg = return_minter_factory_inst_message(minter_code_id);
     let factory_addr = app
         .instantiate_contract(
             minter_factory_code_id,
@@ -338,7 +338,7 @@ pub fn test_mint_admin() {
     let creator = test_addresses.creator;
     let collector = test_addresses.collector;
 
-    let factory_inst_msg = return_factory_inst_message(minter_code_id);
+    let factory_inst_msg = return_minter_factory_inst_message(minter_code_id);
     let factory_addr = app
         .instantiate_contract(
             minter_factory_code_id,
@@ -533,7 +533,7 @@ pub fn test_mint_with_whitelist() {
     let creator = test_addresses.creator;
     let collector = test_addresses.collector;
 
-    let factory_inst_msg = return_factory_inst_message(minter_code_id);
+    let factory_inst_msg = return_minter_factory_inst_message(minter_code_id);
     let minter_factory_addr = app
         .instantiate_contract(
             minter_factory_code_id,
@@ -544,7 +544,8 @@ pub fn test_mint_with_whitelist() {
             None,
         )
         .unwrap();
-    let round_whitelist_factory_inst_msg = return_factory_inst_message(round_whitelist_code_id);
+    let round_whitelist_factory_inst_msg =
+        return_round_whitelist_factory_inst_message(round_whitelist_code_id);
     let round_whitelist_factory_addr = app
         .instantiate_contract(
             round_whitelist_factory_code_id,
