@@ -11,4 +11,23 @@ Launchpad utilizes a singleton structure for each collection that is released th
 ## Design
 <img src="launchpad-design.png" align="center" height="300" width="1000"/>
 
+## Build
+To build the contracts, use the following command:
 
+```cargo build```
+
+## Testing
+Testing is done using multi-test package. To run the tests, use the following command:
+
+```cargo test```
+
+
+## Optimizations
+To optimize the contract and generate the wasm file, run the following command:
+
+```
+docker run --rm -v "$(pwd)":/code \
+  --mount type=volume,source="$(basename "$(pwd)")_cache",target=/target \
+  --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
+  cosmwasm/workspace-optimizer:0.13.0
+```
