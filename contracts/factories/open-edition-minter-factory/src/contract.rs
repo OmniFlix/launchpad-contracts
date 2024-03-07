@@ -12,6 +12,7 @@ use cosmwasm_std::{
 };
 use factory_types::check_payment;
 use minter_types::check_collection_creation_fee;
+use pauser::{PauseState, PAUSED_KEY, PAUSERS_KEY};
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -20,7 +21,7 @@ pub fn instantiate(
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
-    let _admin = deps
+    let admin = deps
         .api
         .addr_validate(&msg.params.clone().admin.into_string())
         .unwrap_or(info.sender.clone());
@@ -28,7 +29,8 @@ pub fn instantiate(
         .api
         .addr_validate(&msg.params.fee_collector_address.clone().into_string())
         .unwrap_or(info.sender.clone());
-
+    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    pause_state.set_pausers(deps.storage, info.sender.clone(), vec![admin.clone()])?;
     let params = msg.params;
     PARAMS.save(deps.storage, &params)?;
     Ok(Response::default())
@@ -69,6 +71,9 @@ pub fn execute(
         ExecuteMsg::UpdateMultiMinterCodeId {
             multi_minter_code_id,
         } => update_params_multi_minter_code_id(deps, env, info, multi_minter_code_id),
+        ExecuteMsg::Pause {} => execute_pause(deps, env, info),
+        ExecuteMsg::Unpause {} => execute_unpause(deps, env, info),
+        ExecuteMsg::SetPausers { pausers } => set_pausers(deps, env, info, pausers),
     }
 }
 
@@ -78,9 +83,10 @@ fn create_oem(
     info: MessageInfo,
     msg: OpenEditionMinterCreateMsg,
 ) -> Result<Response, ContractError> {
+    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    pause_state.error_if_paused(deps.as_ref().storage)?;
     let params = PARAMS.load(deps.storage)?;
     let collection_creation_fee: Coin = check_collection_creation_fee(deps.as_ref().querier)?;
-
     check_payment(
         &info.funds,
         &[
@@ -115,6 +121,8 @@ fn create_multi_mint_oem(
     info: MessageInfo,
     msg: MultiMinterCreateMsg,
 ) -> Result<Response, ContractError> {
+    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    pause_state.error_if_paused(deps.as_ref().storage)?;
     let params = PARAMS.load(deps.storage)?;
     if params.multi_minter_params.is_none() {
         return Err(ContractError::MultiMinterNotEnabled {});
@@ -279,6 +287,39 @@ fn update_params_multi_minter_code_id(
     Ok(Response::default()
         .add_attribute("action", "update_multi_minter_code_id")
         .add_attribute("new_multi_minter_code_id", multi_minter_code_id.to_string()))
+}
+fn execute_pause(deps: DepsMut, _env: Env, info: MessageInfo) -> Result<Response, ContractError> {
+    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    pause_state.pause(deps.storage, &info.sender)?;
+    Ok(Response::default()
+        .add_attribute("action", "pause")
+        .add_attribute("pauser", info.sender))
+}
+
+fn execute_unpause(deps: DepsMut, _env: Env, info: MessageInfo) -> Result<Response, ContractError> {
+    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    pause_state.unpause(deps.storage, &info.sender)?;
+    Ok(Response::default()
+        .add_attribute("action", "unpause")
+        .add_attribute("pauser", info.sender))
+}
+
+fn set_pausers(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    pausers: Vec<String>,
+) -> Result<Response, ContractError> {
+    let validated_pausers = pausers
+        .iter()
+        .map(|pauser| deps.api.addr_validate(pauser))
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    pause_state.set_pausers(deps.storage, info.sender.clone(), validated_pausers)?;
+    Ok(Response::default()
+        .add_attribute("action", "set_pausers")
+        .add_attribute("pausers", pausers.join(",")))
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]

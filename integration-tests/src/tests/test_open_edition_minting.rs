@@ -205,7 +205,7 @@ fn test_open_edition_minting() {
     assert_eq!(collection.onfts.clone()[0].id, "1");
     assert_eq!(
         collection.onfts.clone()[0].metadata.clone().unwrap().name,
-        "token_name # 1".to_string()
+        "token_name #1".to_string()
     );
     //     Query minter
     let query_msg = OpenEditionMinterQueryMsg::Extension(OEMQueryExtension::TokensRemaining {});

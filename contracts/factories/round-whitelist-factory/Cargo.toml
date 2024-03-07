@@ -47,3 +47,4 @@ cw-utils             = { workspace = true }
 serde = { workspace = true }
 whitelist-types={ workspace = true }
 factory-types = { workspace = true }
+pauser = {workspace = true}
