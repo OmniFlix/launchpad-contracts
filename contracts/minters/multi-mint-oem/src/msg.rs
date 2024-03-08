@@ -34,6 +34,7 @@ pub enum ExecuteMsg {
         token_details: TokenDetails,
         config: Config,
     },
+    RemoveDrop {},
     UpdateRoyaltyReceivers {
         receivers: Vec<WeightedAddress>,
     },

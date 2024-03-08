@@ -61,6 +61,9 @@ pub fn get_drop_by_id(
     store: &dyn Storage,
 ) -> Result<(DropID, Drop), ContractError> {
     let drop_id = drop_id.unwrap_or(ACTIVE_DROP_ID.load(store)?);
+    if drop_id == 0 {
+        return Err(ContractError::NoDropAvailable {});
+    }
     let drop = DROPS
         .load(store, drop_id)
         .map_err(|_| ContractError::InvalidDropId {})?;

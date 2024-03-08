@@ -14,7 +14,7 @@ use pauser::{PauseState, PAUSED_KEY, PAUSERS_KEY};
 use std::str::FromStr;
 
 use crate::drop::{
-    self, get_drop_by_id, return_latest_drop_id, return_latest_drop_id_in_use, Drop, DropParams,
+    get_drop_by_id, return_latest_drop_id, return_latest_drop_id_in_use, Drop, DropParams,
     ACTIVE_DROP_ID, DROPS, DROP_IDS_IN_USE, DROP_IDS_REMOVED,
 };
 use crate::error::ContractError;
@@ -153,6 +153,7 @@ pub fn execute(
             preview_uri,
         } => execute_update_denom(deps, env, info, name, description, preview_uri),
         ExecuteMsg::PurgeDenom {} => execute_purge_denom(deps, env, info),
+        ExecuteMsg::RemoveDrop {} => execute_remove_drop(deps, info),
     }
 }
 
@@ -648,16 +649,22 @@ pub fn execute_new_drop(
     Ok(res)
 }
 
-pub fn remove_drop(deps: DepsMut, drop_id: u32) -> Result<Response, ContractError> {
-    let active_drop_id = ACTIVE_DROP_ID.load(deps.storage)?;
-
-    if !active_drop_id == drop_id {
-        return Err(ContractError::InvalidDropId {});
+pub fn execute_remove_drop(deps: DepsMut, info: MessageInfo) -> Result<Response, ContractError> {
+    let auth_details = AUTH_DETAILS.load(deps.storage)?;
+    // Check if sender is admin
+    if info.sender != auth_details.admin {
+        return Err(ContractError::Unauthorized {});
     }
-    let (drop_id, drop) = get_drop_by_id(Some(drop_id), deps.storage)?;
+    // The active drop will always be the biggest drop ID in use.
+    let active_drop_id = ACTIVE_DROP_ID.load(deps.storage)?;
+    // If active drop id is 0 then no drop is available
+    if active_drop_id == 0 {
+        return Err(ContractError::NoDropAvailable {});
+    }
+    let (drop_id, drop) = get_drop_by_id(Some(active_drop_id), deps.storage)?;
 
     if drop.minted_count > 0 {
-        return Err(ContractError::InvalidMintPrice {});
+        return Err(ContractError::DropCantBeRemoved {});
     }
     DROPS.remove(deps.storage, drop_id);
     let mut drop_ids_in_use = DROP_IDS_IN_USE.load(deps.storage)?;
@@ -675,8 +682,12 @@ pub fn remove_drop(deps: DepsMut, drop_id: u32) -> Result<Response, ContractErro
     let new_active_drop_id = return_latest_drop_id_in_use(deps.storage)?;
     ACTIVE_DROP_ID.save(deps.storage, &new_active_drop_id)?;
 
-    Ok(Response::new().add_attribute("action", "remove_drop"))
+    Ok(Response::new()
+        .add_attribute("action", "remove_drop")
+        .add_attribute("new_active_drop_id", new_active_drop_id.to_string())
+        .add_attribute("removed_drop_id", drop_id.to_string()))
 }
+
 pub fn execute_update_royalty_receivers(
     deps: DepsMut,
     env: Env,
@@ -878,10 +889,13 @@ fn query_active_drop_id(deps: Deps, _env: Env) -> Result<u32, ContractError> {
 
 fn query_all_drops(deps: Deps, _env: Env) -> Result<Vec<(u32, Drop)>, ContractError> {
     let drop_ids_in_use = DROP_IDS_IN_USE.load(deps.storage).unwrap_or_default();
-    if drop_ids_in_use.is_empty() {
-        return Err(ContractError::NoDropAvailable {});
-    }
+
     let mut drops: Vec<(u32, Drop)> = vec![];
+
+    if drop_ids_in_use.is_empty() {
+        return Ok(drops);
+    }
+
     for drop_id in drop_ids_in_use {
         let (_, drop) = get_drop_by_id(Some(drop_id), deps.storage)?;
         drops.push((drop_id, drop));
