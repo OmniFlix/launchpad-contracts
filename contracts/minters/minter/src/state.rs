@@ -8,7 +8,7 @@ use minter_types::{AuthDetails, CollectionDetails, Config, Token, TokenDetails, 
 pub const CONFIG: Item<Config> = Item::new("config");
 pub const COLLECTION: Item<CollectionDetails> = Item::new("collection");
 pub const TOKEN_DETAILS: Item<TokenDetails> = Item::new("token_details");
-// Index of mintable tokens and denom ids
+// Map of mintable tokens and denom ids
 pub const MINTABLE_TOKENS: Map<u32, Token> = Map::new("mintable_tokens");
 // Total number of tokens
 pub const TOTAL_TOKENS_REMAINING: Item<u32> = Item::new("total_tokens_remaining");

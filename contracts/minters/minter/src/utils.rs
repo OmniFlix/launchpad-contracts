@@ -27,7 +27,7 @@ pub fn randomize_token_list(
     ));
     let randomness: [u8; 16] = sha256.to_vec()[0..16].try_into().unwrap();
     let mut rng = Xoshiro128PlusPlus::from_seed(randomness);
-
+    // Shuffle tokens
     let mut shuffler = FisherYates::default();
     shuffler
         .shuffle(&mut raw_tokens, &mut rng)

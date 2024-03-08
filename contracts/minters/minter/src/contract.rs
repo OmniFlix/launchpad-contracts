@@ -607,11 +607,8 @@ pub fn execute_update_whitelist_address(
         return Err(ContractError::Unauthorized {});
     }
     let whitelist_address = config.whitelist_address.clone();
-    // In order to update whitelist address we first check if currently there is any whitelist address
-    // If there is whitelist address then we check if it is active
-    // If it is active then we throw error because creator can not update active whitelist address
-    // If it is not active then we check if the address that creator wants to update is active
-    // If it is active then we throw error because creator can not set a whitelist address that is already active
+    // To update a whitelist address, we first check if one exists and is not active.
+    // If it's active, we throw an error; the creator cannot update an active whitelist address or set an address that's already active.
     if whitelist_address.is_some() {
         let is_active = check_if_whitelist_is_active(&whitelist_address.unwrap(), deps.as_ref())?;
         if is_active {
