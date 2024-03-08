@@ -1,4 +1,4 @@
-use crate::state::DropParams;
+use crate::drop::Drop;
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::Coin;
 use minter_types::{Config, TokenDetails, UserDetails};
@@ -68,7 +68,7 @@ pub enum QueryMsgExtension {
     #[returns(u32)]
     TokensMintedInDrop { drop_id: Option<u32> },
     #[returns(u32)]
-    CurrentDropNumber {},
-    #[returns(Vec<(u32,DropParams)>)]
+    ActiveDropId {},
+    #[returns(Vec<(u32,Drop)>)]
     AllDrops {},
 }

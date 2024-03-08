@@ -13,7 +13,7 @@ use omniflix_multi_mint_open_edition_minter::error::ContractError as MultiMintOp
 use omniflix_multi_mint_open_edition_minter::msg::ExecuteMsg as MultiMintOpenEditionMinterExecuteMsg;
 use omniflix_multi_mint_open_edition_minter::msg::QueryMsgExtension as MultiMintOpenEditionMinterQueryMsgExtension;
 
-use omniflix_multi_mint_open_edition_minter::state::DropParams;
+use omniflix_multi_mint_open_edition_minter::drop::DropParams;
 use omniflix_open_edition_minter_factory::msg::{
     ExecuteMsg as OpenEditionMinterFactoryExecuteMsg, MultiMinterCreateMsg,
     MultiMinterInitExtention,
@@ -716,7 +716,7 @@ fn test_scenario_2() {
         .query_wasm_smart(
             multi_minter_addr.clone(),
             &MultiMintOpenEditionMinterQueryMsg::Extension(
-                MultiMintOpenEditionMinterQueryMsgExtension::CurrentDropNumber {},
+                MultiMintOpenEditionMinterQueryMsgExtension::ActiveDropId {},
             ),
         )
         .unwrap();
