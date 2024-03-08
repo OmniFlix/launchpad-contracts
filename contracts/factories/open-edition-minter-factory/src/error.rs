@@ -1,5 +1,6 @@
 use cosmwasm_std::StdError;
 use factory_types::CustomPaymentError;
+use pauser::PauseError;
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq)]
@@ -10,6 +11,9 @@ pub enum ContractError {
 
     #[error("Payment error")]
     PaymentError(#[from] CustomPaymentError),
+
+    #[error(transparent)]
+    Pause(#[from] PauseError),
 
     #[error("Unauthorized")]
     Unauthorized {},

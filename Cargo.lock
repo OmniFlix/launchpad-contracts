@@ -781,6 +781,7 @@ dependencies = [
  "factory-types",
  "minter-types",
  "omniflix-std",
+ "pauser",
  "serde",
  "thiserror",
 ]
@@ -845,6 +846,7 @@ dependencies = [
  "factory-types",
  "minter-types",
  "omniflix-std",
+ "pauser",
  "serde",
  "thiserror",
 ]
@@ -881,6 +883,7 @@ dependencies = [
  "cw2 1.1.1",
  "factory-types",
  "omniflix-std",
+ "pauser",
  "serde",
  "thiserror",
  "whitelist-types",

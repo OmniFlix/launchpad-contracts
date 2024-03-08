@@ -31,6 +31,9 @@ pub enum ExecuteMsg {
     UpdateFeeCollectorAddress { fee_collector_address: String },
     UpdateMinterCreationFee { minter_creation_fee: Coin },
     UpdateMinterCodeId { minter_code_id: u64 },
+    Pause {},
+    Unpause {},
+    SetPausers { pausers: Vec<String> },
 }
 
 #[cw_serde]

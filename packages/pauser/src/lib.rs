@@ -26,6 +26,7 @@ impl<'a> PauseState<'a> {
     /// Creates a new pause orchestrator using the provided storage
     /// keys.
     pub fn new(paused_key: &'a str, pausers_key: &'a str) -> Result<Self, PauseError> {
+        // Initiate the storage items empty
         let paused = Item::new(paused_key);
         let pausers = Item::new(pausers_key);
         Ok(PauseState { paused, pausers })

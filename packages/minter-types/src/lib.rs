@@ -33,23 +33,25 @@ pub struct CollectionDetails {
     pub data: Option<String>,
     pub symbol: String,
     pub id: String,
-    // FE: Collection:"Badkids" each token name "BadKid" #token_id
+    // FE: Collection:"Baby Tardigrades" each token name "Baby Tardigrade" #token_id
     pub royalty_receivers: Option<Vec<WeightedAddress>>,
 }
 #[cw_serde]
 pub struct TokenDetails {
-    // FE: Collection:"Badkids" description: "Collection of Badkids", token{ description: "Badkid from badkids collection", name: "Badkid", symbol: "BKID", uri: "https://badkids.com/1", uri_hash: "QmZG9Z3Y9Z3Y}
+    // Name of each individual token
+    // FE: Collection:{collection_name: "Baby Tardigrades", description: "Collection of Baby Tardigrades"},
+    // Each Token{name: "Baby Tardigrade",description: "Baby Tardigrade from Baby Tardigrades collection"}
+    pub token_name: String,
     pub data: Option<String>,
     pub description: Option<String>,
-    pub preview_uri: Option<String>,
-    pub token_name: String,
     pub transferable: bool,
     pub extensible: bool,
     pub nsfw: bool,
     pub royalty_ratio: Decimal,
-    // This preview_uri is used for the preview of the token. If provided, it will be used as the preview_uri+token_id
-    // This is the base token uri. If provided, it will be used as the base_token_uri+token_id should be pointing at a json file.
+    // Base token uri. It will be used as the base_token_uri+token_id. Its expected to be a json file of token details.
     pub base_token_uri: String,
+    // Preview_uri is used for the preview of the token. If provided, it will be used as the preview_uri+token_id
+    pub preview_uri: Option<String>,
 }
 impl TokenDetails {
     pub fn check_integrity(&self) -> Result<(), TokenDetailsError> {

@@ -1220,6 +1220,6 @@ fn test_scenario_2() {
     assert_eq!(collection.onfts.len(), 87);
     assert_eq!(
         collection.onfts[86].metadata.as_ref().unwrap().name,
-        "Drop number 2 # 1".to_string()
+        "Drop number 2 #1".to_string()
     );
 }

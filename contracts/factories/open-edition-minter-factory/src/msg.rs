@@ -53,6 +53,11 @@ pub enum ExecuteMsg {
     UpdateMultiMinterCodeId {
         multi_minter_code_id: u64,
     },
+    Pause {},
+    Unpause {},
+    SetPausers {
+        pausers: Vec<String>,
+    },
 }
 
 #[cw_serde]
