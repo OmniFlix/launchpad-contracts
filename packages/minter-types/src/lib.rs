@@ -40,7 +40,7 @@ pub struct CollectionDetails {
 pub struct TokenDetails {
     // Name of each individual token
     // FE: Collection:{collection_name: "Baby Tardigrades", description: "Collection of Baby Tardigrades"},
-    // Each Token{name: "Baby Tardigrade",description: "Baby Tardigrade from Baby Tardigrades collection"}
+    // Each Token{token_name: "Baby Tardigrade",description: "Baby Tardigrade from Baby Tardigrades collection"}
     pub token_name: String,
     pub data: Option<String>,
     pub description: Option<String>,

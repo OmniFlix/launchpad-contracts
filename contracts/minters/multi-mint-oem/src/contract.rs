@@ -71,7 +71,7 @@ pub fn instantiate(
     let payment_collector =
         maybe_addr(deps.api, msg.init.payment_collector.clone())?.unwrap_or(admin.clone());
 
-    // // Set the pause state
+    // Set the pause state
     let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
     pause_state.set_pausers(deps.storage, info.sender.clone(), vec![admin.clone()])?;
 
@@ -252,7 +252,6 @@ pub fn execute_mint(
     user_minting_details.save(deps.storage, drop_id, info.sender.clone(), &user_details);
 
     // Check the payment
-    // Can be set to zero so use may_pay
     let amount = may_pay(&info, &mint_price.denom)?;
     // Exact amount must be paid
     if amount != mint_price.amount {
@@ -636,6 +635,7 @@ pub fn execute_new_drop(
 
     Ok(res)
 }
+
 pub fn execute_update_royalty_receivers(
     deps: DepsMut,
     env: Env,
