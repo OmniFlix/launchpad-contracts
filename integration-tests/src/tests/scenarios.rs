@@ -13,7 +13,7 @@ use omniflix_multi_mint_open_edition_minter::error::ContractError as MultiMintOp
 use omniflix_multi_mint_open_edition_minter::msg::ExecuteMsg as MultiMintOpenEditionMinterExecuteMsg;
 use omniflix_multi_mint_open_edition_minter::msg::QueryMsgExtension as MultiMintOpenEditionMinterQueryMsgExtension;
 
-use omniflix_multi_mint_open_edition_minter::state::DropParams;
+use omniflix_multi_mint_open_edition_minter::drop::Drop;
 use omniflix_open_edition_minter_factory::msg::{
     ExecuteMsg as OpenEditionMinterFactoryExecuteMsg, MultiMinterCreateMsg,
     MultiMinterInitExtention,
@@ -700,23 +700,21 @@ fn test_scenario_2() {
         )
         .unwrap();
     let multi_minter_addr = get_contract_address_from_res(res);
-    let drops_error: Result<Vec<(u32, DropParams)>, _> = app.wrap().query_wasm_smart(
+
+    // Query all drops
+    let res: Result<Vec<(u32, Drop)>, _> = app.wrap().query_wasm_smart(
         multi_minter_addr.clone(),
         &MultiMintOpenEditionMinterQueryMsg::Extension(
             MultiMintOpenEditionMinterQueryMsgExtension::AllDrops {},
         ),
     );
-    // On instantiation, no drop should be available, drop number should be 0
-    assert_eq!(
-        drops_error.unwrap_err(),
-        StdError::generic_err("Querier contract error: Generic error: No drop available")
-    );
+    assert_eq!(res.unwrap().len(), 0);
     let current_drop_number: u32 = app
         .wrap()
         .query_wasm_smart(
             multi_minter_addr.clone(),
             &MultiMintOpenEditionMinterQueryMsg::Extension(
-                MultiMintOpenEditionMinterQueryMsgExtension::CurrentDropNumber {},
+                MultiMintOpenEditionMinterQueryMsgExtension::ActiveDropId {},
             ),
         )
         .unwrap();

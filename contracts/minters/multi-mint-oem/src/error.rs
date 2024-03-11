@@ -104,6 +104,9 @@ pub enum ContractError {
 
     #[error("Invalid drop id")]
     InvalidDropId {},
+
+    #[error("Drop cannot be removed, tokens are minted from this drop")]
+    DropCantBeRemoved,
 }
 impl From<ContractError> for StdError {
     fn from(err: ContractError) -> StdError {

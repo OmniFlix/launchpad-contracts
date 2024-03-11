@@ -13,13 +13,15 @@ use minter_types::{
 use pauser::{PauseState, PAUSED_KEY, PAUSERS_KEY};
 use std::str::FromStr;
 
+use crate::drop::{
+    get_drop_by_id, return_latest_drop_id, return_latest_drop_id_in_use, Drop, DropParams,
+    ACTIVE_DROP_ID, DROPS, DROP_IDS_IN_USE, DROP_IDS_REMOVED,
+};
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, QueryMsgExtension};
 use crate::state::{
-    DropParams, UserMintingDetails, AUTH_DETAILS, COLLECTION, CURRENT_DROP_ID, DROPS,
-    DROP_MINTED_COUNT, LAST_MINTED_TOKEN_ID, USER_MINTING_DETAILS_KEY,
+    UserMintingDetails, AUTH_DETAILS, COLLECTION, LAST_MINTED_TOKEN_ID, USER_MINTING_DETAILS_KEY,
 };
-use crate::utils::get_drop;
 
 use cw2::set_contract_version;
 use omniflix_open_edition_minter_factory::msg::{
@@ -83,7 +85,7 @@ pub fn instantiate(
 
     COLLECTION.save(deps.storage, &collection_details)?;
     // If drop id is zero then it means no drop is available
-    CURRENT_DROP_ID.save(deps.storage, &0)?;
+    ACTIVE_DROP_ID.save(deps.storage, &0)?;
     LAST_MINTED_TOKEN_ID.save(deps.storage, &0)?;
     AUTH_DETAILS.save(deps.storage, &auth_details)?;
     let nft_creation_fee = Coin {
@@ -151,6 +153,7 @@ pub fn execute(
             preview_uri,
         } => execute_update_denom(deps, env, info, name, description, preview_uri),
         ExecuteMsg::PurgeDenom {} => execute_purge_denom(deps, env, info),
+        ExecuteMsg::RemoveDrop {} => execute_remove_drop(deps, info),
     }
 }
 
@@ -164,16 +167,16 @@ pub fn execute_mint(
     pause_state.error_if_paused(deps.storage)?;
 
     // Find the drop
-    let drop_params = get_drop(drop_id, deps.as_ref())?;
-    let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
+    let (drop_id, mut drop) = get_drop_by_id(drop_id, deps.storage)?;
 
-    let config = drop_params.config;
     let collection_details = COLLECTION.load(deps.storage)?;
-    let token_details = drop_params.token_details;
+    let config = drop.clone().drop_params.config;
+    let token_details = drop.clone().drop_params.token_details;
+    let drop_minted_count = drop.clone().minted_count;
     let auth_details = AUTH_DETAILS.load(deps.storage)?;
     // Check if any token limit set and if it is reached
     if let Some(num_tokens) = config.num_tokens {
-        if DROP_MINTED_COUNT.load(deps.storage, drop_id).unwrap_or(0) >= num_tokens {
+        if drop_minted_count >= num_tokens {
             return Err(ContractError::NoTokensLeftToMint {});
         }
     }
@@ -189,8 +192,8 @@ pub fn execute_mint(
     let mut user_details = user_minting_details
         .load(deps.storage, drop_id, info.sender.clone())
         .unwrap_or_default();
+
     // Load and increment the minted count
-    // This minted count is seperate from the drops
     let last_token_id = LAST_MINTED_TOKEN_ID.load(deps.storage)?;
     let token_id = last_token_id + 1;
     LAST_MINTED_TOKEN_ID.save(deps.storage, &token_id)?;
@@ -263,9 +266,10 @@ pub fn execute_mint(
     // Get the payment collector address
     let payment_collector = auth_details.payment_collector;
 
-    let mut drop_minted_count = DROP_MINTED_COUNT.load(deps.storage, drop_id)?;
-    drop_minted_count += 1;
-    DROP_MINTED_COUNT.save(deps.storage, drop_id, &drop_minted_count)?;
+    // Increment the drop minted count and extract the drop token id
+    drop.minted_count += 1;
+    DROPS.save(deps.storage, drop_id, &drop)?;
+    let drop_token_id = drop.minted_count;
 
     let mint_msg: CosmosMsg = generate_mint_message(
         &collection_details,
@@ -273,7 +277,7 @@ pub fn execute_mint(
         token_id.to_string(),
         env.contract.address,
         info.sender,
-        Some((drop_minted_count).to_string()),
+        Some((drop_token_id).to_string()),
         true,
     )
     .into();
@@ -295,7 +299,7 @@ pub fn execute_mint(
         .add_messages(messages)
         .add_attribute("action", "mint")
         .add_attribute("token_id", token_id.to_string())
-        .add_attribute("drop_token_id", drop_minted_count.to_string())
+        .add_attribute("drop_token_id", drop_token_id.to_string())
         .add_attribute("collection_id", collection_details.id)
         .add_attribute("drop_id", drop_id.to_string());
 
@@ -312,23 +316,23 @@ pub fn execute_mint_admin(
     nonpayable(&info)?;
 
     // Find the drop
-    let drop_params = get_drop(drop_id, deps.as_ref())?;
-    let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
+    let (drop_id, mut drop) = get_drop_by_id(drop_id, deps.storage)?;
 
-    let config = drop_params.config;
     let collection_details = COLLECTION.load(deps.storage)?;
-    let token_details = drop_params.token_details;
+    let token_details = drop.clone().drop_params.token_details;
+    let config = drop.clone().drop_params.config;
     let auth_details = AUTH_DETAILS.load(deps.storage)?;
     // Check if admin
     if info.sender != auth_details.admin {
         return Err(ContractError::Unauthorized {});
     }
-    // Check if any token left for current drop
+    // Check if token limit is set and if it is reached
     if let Some(num_tokens) = config.num_tokens {
-        if DROP_MINTED_COUNT.load(deps.storage, drop_id).unwrap_or(0) >= num_tokens {
+        if drop.minted_count >= num_tokens {
             return Err(ContractError::NoTokensLeftToMint {});
         }
     }
+
     // Check if end time is determined and if it is passed
     if let Some(end_time) = config.end_time {
         if env.block.time > end_time {
@@ -357,10 +361,10 @@ pub fn execute_mint_admin(
     // Save the user details
     user_minting_details.save(deps.storage, drop_id, recipient.clone(), &user_details);
 
-    // Load current drops minted count and increment it
-    let mut drop_minted_count = DROP_MINTED_COUNT.load(deps.storage, drop_id)?;
-    drop_minted_count += 1;
-    DROP_MINTED_COUNT.save(deps.storage, drop_id, &drop_minted_count)?;
+    // Increment the drop minted count and extract the drop token id
+    drop.minted_count += 1;
+    DROPS.save(deps.storage, drop_id, &drop)?;
+    let drop_token_id = drop.minted_count;
 
     let mint_msg: CosmosMsg = generate_mint_message(
         &collection_details,
@@ -368,7 +372,7 @@ pub fn execute_mint_admin(
         token_id.to_string(),
         env.contract.address,
         recipient.clone(),
-        Some((drop_minted_count).to_string()),
+        Some((drop_token_id).to_string()),
         true,
     )
     .into();
@@ -378,7 +382,7 @@ pub fn execute_mint_admin(
         .add_attribute("action", "mint")
         .add_attribute("token_id", token_id.to_string())
         .add_attribute("denom_id", collection_details.id)
-        .add_attribute("drop_token_id", drop_minted_count.to_string())
+        .add_attribute("drop_token_id", drop_token_id.to_string())
         .add_attribute("drop_id", drop_id.to_string());
     Ok(res)
 }
@@ -390,25 +394,23 @@ pub fn execute_update_royalty_ratio(
     ratio: String,
     drop_id: Option<u32>,
 ) -> Result<Response, ContractError> {
-    // Find the drop
-    let mut drop_params = get_drop(drop_id, deps.as_ref())?;
-    let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
     let auth_details = AUTH_DETAILS.load(deps.storage)?;
     // Check if sender is admin
     if info.sender != auth_details.admin {
         return Err(ContractError::Unauthorized {});
     }
+    // Find the drop
+    let (drop_id, mut drop) = get_drop_by_id(drop_id, deps.storage)?;
+    // Extract the token details
+    let mut drop_token_details = drop.clone().drop_params.token_details;
+    // Set the new ratio without checking the ratio
+    drop_token_details.royalty_ratio = Decimal::from_str(&ratio)?;
+    // Check integrity of token details
+    drop_token_details.check_integrity()?;
 
-    // Check if ratio is decimal number
-    let ratio = Decimal::from_str(&ratio)?;
-
-    if ratio < Decimal::zero() || ratio > Decimal::one() {
-        return Err(ContractError::InvalidRoyaltyRatio {});
-    }
-
-    drop_params.token_details.royalty_ratio = ratio;
-
-    DROPS.save(deps.storage, drop_id, &drop_params)?;
+    // Save the new token details
+    drop.drop_params.token_details.royalty_ratio = Decimal::from_str(&ratio)?;
+    DROPS.save(deps.storage, drop_id, &drop)?;
 
     let res = Response::new()
         .add_attribute("action", "update_royalty_ratio")
@@ -424,18 +426,17 @@ pub fn execute_update_mint_price(
     mint_price: Coin,
     drop_id: Option<u32>,
 ) -> Result<Response, ContractError> {
-    // Find the drop
-    let mut drop_params = get_drop(drop_id, deps.as_ref())?;
-    let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
     let auth_details = AUTH_DETAILS.load(deps.storage)?;
 
     // Check if sender is admin
     if info.sender != auth_details.admin {
         return Err(ContractError::Unauthorized {});
     }
-    drop_params.config.mint_price = mint_price.clone();
+    // Find the drop
+    let (drop_id, mut drop) = get_drop_by_id(drop_id, deps.storage)?;
+    drop.drop_params.config.mint_price = mint_price.clone();
 
-    DROPS.save(deps.storage, drop_id, &drop_params)?;
+    DROPS.save(deps.storage, drop_id, &drop)?;
 
     let res = Response::new()
         .add_attribute("action", "update_mint_price")
@@ -456,8 +457,9 @@ pub fn execute_set_admin(
     if info.sender != auth_details.admin {
         return Err(ContractError::Unauthorized {});
     }
-    let new_admin = deps.api.addr_validate(&admin)?;
-    auth_details.admin = new_admin.clone();
+
+    let validated_new_admin = deps.api.addr_validate(&admin)?;
+    auth_details.admin = validated_new_admin.clone();
     AUTH_DETAILS.save(deps.storage, &auth_details)?;
 
     let res = Response::new()
@@ -477,8 +479,8 @@ pub fn execute_set_payment_collector(
     if info.sender != auth_details.admin {
         return Err(ContractError::Unauthorized {});
     }
-    let new_payment_collector = deps.api.addr_validate(&payment_collector)?;
-    auth_details.payment_collector = new_payment_collector.clone();
+    let validated_new_payment_collector = deps.api.addr_validate(&payment_collector)?;
+    auth_details.payment_collector = validated_new_payment_collector.clone();
     AUTH_DETAILS.save(deps.storage, &auth_details)?;
 
     let res = Response::new()
@@ -495,32 +497,34 @@ pub fn execute_update_whitelist_address(
     drop_id: Option<u32>,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
-    // Find the drop
-    let mut drop_params = get_drop(drop_id, deps.as_ref())?;
-    let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
     let auth_details = AUTH_DETAILS.load(deps.storage)?;
-    // Check if sender is admin
     if info.sender != auth_details.admin {
         return Err(ContractError::Unauthorized {});
     }
+    // Find the drop
+    let (drop_id, mut drop) = get_drop_by_id(drop_id, deps.storage)?;
 
-    let whitelist_address = drop_params.config.whitelist_address.clone();
+    let current_whitelist_address = drop.drop_params.config.whitelist_address.clone();
 
-    // Check if whitelist already active
-    if let Some(whitelist_address) = whitelist_address {
-        let is_active: bool = check_if_whitelist_is_active(&whitelist_address, deps.as_ref())?;
+    // Check if current whitelist already active
+    if let Some(current_whitelist_address) = current_whitelist_address {
+        let is_active: bool =
+            check_if_whitelist_is_active(&current_whitelist_address, deps.as_ref())?;
         if is_active {
             return Err(ContractError::WhitelistAlreadyActive {});
         }
     }
 
-    let address = deps.api.addr_validate(&address)?;
-    let is_active: bool = check_if_whitelist_is_active(&address, deps.as_ref())?;
+    let validated_new_whitelist_address = deps.api.addr_validate(&address)?;
+
+    let is_active: bool =
+        check_if_whitelist_is_active(&validated_new_whitelist_address, deps.as_ref())?;
     if is_active {
         return Err(ContractError::WhitelistAlreadyActive {});
     }
-    drop_params.config.whitelist_address = Some(address.clone());
-    DROPS.save(deps.storage, drop_id, &drop_params)?;
+    // Set the new whitelist address
+    drop.drop_params.config.whitelist_address = Some(validated_new_whitelist_address.clone());
+    DROPS.save(deps.storage, drop_id, &drop)?;
 
     let res = Response::new()
         .add_attribute("action", "update_whitelist_address")
@@ -580,7 +584,6 @@ pub fn execute_new_drop(
     token_details: TokenDetails,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
-    let current_drop_id = CURRENT_DROP_ID.load(deps.storage)?;
     let auth_details = AUTH_DETAILS.load(deps.storage)?;
 
     if info.sender != auth_details.admin {
@@ -621,19 +624,68 @@ pub fn execute_new_drop(
         }
     }
     let new_drop_params = DropParams {
-        config: config.clone(),
+        config,
         token_details,
     };
-    let new_drop_id = current_drop_id + 1;
-    DROPS.save(deps.storage, new_drop_id, &new_drop_params)?;
-    CURRENT_DROP_ID.save(deps.storage, &new_drop_id)?;
-    DROP_MINTED_COUNT.save(deps.storage, new_drop_id, &0)?;
+    let new_drop = Drop {
+        minted_count: 0,
+        drop_params: new_drop_params.clone(),
+    };
+
+    let latest_drop_id = return_latest_drop_id(deps.storage)?;
+    let new_drop_id = latest_drop_id + 1;
+    DROPS.save(deps.storage, new_drop_id, &new_drop)?;
+
+    let mut drop_ids_in_use = DROP_IDS_IN_USE.load(deps.storage).unwrap_or_default();
+    drop_ids_in_use.push(new_drop_id);
+
+    DROP_IDS_IN_USE.save(deps.storage, &drop_ids_in_use)?;
+    ACTIVE_DROP_ID.save(deps.storage, &new_drop_id)?;
 
     let res = Response::new()
         .add_attribute("action", "new_drop")
         .add_attribute("new_drop_id", new_drop_id.to_string());
 
     Ok(res)
+}
+
+pub fn execute_remove_drop(deps: DepsMut, info: MessageInfo) -> Result<Response, ContractError> {
+    let auth_details = AUTH_DETAILS.load(deps.storage)?;
+    // Check if sender is admin
+    if info.sender != auth_details.admin {
+        return Err(ContractError::Unauthorized {});
+    }
+    // The active drop will always be the biggest drop ID in use.
+    let active_drop_id = ACTIVE_DROP_ID.load(deps.storage)?;
+    // If active drop id is 0 then no drop is available
+    if active_drop_id == 0 {
+        return Err(ContractError::NoDropAvailable {});
+    }
+    let (drop_id, drop) = get_drop_by_id(Some(active_drop_id), deps.storage)?;
+
+    if drop.minted_count > 0 {
+        return Err(ContractError::DropCantBeRemoved {});
+    }
+    DROPS.remove(deps.storage, drop_id);
+    let mut drop_ids_in_use = DROP_IDS_IN_USE.load(deps.storage)?;
+
+    // Remove the drop id from the list
+    drop_ids_in_use.retain(|&x| x != drop_id);
+    DROP_IDS_IN_USE.save(deps.storage, &drop_ids_in_use)?;
+
+    let mut drop_ids_removed = DROP_IDS_REMOVED.load(deps.storage).unwrap_or_default();
+
+    // Add the drop id to the removed list
+    drop_ids_removed.push(drop_id);
+    DROP_IDS_REMOVED.save(deps.storage, &drop_ids_removed)?;
+
+    let new_active_drop_id = return_latest_drop_id_in_use(deps.storage)?;
+    ACTIVE_DROP_ID.save(deps.storage, &new_active_drop_id)?;
+
+    Ok(Response::new()
+        .add_attribute("action", "remove_drop")
+        .add_attribute("new_active_drop_id", new_active_drop_id.to_string())
+        .add_attribute("removed_drop_id", drop_id.to_string()))
 }
 
 pub fn execute_update_royalty_receivers(
@@ -738,9 +790,7 @@ pub fn query(deps: Deps, env: Env, msg: MinterQueryMsg<QueryMsgExtension>) -> St
         MinterQueryMsg::IsPaused {} => to_json_binary(&query_is_paused(deps, env)?),
         MinterQueryMsg::Pausers {} => to_json_binary(&query_pausers(deps, env)?),
         MinterQueryMsg::Extension(ext) => match ext {
-            QueryMsgExtension::CurrentDropNumber {} => {
-                to_json_binary(&query_current_drop_number(deps, env)?)
-            }
+            QueryMsgExtension::ActiveDropId {} => to_json_binary(&query_active_drop_id(deps, env)?),
             QueryMsgExtension::AllDrops {} => to_json_binary(&query_all_drops(deps, env)?),
             QueryMsgExtension::Config { drop_id } => {
                 to_json_binary(&query_config(deps, env, drop_id)?)
@@ -771,15 +821,15 @@ fn query_token_details(
     drop_id: Option<u32>,
 ) -> Result<TokenDetails, ContractError> {
     // Find the drop
-    let drop_params = get_drop(drop_id, deps)?;
-    let token_details = drop_params.token_details;
+    let (_, drop) = get_drop_by_id(drop_id, deps.storage)?;
+    let token_details = drop.drop_params.token_details;
     Ok(token_details)
 }
 
 fn query_config(deps: Deps, _env: Env, drop_id: Option<u32>) -> Result<Config, ContractError> {
     // Find the drop
-    let drop_params = get_drop(drop_id, deps)?;
-    let config = drop_params.config;
+    let (_, drop) = get_drop_by_id(drop_id, deps.storage)?;
+    let config = drop.drop_params.config;
     Ok(config)
 }
 
@@ -790,7 +840,7 @@ fn query_user_minting_details(
     drop_id: Option<u32>,
 ) -> Result<UserDetails, ContractError> {
     let address = deps.api.addr_validate(&address)?;
-    let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
+    let drop_id = drop_id.unwrap_or(ACTIVE_DROP_ID.load(deps.storage)?);
     let user_minting_details = UserMintingDetails::new(USER_MINTING_DETAILS_KEY);
     let user_details = user_minting_details
         .load(deps.storage, drop_id, address)
@@ -808,11 +858,10 @@ fn query_tokens_remaining_in_drop(
     _env: Env,
     drop_id: Option<u32>,
 ) -> Result<u32, ContractError> {
-    let drop_params = get_drop(drop_id, deps)?;
-    let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
-    let config = drop_params.config;
+    let (_, drop) = get_drop_by_id(drop_id, deps.storage)?;
+    let config = drop.drop_params.config;
+    let drop_minted_count = drop.minted_count;
 
-    let drop_minted_count = DROP_MINTED_COUNT.load(deps.storage, drop_id).unwrap_or(0);
     if let Some(num_tokens) = config.num_tokens {
         let tokens_remaining = num_tokens - drop_minted_count;
         Ok(tokens_remaining)
@@ -833,20 +882,23 @@ fn query_pausers(deps: Deps, _env: Env) -> Result<Vec<Addr>, ContractError> {
     Ok(pausers)
 }
 
-fn query_current_drop_number(deps: Deps, _env: Env) -> Result<u32, ContractError> {
-    let current_edition = CURRENT_DROP_ID.load(deps.storage).unwrap_or(0);
-    Ok(current_edition)
+fn query_active_drop_id(deps: Deps, _env: Env) -> Result<u32, ContractError> {
+    let active_drop_id = ACTIVE_DROP_ID.load(deps.storage).unwrap_or(0);
+    Ok(active_drop_id)
 }
 
-fn query_all_drops(deps: Deps, _env: Env) -> Result<Vec<(u32, DropParams)>, ContractError> {
-    let current_drop_id = CURRENT_DROP_ID.load(deps.storage).unwrap_or(0);
-    if current_drop_id == 0 {
-        return Err(ContractError::NoDropAvailable {});
+fn query_all_drops(deps: Deps, _env: Env) -> Result<Vec<(u32, Drop)>, ContractError> {
+    let drop_ids_in_use = DROP_IDS_IN_USE.load(deps.storage).unwrap_or_default();
+
+    let mut drops: Vec<(u32, Drop)> = vec![];
+
+    if drop_ids_in_use.is_empty() {
+        return Ok(drops);
     }
-    let mut drops: Vec<(u32, DropParams)> = vec![];
-    for edition_number in 1..=current_drop_id {
-        let drop_params = DROPS.load(deps.storage, edition_number)?;
-        drops.push((edition_number, drop_params));
+
+    for drop_id in drop_ids_in_use {
+        let (_, drop) = get_drop_by_id(Some(drop_id), deps.storage)?;
+        drops.push((drop_id, drop));
     }
     Ok(drops)
 }
@@ -861,7 +913,7 @@ fn query_tokens_minted_in_drop(
     _env: Env,
     drop_id: Option<u32>,
 ) -> Result<u32, ContractError> {
-    let drop_id = drop_id.unwrap_or(CURRENT_DROP_ID.load(deps.storage)?);
-    let drop_minted_count = DROP_MINTED_COUNT.load(deps.storage, drop_id).unwrap_or(0);
+    let (_, drop) = get_drop_by_id(drop_id, deps.storage)?;
+    let drop_minted_count = drop.minted_count;
     Ok(drop_minted_count)
 }
