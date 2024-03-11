@@ -13,7 +13,7 @@ use minter_types::utils::{
     check_collection_creation_fee, generate_create_denom_msg, generate_mint_message,
     generate_update_denom_msg, update_collection_details,
 };
-use pauser::{PauseState, PAUSED_KEY, PAUSERS_KEY};
+use pauser::PauseState;
 use std::str::FromStr;
 
 use crate::drop::{
@@ -76,7 +76,7 @@ pub fn instantiate(
         maybe_addr(deps.api, msg.init.payment_collector.clone())?.unwrap_or(admin.clone());
 
     // Set the pause state with the sender as the initial pauser
-    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let pause_state = PauseState::new()?;
     pause_state.set_pausers(deps.storage, info.sender.clone(), vec![admin.clone()])?;
 
     // Save collection and authorization details
@@ -167,7 +167,7 @@ pub fn execute_mint(
     drop_id: Option<u32>,
 ) -> Result<Response, ContractError> {
     // Ensure contract is not paused
-    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let pause_state = PauseState::new()?;
     pause_state.error_if_paused(deps.storage)?;
 
     // Retrieve the drop
@@ -354,7 +354,7 @@ pub fn execute_mint_admin(
         }
     };
 
-    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let pause_state = PauseState::new()?;
     pause_state.error_if_paused(deps.storage)?;
 
     let recipient = deps.api.addr_validate(&recipient)?;
@@ -551,7 +551,7 @@ pub fn execute_pause(
     _env: Env,
     info: MessageInfo,
 ) -> Result<Response, ContractError> {
-    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let pause_state = PauseState::new()?;
     pause_state.pause(deps.storage, &info.sender)?;
     let res = Response::new().add_attribute("action", "pause");
     Ok(res)
@@ -563,7 +563,7 @@ pub fn execute_unpause(
     info: MessageInfo,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
-    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let pause_state = PauseState::new()?;
     pause_state.unpause(deps.storage, &info.sender)?;
     let res = Response::new().add_attribute("action", "unpause");
     Ok(res)
@@ -575,7 +575,7 @@ pub fn execute_set_pausers(
     info: MessageInfo,
     pausers: Vec<String>,
 ) -> Result<Response, ContractError> {
-    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let pause_state = PauseState::new()?;
     pause_state.set_pausers(
         deps.storage,
         info.sender,
@@ -871,13 +871,13 @@ fn query_tokens_remaining_in_drop(
 }
 
 fn query_is_paused(deps: Deps, _env: Env) -> Result<bool, ContractError> {
-    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let pause_state = PauseState::new()?;
     let is_paused = pause_state.is_paused(deps.storage)?;
     Ok(is_paused)
 }
 
 fn query_pausers(deps: Deps, _env: Env) -> Result<Vec<Addr>, ContractError> {
-    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let pause_state = PauseState::new()?;
     let pausers = pause_state.pausers.load(deps.storage).unwrap_or(vec![]);
     Ok(pausers)
 }

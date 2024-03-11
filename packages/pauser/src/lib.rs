@@ -25,10 +25,10 @@ pub struct PauseState<'a> {
 impl<'a> PauseState<'a> {
     /// Creates a new pause orchestrator using the provided storage
     /// keys.
-    pub fn new(paused_key: &'a str, pausers_key: &'a str) -> Result<Self, PauseError> {
+    pub fn new() -> Result<Self, PauseError> {
         // Initiate the storage items empty
-        let paused = Item::new(paused_key);
-        let pausers = Item::new(pausers_key);
+        let paused = Item::new(PAUSED_KEY);
+        let pausers = Item::new(PAUSERS_KEY);
         Ok(PauseState { paused, pausers })
     }
 
@@ -109,7 +109,7 @@ mod tests {
         let pauser2 = Addr::unchecked("pauser2");
         let pauser3 = Addr::unchecked("pauser3");
 
-        let state = PauseState::new("paused", "pausers").unwrap();
+        let state = PauseState::new().unwrap();
 
         // no pausers set
         assert_eq!(

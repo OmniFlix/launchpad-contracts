@@ -32,7 +32,7 @@ use minter_types::msg::QueryMsg as BaseMinterQueryMsg;
 use minter_types::types::{
     AuthDetails, CollectionDetails, Config, Token, TokenDetails, UserDetails,
 };
-use pauser::{PauseState, PAUSED_KEY, PAUSERS_KEY};
+use pauser::PauseState;
 
 use cw2::set_contract_version;
 use omniflix_std::types::omniflix::onft::v1beta1::{MsgPurgeDenom, WeightedAddress};
@@ -131,7 +131,7 @@ pub fn instantiate(
     TOTAL_TOKENS_REMAINING.save(deps.storage, &init.num_tokens)?;
 
     // Initialize pause state and set admin as pauser
-    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let pause_state = PauseState::new()?;
     pause_state.set_pausers(deps.storage, info.sender.clone(), vec![admin.clone()])?;
 
     // Generate create denom message
@@ -194,7 +194,7 @@ pub fn execute(
 
 pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response, ContractError> {
     // Check if the contract is paused
-    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let pause_state = PauseState::new()?;
     pause_state.error_if_paused(deps.storage)?;
 
     // Load configuration and authorization details
@@ -363,7 +363,7 @@ pub fn execute_mint_admin(
     token_id: Option<String>,
 ) -> Result<Response, ContractError> {
     // Error if paused
-    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let pause_state = PauseState::new()?;
     pause_state.error_if_paused(deps.storage)?;
 
     nonpayable(&info)?;
@@ -628,7 +628,7 @@ pub fn execute_pause(
     _env: Env,
     info: MessageInfo,
 ) -> Result<Response, ContractError> {
-    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let pause_state = PauseState::new()?;
     pause_state.pause(deps.storage, &info.sender)?;
     let res = Response::new().add_attribute("action", "pause");
     Ok(res)
@@ -640,7 +640,7 @@ pub fn execute_unpause(
     info: MessageInfo,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
-    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let pause_state = PauseState::new()?;
     pause_state.unpause(deps.storage, &info.sender)?;
     let res = Response::new().add_attribute("action", "unpause");
     Ok(res)
@@ -652,7 +652,7 @@ pub fn execute_set_pausers(
     info: MessageInfo,
     pausers: Vec<String>,
 ) -> Result<Response, ContractError> {
-    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let pause_state = PauseState::new()?;
     pause_state.set_pausers(
         deps.storage,
         info.sender,
@@ -830,13 +830,13 @@ fn query_total_tokens(deps: Deps, _env: Env) -> Result<u32, ContractError> {
 }
 
 fn query_is_paused(deps: Deps, _env: Env) -> Result<bool, ContractError> {
-    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let pause_state = PauseState::new()?;
     let is_paused = pause_state.is_paused(deps.storage)?;
     Ok(is_paused)
 }
 
 fn query_pausers(deps: Deps, _env: Env) -> Result<Vec<Addr>, ContractError> {
-    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let pause_state = PauseState::new()?;
     let pausers = pause_state.pausers.load(deps.storage).unwrap_or(vec![]);
     Ok(pausers)
 }
