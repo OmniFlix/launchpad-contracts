@@ -70,6 +70,13 @@ export interface OmniflixOpenEditionMinterFactoryInterface extends OmniflixOpenE
   }: {
     multiMinterCodeId: number;
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
+  pause: (fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
+  unpause: (fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
+  setPausers: ({
+    pausers
+  }: {
+    pausers: string[];
+  }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
 }
 export class OmniflixOpenEditionMinterFactoryClient extends OmniflixOpenEditionMinterFactoryQueryClient implements OmniflixOpenEditionMinterFactoryInterface {
   client: SigningCosmWasmClient;
@@ -89,6 +96,9 @@ export class OmniflixOpenEditionMinterFactoryClient extends OmniflixOpenEditionM
     this.updateOpenEditionMinterCodeId = this.updateOpenEditionMinterCodeId.bind(this);
     this.updateMultiMinterCreationFee = this.updateMultiMinterCreationFee.bind(this);
     this.updateMultiMinterCodeId = this.updateMultiMinterCodeId.bind(this);
+    this.pause = this.pause.bind(this);
+    this.unpause = this.unpause.bind(this);
+    this.setPausers = this.setPausers.bind(this);
   }
 
   createOpenEditionMinter = async ({
@@ -176,6 +186,27 @@ export class OmniflixOpenEditionMinterFactoryClient extends OmniflixOpenEditionM
     return await this.client.execute(this.sender, this.contractAddress, {
       update_multi_minter_code_id: {
         multi_minter_code_id: multiMinterCodeId
+      }
+    }, fee, memo, _funds);
+  };
+  pause = async (fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
+    return await this.client.execute(this.sender, this.contractAddress, {
+      pause: {}
+    }, fee, memo, _funds);
+  };
+  unpause = async (fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
+    return await this.client.execute(this.sender, this.contractAddress, {
+      unpause: {}
+    }, fee, memo, _funds);
+  };
+  setPausers = async ({
+    pausers
+  }: {
+    pausers: string[];
+  }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
+    return await this.client.execute(this.sender, this.contractAddress, {
+      set_pausers: {
+        pausers
       }
     }, fee, memo, _funds);
   };

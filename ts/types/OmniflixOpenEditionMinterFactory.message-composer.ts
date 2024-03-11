@@ -51,6 +51,13 @@ export interface OmniflixOpenEditionMinterFactoryMsg {
   }: {
     multiMinterCodeId: number;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
+  pause: (_funds?: Coin[]) => MsgExecuteContractEncodeObject;
+  unpause: (_funds?: Coin[]) => MsgExecuteContractEncodeObject;
+  setPausers: ({
+    pausers
+  }: {
+    pausers: string[];
+  }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
 }
 export class OmniflixOpenEditionMinterFactoryMsgComposer implements OmniflixOpenEditionMinterFactoryMsg {
   sender: string;
@@ -67,6 +74,9 @@ export class OmniflixOpenEditionMinterFactoryMsgComposer implements OmniflixOpen
     this.updateOpenEditionMinterCodeId = this.updateOpenEditionMinterCodeId.bind(this);
     this.updateMultiMinterCreationFee = this.updateMultiMinterCreationFee.bind(this);
     this.updateMultiMinterCodeId = this.updateMultiMinterCodeId.bind(this);
+    this.pause = this.pause.bind(this);
+    this.unpause = this.unpause.bind(this);
+    this.setPausers = this.setPausers.bind(this);
   }
 
   createOpenEditionMinter = ({
@@ -215,6 +225,51 @@ export class OmniflixOpenEditionMinterFactoryMsgComposer implements OmniflixOpen
         msg: toUtf8(JSON.stringify({
           update_multi_minter_code_id: {
             multi_minter_code_id: multiMinterCodeId
+          }
+        })),
+        funds: _funds
+      })
+    };
+  };
+  pause = (_funds?: Coin[]): MsgExecuteContractEncodeObject => {
+    return {
+      typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+      value: MsgExecuteContract.fromPartial({
+        sender: this.sender,
+        contract: this.contractAddress,
+        msg: toUtf8(JSON.stringify({
+          pause: {}
+        })),
+        funds: _funds
+      })
+    };
+  };
+  unpause = (_funds?: Coin[]): MsgExecuteContractEncodeObject => {
+    return {
+      typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+      value: MsgExecuteContract.fromPartial({
+        sender: this.sender,
+        contract: this.contractAddress,
+        msg: toUtf8(JSON.stringify({
+          unpause: {}
+        })),
+        funds: _funds
+      })
+    };
+  };
+  setPausers = ({
+    pausers
+  }: {
+    pausers: string[];
+  }, _funds?: Coin[]): MsgExecuteContractEncodeObject => {
+    return {
+      typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+      value: MsgExecuteContract.fromPartial({
+        sender: this.sender,
+        contract: this.contractAddress,
+        msg: toUtf8(JSON.stringify({
+          set_pausers: {
+            pausers
           }
         })),
         funds: _funds

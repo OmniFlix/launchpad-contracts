@@ -42,6 +42,14 @@ export type ExecuteMsg = {
   update_whitelist_code_id: {
     whitelist_code_id: number;
   };
+} | {
+  pause: {};
+} | {
+  unpause: {};
+} | {
+  set_pausers: {
+    pausers: string[];
+  };
 };
 export type Timestamp = Uint64;
 export type Uint64 = string;

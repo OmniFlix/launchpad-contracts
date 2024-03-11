@@ -55,6 +55,13 @@ export interface OmniflixRoundWhitelistFactoryInterface extends OmniflixRoundWhi
   }: {
     whitelistCodeId: number;
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
+  pause: (fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
+  unpause: (fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
+  setPausers: ({
+    pausers
+  }: {
+    pausers: string[];
+  }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
 }
 export class OmniflixRoundWhitelistFactoryClient extends OmniflixRoundWhitelistFactoryQueryClient implements OmniflixRoundWhitelistFactoryInterface {
   client: SigningCosmWasmClient;
@@ -71,6 +78,9 @@ export class OmniflixRoundWhitelistFactoryClient extends OmniflixRoundWhitelistF
     this.updateFeeCollectorAddress = this.updateFeeCollectorAddress.bind(this);
     this.updateWhitelistCreationFee = this.updateWhitelistCreationFee.bind(this);
     this.updateWhitelistCodeId = this.updateWhitelistCodeId.bind(this);
+    this.pause = this.pause.bind(this);
+    this.unpause = this.unpause.bind(this);
+    this.setPausers = this.setPausers.bind(this);
   }
 
   createWhitelist = async ({
@@ -125,6 +135,27 @@ export class OmniflixRoundWhitelistFactoryClient extends OmniflixRoundWhitelistF
     return await this.client.execute(this.sender, this.contractAddress, {
       update_whitelist_code_id: {
         whitelist_code_id: whitelistCodeId
+      }
+    }, fee, memo, _funds);
+  };
+  pause = async (fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
+    return await this.client.execute(this.sender, this.contractAddress, {
+      pause: {}
+    }, fee, memo, _funds);
+  };
+  unpause = async (fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
+    return await this.client.execute(this.sender, this.contractAddress, {
+      unpause: {}
+    }, fee, memo, _funds);
+  };
+  setPausers = async ({
+    pausers
+  }: {
+    pausers: string[];
+  }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
+    return await this.client.execute(this.sender, this.contractAddress, {
+      set_pausers: {
+        pausers
       }
     }, fee, memo, _funds);
   };

@@ -219,6 +219,19 @@
     {
       "type": "object",
       "required": [
+        "remove_drop"
+      ],
+      "properties": {
+        "remove_drop": {
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
         "update_royalty_receivers"
       ],
       "properties": {

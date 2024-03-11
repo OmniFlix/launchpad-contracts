@@ -143,6 +143,7 @@ export interface OmniflixMultiMintOpenEditionMinterInterface extends OmniflixMul
     config: Config;
     tokenDetails: TokenDetails;
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
+  removeDrop: (fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   updateRoyaltyReceivers: ({
     receivers
   }: {
@@ -188,6 +189,7 @@ export class OmniflixMultiMintOpenEditionMinterClient extends OmniflixMultiMintO
     this.unpause = this.unpause.bind(this);
     this.setPausers = this.setPausers.bind(this);
     this.newDrop = this.newDrop.bind(this);
+    this.removeDrop = this.removeDrop.bind(this);
     this.updateRoyaltyReceivers = this.updateRoyaltyReceivers.bind(this);
     this.updateDenom = this.updateDenom.bind(this);
     this.purgeDenom = this.purgeDenom.bind(this);
@@ -295,6 +297,11 @@ export class OmniflixMultiMintOpenEditionMinterClient extends OmniflixMultiMintO
         config,
         token_details: tokenDetails
       }
+    }, fee, memo, _funds);
+  };
+  removeDrop = async (fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
+    return await this.client.execute(this.sender, this.contractAddress, {
+      remove_drop: {}
     }, fee, memo, _funds);
   };
   updateRoyaltyReceivers = async ({

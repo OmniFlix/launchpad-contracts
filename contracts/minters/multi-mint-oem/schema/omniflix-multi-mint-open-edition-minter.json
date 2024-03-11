@@ -476,6 +476,19 @@
       {
         "type": "object",
         "required": [
+          "remove_drop"
+        ],
+        "properties": {
+          "remove_drop": {
+            "type": "object",
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "required": [
           "update_royalty_receivers"
         ],
         "properties": {
@@ -978,10 +991,33 @@
           {
             "type": "object",
             "required": [
-              "current_drop_number"
+              "tokens_minted_in_drop"
             ],
             "properties": {
-              "current_drop_number": {
+              "tokens_minted_in_drop": {
+                "type": "object",
+                "properties": {
+                  "drop_id": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "uint32",
+                    "minimum": 0.0
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "active_drop_id"
+            ],
+            "properties": {
+              "active_drop_id": {
                 "type": "object",
                 "additionalProperties": false
               }

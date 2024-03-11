@@ -58,6 +58,7 @@ export interface OmniflixMultiMintOpenEditionMinterMsg {
     config: Config;
     tokenDetails: TokenDetails;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
+  removeDrop: (_funds?: Coin[]) => MsgExecuteContractEncodeObject;
   updateRoyaltyReceivers: ({
     receivers
   }: {
@@ -100,6 +101,7 @@ export class OmniflixMultiMintOpenEditionMinterMsgComposer implements OmniflixMu
     this.unpause = this.unpause.bind(this);
     this.setPausers = this.setPausers.bind(this);
     this.newDrop = this.newDrop.bind(this);
+    this.removeDrop = this.removeDrop.bind(this);
     this.updateRoyaltyReceivers = this.updateRoyaltyReceivers.bind(this);
     this.updateDenom = this.updateDenom.bind(this);
     this.purgeDenom = this.purgeDenom.bind(this);
@@ -276,6 +278,19 @@ export class OmniflixMultiMintOpenEditionMinterMsgComposer implements OmniflixMu
             config,
             token_details: tokenDetails
           }
+        })),
+        funds: _funds
+      })
+    };
+  };
+  removeDrop = (_funds?: Coin[]): MsgExecuteContractEncodeObject => {
+    return {
+      typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+      value: MsgExecuteContract.fromPartial({
+        sender: this.sender,
+        contract: this.contractAddress,
+        msg: toUtf8(JSON.stringify({
+          remove_drop: {}
         })),
         funds: _funds
       })

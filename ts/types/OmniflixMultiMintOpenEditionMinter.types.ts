@@ -94,6 +94,8 @@ export type ExecuteMsg = {
     token_details: TokenDetails;
   };
 } | {
+  remove_drop: {};
+} | {
   update_royalty_receivers: {
     receivers: WeightedAddress[];
   };
@@ -162,7 +164,11 @@ export type QueryMsgExtension = {
     drop_id?: number | null;
   };
 } | {
-  current_drop_number: {};
+  tokens_minted_in_drop: {
+    drop_id?: number | null;
+  };
+} | {
+  active_drop_id: {};
 } | {
   all_drops: {};
 };
