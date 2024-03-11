@@ -1,7 +1,7 @@
 use std::convert::TryInto;
 
 use cosmwasm_std::{Env, Order, StdError, Storage};
-use minter_types::Token;
+use minter_types::types::Token;
 use rand_core::{RngCore, SeedableRng};
 use rand_xoshiro::Xoshiro128PlusPlus;
 use sha2::{Digest, Sha256};

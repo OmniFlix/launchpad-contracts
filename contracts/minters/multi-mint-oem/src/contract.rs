@@ -5,10 +5,13 @@ use cosmwasm_std::{
     Response, StdResult, WasmMsg,
 };
 use cw_utils::{may_pay, maybe_addr, must_pay, nonpayable};
-use minter_types::{
+use minter_types::msg::QueryMsg as BaseMinterQueryMsg;
+use minter_types::types::{
+    AuthDetails, CollectionDetails, Config, Token, TokenDetails, UserDetails,
+};
+use minter_types::utils::{
     check_collection_creation_fee, generate_create_denom_msg, generate_mint_message,
-    generate_update_denom_msg, update_collection_details, AuthDetails, CollectionDetails, Config,
-    QueryMsg as MinterQueryMsg, Token, TokenDetails, UserDetails,
+    generate_update_denom_msg, update_collection_details,
 };
 use pauser::{PauseState, PAUSED_KEY, PAUSERS_KEY};
 use std::str::FromStr;
@@ -775,21 +778,27 @@ fn execute_purge_denom(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(deps: Deps, env: Env, msg: MinterQueryMsg<QueryMsgExtension>) -> StdResult<Binary> {
+pub fn query(
+    deps: Deps,
+    env: Env,
+    msg: BaseMinterQueryMsg<QueryMsgExtension>,
+) -> StdResult<Binary> {
     match msg {
-        MinterQueryMsg::Collection {} => to_json_binary(&query_collection(deps, env)?),
-        MinterQueryMsg::TokenDetails {} => to_json_binary(&query_token_details(deps, env, None)?),
-        MinterQueryMsg::Config {} => to_json_binary(&query_config(deps, env, None)?),
-        MinterQueryMsg::UserMintingDetails { address } => {
+        BaseMinterQueryMsg::Collection {} => to_json_binary(&query_collection(deps, env)?),
+        BaseMinterQueryMsg::TokenDetails {} => {
+            to_json_binary(&query_token_details(deps, env, None)?)
+        }
+        BaseMinterQueryMsg::Config {} => to_json_binary(&query_config(deps, env, None)?),
+        BaseMinterQueryMsg::UserMintingDetails { address } => {
             to_json_binary(&query_user_minting_details(deps, env, address, None)?)
         }
-        MinterQueryMsg::TotalMintedCount {} => {
+        BaseMinterQueryMsg::TotalMintedCount {} => {
             to_json_binary(&query_total_tokens_minted(deps, env)?)
         }
-        MinterQueryMsg::AuthDetails {} => to_json_binary(&query_auth_details(deps, env)?),
-        MinterQueryMsg::IsPaused {} => to_json_binary(&query_is_paused(deps, env)?),
-        MinterQueryMsg::Pausers {} => to_json_binary(&query_pausers(deps, env)?),
-        MinterQueryMsg::Extension(ext) => match ext {
+        BaseMinterQueryMsg::AuthDetails {} => to_json_binary(&query_auth_details(deps, env)?),
+        BaseMinterQueryMsg::IsPaused {} => to_json_binary(&query_is_paused(deps, env)?),
+        BaseMinterQueryMsg::Pausers {} => to_json_binary(&query_pausers(deps, env)?),
+        BaseMinterQueryMsg::Extension(ext) => match ext {
             QueryMsgExtension::ActiveDropId {} => to_json_binary(&query_active_drop_id(deps, env)?),
             QueryMsgExtension::AllDrops {} => to_json_binary(&query_all_drops(deps, env)?),
             QueryMsgExtension::Config { drop_id } => {

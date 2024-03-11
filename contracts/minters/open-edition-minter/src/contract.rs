@@ -5,10 +5,13 @@ use cosmwasm_std::{
     Response, StdResult, WasmMsg,
 };
 use cw_utils::{may_pay, maybe_addr, must_pay, nonpayable};
-use minter_types::{
+use minter_types::msg::QueryMsg as BaseMinterQueryMsg;
+use minter_types::types::{
+    AuthDetails, CollectionDetails, Config, Token, TokenDetails, UserDetails,
+};
+use minter_types::utils::{
     check_collection_creation_fee, generate_create_denom_msg, generate_mint_message,
-    generate_update_denom_msg, update_collection_details, AuthDetails, CollectionDetails, Config,
-    QueryMsg, Token, TokenDetails, UserDetails,
+    generate_update_denom_msg, update_collection_details,
 };
 use std::str::FromStr;
 
@@ -686,19 +689,25 @@ fn execute_purge_denom(
 
 // Implement Queries
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(deps: Deps, env: Env, msg: QueryMsg<OEMQueryExtension>) -> StdResult<Binary> {
+pub fn query(
+    deps: Deps,
+    env: Env,
+    msg: BaseMinterQueryMsg<OEMQueryExtension>,
+) -> StdResult<Binary> {
     match msg {
-        QueryMsg::Collection {} => to_json_binary(&query_collection(deps, env)?),
-        QueryMsg::TokenDetails {} => to_json_binary(&query_token_details(deps, env)?),
-        QueryMsg::Config {} => to_json_binary(&query_config(deps, env)?),
-        QueryMsg::UserMintingDetails { address } => {
+        BaseMinterQueryMsg::Collection {} => to_json_binary(&query_collection(deps, env)?),
+        BaseMinterQueryMsg::TokenDetails {} => to_json_binary(&query_token_details(deps, env)?),
+        BaseMinterQueryMsg::Config {} => to_json_binary(&query_config(deps, env)?),
+        BaseMinterQueryMsg::UserMintingDetails { address } => {
             to_json_binary(&query_user_minting_details(deps, env, address)?)
         }
-        QueryMsg::TotalMintedCount {} => to_json_binary(&query_total_tokens_minted(deps, env)?),
-        QueryMsg::IsPaused {} => to_json_binary(&query_is_paused(deps, env)?),
-        QueryMsg::Pausers {} => to_json_binary(&query_pausers(deps, env)?),
-        QueryMsg::AuthDetails {} => to_json_binary(&query_auth_details(deps, env)?),
-        QueryMsg::Extension(ext) => match ext {
+        BaseMinterQueryMsg::TotalMintedCount {} => {
+            to_json_binary(&query_total_tokens_minted(deps, env)?)
+        }
+        BaseMinterQueryMsg::IsPaused {} => to_json_binary(&query_is_paused(deps, env)?),
+        BaseMinterQueryMsg::Pausers {} => to_json_binary(&query_pausers(deps, env)?),
+        BaseMinterQueryMsg::AuthDetails {} => to_json_binary(&query_auth_details(deps, env)?),
+        BaseMinterQueryMsg::Extension(ext) => match ext {
             OEMQueryExtension::TokensRemaining {} => {
                 to_json_binary(&query_tokens_remaining(deps, env)?)
             }

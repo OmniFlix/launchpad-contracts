@@ -1,6 +1,6 @@
 use cosmwasm_std::{from_json, Addr, Coin, Decimal, MemoryStorage, Storage, Timestamp};
 use cw_multi_test::{AppResponse, BankSudo, SudoMsg};
-use minter_types::{CollectionDetails, TokenDetails};
+use minter_types::types::{CollectionDetails, TokenDetails};
 use omniflix_minter_factory::msg::{CreateMinterMsg, MinterInitExtention};
 use omniflix_minter_factory::msg::{
     InstantiateMsg as MinterFactoryInstantiateMsg, MinterFactoryParams,

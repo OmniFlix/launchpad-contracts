@@ -9,10 +9,9 @@ use cosmwasm_std::{
     Response, StdResult, Uint128, WasmMsg,
 };
 use cw_utils::{may_pay, maybe_addr, must_pay, nonpayable};
-use minter_types::{
+use minter_types::utils::{
     check_collection_creation_fee, generate_create_denom_msg, generate_mint_message,
-    generate_update_denom_msg, update_collection_details, AuthDetails, CollectionDetails,
-    QueryMsg as BaseMinterQueryMsg, TokenDetails,
+    generate_update_denom_msg, update_collection_details,
 };
 use omniflix_minter_factory::msg::QueryMsg::Params as QueryFactoryParams;
 use omniflix_minter_factory::msg::{CreateMinterMsg, ParamsResponse};
@@ -29,7 +28,10 @@ use crate::state::{
 use crate::utils::{
     collect_mintable_tokens, generate_tokens, randomize_token_list, return_random_token,
 };
-use minter_types::{Config, Token, UserDetails};
+use minter_types::msg::QueryMsg as BaseMinterQueryMsg;
+use minter_types::types::{
+    AuthDetails, CollectionDetails, Config, Token, TokenDetails, UserDetails,
+};
 use pauser::{PauseState, PAUSED_KEY, PAUSERS_KEY};
 
 use cw2::set_contract_version;
@@ -249,7 +251,6 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
             return Err(ContractError::PublicMintingEnded {});
         }
     }
-
     // Get a random token id
     let random_token = return_random_token(&mintable_tokens, env.clone())?;
 

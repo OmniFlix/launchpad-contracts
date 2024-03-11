@@ -1,6 +1,6 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Addr, Coin, Timestamp};
-use minter_types::MinterInstantiateMsg;
+use minter_types::msg::MinterInstantiateMsg;
 #[cw_serde]
 pub struct InstantiateMsg {
     pub params: MinterFactoryParams,

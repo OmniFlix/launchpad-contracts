@@ -1,6 +1,6 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::Coin;
-use minter_types::Token;
+use minter_types::types::Token;
 use omniflix_std::types::omniflix::onft::v1beta1::WeightedAddress;
 
 #[cw_serde]

@@ -2,7 +2,9 @@
 use cosmwasm_std::{coin, coins, Addr, BlockInfo, Coin, Timestamp, Uint128};
 
 use cw_multi_test::{BankSudo, Executor, SudoMsg};
-use minter_types::{QueryMsg, UserDetails};
+use minter_types::msg::QueryMsg;
+use minter_types::types::UserDetails;
+
 use omniflix_open_edition_minter_factory::msg::ExecuteMsg as OpenEditionMinterFactoryExecuteMsg;
 
 use crate::helpers::utils::{

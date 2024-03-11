@@ -5,7 +5,7 @@ use cosmwasm_std::{
 use cw_multi_test::Executor;
 use pauser::PauseError;
 
-use minter_types::QueryMsg;
+use minter_types::msg::QueryMsg;
 use omniflix_minter::msg::ExecuteMsg as MinterExecuteMsg;
 use omniflix_minter_factory::msg::ExecuteMsg as FactoryExecuteMsg;
 

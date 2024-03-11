@@ -1,7 +1,7 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{StdError, Storage};
 use cw_storage_plus::{Item, Map};
-use minter_types::{Config, TokenDetails};
+use minter_types::types::{Config, TokenDetails};
 use std::u32;
 
 use crate::error::ContractError;

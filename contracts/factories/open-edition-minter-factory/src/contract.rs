@@ -11,7 +11,7 @@ use cosmwasm_std::{
     StdResult, Uint128, WasmMsg,
 };
 use factory_types::check_payment;
-use minter_types::check_collection_creation_fee;
+use minter_types::utils::check_collection_creation_fee;
 use pauser::{PauseState, PAUSED_KEY, PAUSERS_KEY};
 
 #[cfg_attr(not(feature = "library"), entry_point)]

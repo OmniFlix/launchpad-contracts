@@ -4,7 +4,7 @@ use cosmwasm_std::{
     CheckedFromRatioError, Coin, ConversionOverflowError, StdError, Timestamp, Uint128,
 };
 use cw_utils::PaymentError;
-use minter_types::TokenDetailsError;
+use minter_types::types::TokenDetailsError;
 use pauser::PauseError;
 use thiserror::Error;
 

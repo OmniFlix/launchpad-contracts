@@ -3,10 +3,10 @@ use cosmwasm_std::Empty;
 use cosmwasm_std::{coin, to_json_binary, Decimal, QueryRequest, Timestamp, Uint128, WasmQuery};
 use cw_multi_test::Executor;
 use factory_types::CustomPaymentError;
-use minter_types::{Token, TokenDetails};
+use minter_types::types::{Token, TokenDetails, TokenDetailsError};
 
-use minter_types::Config as MinterConfig;
-use minter_types::QueryMsg;
+use minter_types::msg::QueryMsg;
+use minter_types::types::Config as MinterConfig;
 
 use omniflix_minter_factory::msg::ExecuteMsg as FactoryExecuteMsg;
 
@@ -150,9 +150,7 @@ fn test_minter_creation() {
     let error = res.downcast_ref::<MinterContractError>().unwrap();
     assert_eq!(
         error,
-        &MinterContractError::TokenDetailsError(
-            minter_types::TokenDetailsError::InvalidRoyaltyRatio {}
-        )
+        &MinterContractError::TokenDetailsError(TokenDetailsError::InvalidRoyaltyRatio {})
     );
 
     // Send mint price 0

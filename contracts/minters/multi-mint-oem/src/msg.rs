@@ -1,7 +1,7 @@
 use crate::drop::Drop;
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::Coin;
-use minter_types::{Config, TokenDetails, UserDetails};
+use minter_types::types::{Config, TokenDetails, UserDetails};
 use omniflix_std::types::omniflix::onft::v1beta1::WeightedAddress;
 
 #[cw_serde]

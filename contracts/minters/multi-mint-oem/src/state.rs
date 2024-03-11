@@ -1,7 +1,7 @@
 use crate::drop::DropID;
 use cosmwasm_std::{Addr, StdError, Storage};
 use cw_storage_plus::{Item, Map};
-use minter_types::{AuthDetails, CollectionDetails, UserDetails};
+use minter_types::types::{AuthDetails, CollectionDetails, UserDetails};
 use std::u32;
 // Last token id minted.
 // It is used to generate the next token id. Seperate from a drop to allow for multiple drops to mint tokens.

@@ -2,7 +2,7 @@ use cosmwasm_schema::write_api;
 
 use omniflix_minter::msg::{ExecuteMsg, MinterExtensionQueryMsg};
 
-use minter_types::QueryMsg;
+use minter_types::msg::QueryMsg;
 
 use omniflix_minter_factory::msg::CreateMinterMsg;
 

@@ -4,8 +4,8 @@ use cosmwasm_std::{
     WasmQuery,
 };
 use cw_multi_test::{BankSudo, Executor, SudoMsg};
-use minter_types::UserDetails;
-use minter_types::{QueryMsg as MinterQueryMsg, Token};
+use minter_types::msg::QueryMsg as MinterQueryMsg;
+use minter_types::types::{Token, UserDetails};
 
 use omniflix_minter::msg::{ExecuteMsg as MinterExecuteMsg, MinterExtensionQueryMsg};
 use omniflix_minter_factory::msg::ExecuteMsg as FactoryExecuteMsg;

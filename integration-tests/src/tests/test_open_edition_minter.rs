@@ -3,7 +3,7 @@ use cosmwasm_std::{coin, Coin, Decimal, Timestamp, Uint128};
 
 use cw_multi_test::Executor;
 use factory_types::CustomPaymentError;
-use minter_types::{CollectionDetails, Config};
+use minter_types::types::{CollectionDetails, Config, TokenDetailsError};
 use omniflix_open_edition_minter_factory::msg::ExecuteMsg as OpenEditionMinterFactoryExecuteMsg;
 
 use crate::helpers::utils::{
@@ -13,7 +13,7 @@ use crate::helpers::utils::{
 
 use crate::{helpers::setup::setup, helpers::utils::query_onft_collection};
 
-use minter_types::QueryMsg as OpenEditionMinterQueryMsg;
+use minter_types::msg::QueryMsg as OpenEditionMinterQueryMsg;
 use omniflix_open_edition_minter::msg::OEMQueryExtension;
 
 use omniflix_open_edition_minter::error::ContractError as OpenEditionMinterError;
@@ -210,9 +210,7 @@ fn test_open_edition_minter_creation() {
 
     let error = err.downcast_ref::<OpenEditionMinterError>().unwrap();
     assert_eq!(
-        OpenEditionMinterError::TokenDetailsError(
-            minter_types::TokenDetailsError::InvalidRoyaltyRatio {}
-        ),
+        OpenEditionMinterError::TokenDetailsError(TokenDetailsError::InvalidRoyaltyRatio {}),
         *error
     );
     // Send too long description
@@ -238,9 +236,7 @@ fn test_open_edition_minter_creation() {
 
     let error = err.downcast_ref::<OpenEditionMinterError>().unwrap();
     assert_eq!(
-        OpenEditionMinterError::TokenDetailsError(
-            minter_types::TokenDetailsError::TokenDescriptionTooLong {}
-        ),
+        OpenEditionMinterError::TokenDetailsError(TokenDetailsError::TokenDescriptionTooLong {}),
         *error
     );
 
