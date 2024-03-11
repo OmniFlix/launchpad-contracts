@@ -3,7 +3,7 @@ use cosmwasm_std::{coin, Coin, Decimal, Timestamp, Uint128};
 
 use cw_multi_test::Executor;
 use factory_types::CustomPaymentError;
-use minter_types::types::{CollectionDetails, Config, TokenDetailsError};
+use minter_types::types::{CollectionDetails, Config, ConfigurationError, TokenDetailsError};
 use omniflix_open_edition_minter_factory::msg::ExecuteMsg as OpenEditionMinterFactoryExecuteMsg;
 
 use crate::helpers::utils::{
@@ -165,7 +165,10 @@ fn test_open_edition_minter_creation() {
     let err = res.source().unwrap().source().unwrap();
 
     let error = err.downcast_ref::<OpenEditionMinterError>().unwrap();
-    assert_eq!(OpenEditionMinterError::InvalidNumTokens {}, *error);
+    assert_eq!(
+        OpenEditionMinterError::ConfigurationError(ConfigurationError::InvalidNumberOfTokens {}),
+        *error
+    );
 
     // Send zero per address limit
     let mut open_edition_minter_instantiate_msg = return_open_edition_minter_inst_msg();
@@ -185,7 +188,10 @@ fn test_open_edition_minter_creation() {
     let err = res.source().unwrap().source().unwrap();
 
     let error = err.downcast_ref::<OpenEditionMinterError>().unwrap();
-    assert_eq!(OpenEditionMinterError::PerAddressLimitZero {}, *error);
+    assert_eq!(
+        OpenEditionMinterError::ConfigurationError(ConfigurationError::InvalidPerAddressLimit {}),
+        *error
+    );
 
     // Send incorrect royalty ratio
     let mut open_edition_minter_instantiate_msg = return_open_edition_minter_inst_msg();
@@ -273,7 +279,10 @@ fn test_open_edition_minter_creation() {
     let err = res.source().unwrap().source().unwrap();
 
     let error = err.downcast_ref::<OpenEditionMinterError>().unwrap();
-    assert_eq!(OpenEditionMinterError::InvalidStartTime {}, *error);
+    assert_eq!(
+        OpenEditionMinterError::ConfigurationError(ConfigurationError::InvalidStartTime {}),
+        *error
+    );
 
     // Check factory admin balance before happy path
     let query_res = app

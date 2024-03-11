@@ -1,8 +1,8 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_json_binary, Addr, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo,
-    Response, StdResult, WasmMsg,
+    to_json_binary, Addr, BankMsg, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env,
+    MessageInfo, Response, StdResult, WasmMsg,
 };
 use cw_utils::{may_pay, maybe_addr, must_pay, nonpayable};
 use minter_types::msg::QueryMsg as BaseMinterQueryMsg;
@@ -27,7 +27,7 @@ use omniflix_open_edition_minter_factory::msg::{
 };
 use omniflix_round_whitelist::msg::ExecuteMsg as RoundWhitelistExecuteMsg;
 use omniflix_std::types::omniflix::onft::v1beta1::{MsgPurgeDenom, WeightedAddress};
-use pauser::{PauseState, PAUSED_KEY, PAUSERS_KEY};
+use pauser::PauseState;
 use whitelist_types::{
     check_if_address_is_member, check_if_whitelist_is_active, check_whitelist_price,
 };
@@ -35,7 +35,6 @@ use whitelist_types::{
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:omniflix-minter-open-edition-minter";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
-
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
     deps: DepsMut,
@@ -43,64 +42,54 @@ pub fn instantiate(
     info: MessageInfo,
     msg: OpenEditionMinterCreateMsg,
 ) -> Result<Response, ContractError> {
-    // Query denom creation fee
+    // Set the contract version
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
-    // Query factory params of instantiator
-    // If the instantiator is not our factory then we wont be able to parse the response
+
+    // Query factory parameters of the instantiator
+    // If the instantiator is not our factory, we won't be able to parse the response
     let _factory_params: ParamsResponse = deps.querier.query_wasm_smart(
         info.sender.clone().into_string(),
         &OpenEditionMinterFactoryQueryMsg::Params {},
     )?;
 
-    // This field is implemented only for testing purposes
+    // Retrieve the collection creation fee
     let collection_creation_fee: Coin = check_collection_creation_fee(deps.as_ref().querier)?;
 
-    // Check if the token details are present
+    // Validate token details
     if msg.token_details.is_none() {
         return Err(ContractError::InvalidTokenDetails {});
     }
-    // Check integrity of token details
-    msg.token_details.clone().unwrap().check_integrity()?;
     let token_details = msg.token_details.clone().unwrap();
+
+    // Extract other necessary information
     let collection_details = msg.collection_details.clone();
     let init = msg.init.clone();
 
+    // Initialize configuration
+    let config = Config {
+        per_address_limit: init.per_address_limit,
+        start_time: init.start_time,
+        mint_price: init.mint_price,
+        whitelist_address: maybe_addr(deps.api, init.whitelist_address.clone())?,
+        end_time: init.end_time,
+        num_tokens: init.num_tokens,
+    };
+
+    // Check integrity of token details and configuration
+    token_details.clone().check_integrity()?;
+    config.clone().check_integrity(env.block.time)?;
+
+    // Validate payment amount
     let amount = must_pay(&info, &collection_creation_fee.denom)?;
     // Exact amount must be paid
     if amount != collection_creation_fee.amount {
         return Err(ContractError::InvalidCreationFee {
-            expected: [Coin {
-                denom: collection_creation_fee.denom,
-                amount: collection_creation_fee.amount,
-            }]
-            .to_vec(),
+            expected: vec![collection_creation_fee.clone()],
             sent: info.funds,
         });
     }
-    // Check if per address limit is 0
-    if let Some(per_address_limit) = init.per_address_limit {
-        if per_address_limit == 0 {
-            return Err(ContractError::PerAddressLimitZero {});
-        }
-    }
-    // Check if num tokens is 0
-    if let Some(num_tokens) = init.num_tokens {
-        if num_tokens == 0 {
-            return Err(ContractError::InvalidNumTokens {});
-        }
-    }
 
-    // Check start time
-    if init.start_time < env.block.time {
-        return Err(ContractError::InvalidStartTime {});
-    }
-    // Check end time
-    if let Some(end_time) = init.end_time {
-        if end_time < init.start_time {
-            return Err(ContractError::InvalidEndTime {});
-        }
-    }
-    // Check if whitelist already active
+    // Check if whitelist is already active
     if let Some(whitelist_address) = init.whitelist_address.clone() {
         let is_active = check_if_whitelist_is_active(
             &deps.api.addr_validate(&whitelist_address)?,
@@ -110,39 +99,34 @@ pub fn instantiate(
             return Err(ContractError::WhitelistAlreadyActive {});
         }
     }
-    let admin = deps.api.addr_validate(&init.admin)?;
 
+    // Extract admin and payment collector
+    let admin = deps.api.addr_validate(&init.admin)?;
     let payment_collector =
         maybe_addr(deps.api, init.payment_collector.clone())?.unwrap_or(info.sender.clone());
 
-    let config = Config {
-        per_address_limit: init.per_address_limit,
-        start_time: init.start_time,
-        mint_price: init.mint_price,
-        whitelist_address: maybe_addr(deps.api, init.whitelist_address.clone())?,
-        end_time: init.end_time,
-        num_tokens: init.num_tokens,
-    };
+    // Save configuration and authorization details
     let auth_details = AuthDetails {
         admin: admin.clone(),
         payment_collector: payment_collector.clone(),
     };
-
     CONFIG.save(deps.storage, &config)?;
     MINTED_COUNT.save(deps.storage, &0)?;
     AUTH_DETAILS.save(deps.storage, &auth_details)?;
 
-    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    // Initialize pause state and set admin as pauser
+    let pause_state = PauseState::new()?;
     pause_state.set_pausers(deps.storage, info.sender.clone(), vec![admin.clone()])?;
 
+    // Save collection and token details
     COLLECTION.save(deps.storage, &collection_details)?;
     TOKEN_DETAILS.save(deps.storage, &token_details)?;
 
+    // Prepare and send the create denom message
     let creation_fee = Coin {
         denom: collection_creation_fee.denom,
         amount: collection_creation_fee.amount,
     };
-
     let collection_creation_msg: CosmosMsg = generate_create_denom_msg(
         &collection_details,
         env.contract.address.clone(),
@@ -151,6 +135,7 @@ pub fn instantiate(
     )?
     .into();
 
+    // Prepare the response with attributes
     let res = Response::new()
         .add_message(collection_creation_msg)
         .add_attribute("action", "instantiate");
@@ -197,42 +182,52 @@ pub fn execute(
 }
 
 pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response, ContractError> {
-    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    // Ensure the contract is not paused
+    let pause_state = PauseState::new()?;
     pause_state.error_if_paused(deps.storage)?;
 
+    // Load contract configuration and authorization details
     let config = CONFIG.load(deps.storage)?;
     let auth_details = AUTH_DETAILS.load(deps.storage)?;
-    // Check if any token limit set and if it is reached
+
+    // Check if the number of tokens has reached the limit, if set
     if let Some(num_tokens) = config.num_tokens {
         if MINTED_COUNT.load(deps.storage)? >= num_tokens {
             return Err(ContractError::NoTokensLeftToMint {});
         }
     }
-    // Check if end time is determined and if it is passed
+
+    // Check if the minting period has ended, if specified
     if let Some(end_time) = config.end_time {
         if env.block.time > end_time {
             return Err(ContractError::PublicMintingEnded {});
         }
     }
 
+    // Load or initialize user minting details
     let mut user_details = USER_MINTING_DETAILS
         .may_load(deps.storage, info.sender.clone())?
-        .unwrap_or(UserDetails::default());
+        .unwrap_or_default();
 
-    // Increment total minted count
+    // Increment the total minted count for the user
     user_details.total_minted_count += 1;
-    // Check if mint limit is set and if it is reached
+
+    // Check if the user has reached the per-address minting limit, if set
     if let Some(per_address_limit) = config.per_address_limit {
         if user_details.total_minted_count > per_address_limit {
             return Err(ContractError::AddressReachedMintLimit {});
         }
     }
+
+    // Generate a new token ID
     let token_id = last_token_id(deps.storage) + 1;
 
+    // Update user's minted tokens list
     user_details.minted_tokens.push(Token {
         token_id: token_id.to_string(),
     });
 
+    // Save updated user details
     USER_MINTING_DETAILS.save(deps.storage, info.sender.clone(), &user_details)?;
 
     let mut mint_price = config.mint_price;
@@ -242,8 +237,9 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
 
     let mut messages: Vec<CosmosMsg> = vec![];
 
+    // If minting is not public, handle private minting
     if !is_public {
-        // Check if any whitelist is present
+        // Check if any whitelist is active
         if let Some(whitelist_address) = config.whitelist_address {
             let is_active = check_if_whitelist_is_active(&whitelist_address, deps.as_ref())?;
             if !is_active {
@@ -261,14 +257,19 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
             if !is_member {
                 return Err(ContractError::AddressNotWhitelisted {});
             }
-            messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
+
+            // If member is whitelisted, execute private mint
+            let execute_msg = RoundWhitelistExecuteMsg::PrivateMint {
+                collector: info.sender.clone().into_string(),
+            };
+            let msg = CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr: whitelist_address.into_string(),
-                msg: to_json_binary(&RoundWhitelistExecuteMsg::PrivateMint {
-                    collector: info.sender.clone().into_string(),
-                })?,
+                msg: to_json_binary(&execute_msg)?,
                 funds: vec![],
-            }));
+            });
+            messages.push(msg);
         } else {
+            // Error if minting is not started
             return Err(ContractError::MintingNotStarted {
                 start_time: config.start_time,
                 current_time: env.block.time,
@@ -276,26 +277,29 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
         };
     }
 
-    // Check the payment
+    // Validate payment
     let amount = may_pay(&info, &mint_price.denom)?;
-    // Exact amount must be paid
     if amount != mint_price.amount {
         return Err(ContractError::IncorrectPaymentAmount {
             expected: mint_price.amount,
             sent: amount,
         });
     }
+
     // Get the payment collector address
     let payment_collector = auth_details.payment_collector;
+
+    // Load collection and token details
     let collection = COLLECTION.load(deps.storage)?;
     let token_details = TOKEN_DETAILS.load(deps.storage)?;
 
+    // Increment total minted count
     MINTED_COUNT.update(deps.storage, |mut total_tokens| -> StdResult<_> {
         total_tokens += 1;
         Ok(total_tokens)
     })?;
 
-    // Save the user details
+    // Save updated user details
     USER_MINTING_DETAILS.save(deps.storage, info.sender.clone(), &user_details)?;
 
     // Create the mint message
@@ -303,26 +307,27 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
         &collection,
         &token_details,
         token_id.to_string(),
-        env.contract.address,
-        info.sender,
+        env.contract.address.clone(),
+        info.sender.clone(),
         None,
         true,
     )
     .into();
+    messages.push(mint_msg);
 
-    // Create the Bank send message
+    // Create the Bank send message if mint_price is non-zero
     if !mint_price.amount.is_zero() {
-        let bank_msg: CosmosMsg = CosmosMsg::Bank(cosmwasm_std::BankMsg::Send {
+        let bank_msg = CosmosMsg::Bank(BankMsg::Send {
             to_address: payment_collector.into_string(),
             amount: vec![Coin {
                 denom: mint_price.denom,
                 amount: mint_price.amount,
             }],
         });
-        messages.push(bank_msg.clone());
+        messages.push(bank_msg);
     }
-    messages.push(mint_msg.clone());
 
+    // Prepare response with attributes
     let res = Response::new()
         .add_messages(messages)
         .add_attribute("action", "mint")
@@ -338,49 +343,59 @@ pub fn execute_mint_admin(
     info: MessageInfo,
     recipient: String,
 ) -> Result<Response, ContractError> {
+    // Ensure the function is not payable
     nonpayable(&info)?;
 
+    // Load necessary contract data
     let config = CONFIG.load(deps.storage)?;
-    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let pause_state = PauseState::new()?;
     pause_state.error_if_paused(deps.storage)?;
     let collection = COLLECTION.load(deps.storage)?;
     let token_details = TOKEN_DETAILS.load(deps.storage)?;
     let auth_details = AUTH_DETAILS.load(deps.storage)?;
 
-    // Check if sender is admin
+    // Check if the sender is authorized as admin
     if info.sender != auth_details.admin {
         return Err(ContractError::Unauthorized {});
     }
-    // Check if any token limit set and if it is reached
+
+    // Check if the number of tokens has reached the limit, if set
     if let Some(num_tokens) = config.num_tokens {
         if MINTED_COUNT.load(deps.storage)? >= num_tokens {
             return Err(ContractError::NoTokensLeftToMint {});
         }
     }
-    // Check if end time is determined and if it is passed
-    // We are not checking if start time is reached because admin can mint before start time
-    // But even admin cannot mint after end time
+
+    // Check if the minting period has ended, if specified
     if let Some(end_time) = config.end_time {
         if env.block.time > end_time {
             return Err(ContractError::PublicMintingEnded {});
         }
     }
 
+    // Validate recipient address
     let recipient = deps.api.addr_validate(&recipient)?;
 
+    // Generate a new token ID
     let token_id = last_token_id(deps.storage) + 1;
 
+    // Load or initialize user minting details
     let mut user_details = USER_MINTING_DETAILS
         .may_load(deps.storage, recipient.clone())?
-        .unwrap_or(UserDetails::default());
+        .unwrap_or_default();
 
+    // Increment the total minted count for the user
     user_details.total_minted_count += 1;
+
+    // Update user's minted tokens list
     user_details.minted_tokens.push(Token {
         token_id: token_id.to_string(),
     });
 
+    // Save updated user details
     USER_MINTING_DETAILS.save(deps.storage, recipient.clone(), &user_details)?;
 
+    // Create the mint message
     let mint_msg: CosmosMsg = generate_mint_message(
         &collection,
         &token_details,
@@ -392,13 +407,16 @@ pub fn execute_mint_admin(
     )
     .into();
 
+    // Prepare response with attributes
     let res = Response::new()
         .add_message(mint_msg)
         .add_attribute("action", "mint")
         .add_attribute("token_id", token_id.to_string())
         .add_attribute("denom_id", collection.id);
+
     Ok(res)
 }
+
 pub fn execute_burn_remaining_tokens(
     deps: DepsMut,
     _env: Env,
@@ -514,7 +532,7 @@ pub fn execute_pause(
     _env: Env,
     info: MessageInfo,
 ) -> Result<Response, ContractError> {
-    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let pause_state = PauseState::new()?;
     pause_state.pause(deps.storage, &info.sender)?;
     let res = Response::new().add_attribute("action", "pause");
     Ok(res)
@@ -526,7 +544,7 @@ pub fn execute_unpause(
     info: MessageInfo,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
-    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let pause_state = PauseState::new()?;
     pause_state.unpause(deps.storage, &info.sender)?;
     let res = Response::new().add_attribute("action", "unpause");
     Ok(res)
@@ -538,7 +556,7 @@ pub fn execute_set_pausers(
     info: MessageInfo,
     pausers: Vec<String>,
 ) -> Result<Response, ContractError> {
-    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let pause_state = PauseState::new()?;
     pause_state.set_pausers(
         deps.storage,
         info.sender,
@@ -758,13 +776,13 @@ fn query_tokens_remaining(deps: Deps, _env: Env) -> Result<u32, ContractError> {
 }
 
 fn query_is_paused(deps: Deps, _env: Env) -> Result<bool, ContractError> {
-    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let pause_state = PauseState::new()?;
     let is_paused = pause_state.is_paused(deps.storage)?;
     Ok(is_paused)
 }
 
 fn query_pausers(deps: Deps, _env: Env) -> Result<Vec<Addr>, ContractError> {
-    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let pause_state = PauseState::new()?;
     let pausers = pause_state.pausers.load(deps.storage).unwrap_or(vec![]);
     Ok(pausers)
 }

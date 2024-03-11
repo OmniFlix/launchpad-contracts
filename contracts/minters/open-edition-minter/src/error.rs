@@ -1,6 +1,6 @@
 use cosmwasm_std::{Coin, StdError, Timestamp, Uint128};
 use cw_utils::PaymentError;
-use minter_types::types::TokenDetailsError;
+use minter_types::types::{ConfigurationError, TokenDetailsError};
 use pauser::PauseError;
 use thiserror::Error;
 
@@ -17,6 +17,9 @@ pub enum ContractError {
 
     #[error(transparent)]
     TokenDetailsError(#[from] TokenDetailsError),
+
+    #[error(transparent)]
+    ConfigurationError(#[from] ConfigurationError),
 
     #[error("Payment error")]
     PaymentError(#[from] PaymentError),

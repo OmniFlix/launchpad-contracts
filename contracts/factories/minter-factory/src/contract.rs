@@ -9,7 +9,7 @@ use cosmwasm_std::{
 };
 use factory_types::check_payment;
 use minter_types::utils::check_collection_creation_fee;
-use pauser::{PauseState, PAUSED_KEY, PAUSERS_KEY};
+use pauser::PauseState;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -26,7 +26,7 @@ pub fn instantiate(
         .api
         .addr_validate(&msg.params.fee_collector_address.clone().into_string())
         .unwrap_or(info.sender.clone());
-    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let pause_state = PauseState::new()?;
     pause_state.set_pausers(deps.storage, info.sender.clone(), vec![admin.clone()])?;
 
     let params = msg.params;
@@ -67,7 +67,7 @@ fn create_minter(
 ) -> Result<Response, ContractError> {
     let params = PARAMS.load(deps.storage)?;
     let collection_creation_fee: Coin = check_collection_creation_fee(deps.as_ref().querier)?;
-    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let pause_state = PauseState::new()?;
     pause_state.error_if_paused(deps.as_ref().storage)?;
 
     check_payment(
@@ -169,7 +169,7 @@ fn update_params_minter_creation_fee(
 }
 
 fn execute_pause(deps: DepsMut, _env: Env, info: MessageInfo) -> Result<Response, ContractError> {
-    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let pause_state = PauseState::new()?;
     pause_state.pause(deps.storage, &info.sender)?;
     Ok(Response::default()
         .add_attribute("action", "pause")
@@ -177,7 +177,7 @@ fn execute_pause(deps: DepsMut, _env: Env, info: MessageInfo) -> Result<Response
 }
 
 fn execute_unpause(deps: DepsMut, _env: Env, info: MessageInfo) -> Result<Response, ContractError> {
-    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let pause_state = PauseState::new()?;
     pause_state.unpause(deps.storage, &info.sender)?;
     Ok(Response::default()
         .add_attribute("action", "unpause")
@@ -195,7 +195,7 @@ fn set_pausers(
         .map(|pauser| deps.api.addr_validate(pauser))
         .collect::<Result<Vec<_>, _>>()?;
 
-    let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
+    let pause_state = PauseState::new()?;
     pause_state.set_pausers(deps.storage, info.sender.clone(), validated_pausers)?;
     Ok(Response::default()
         .add_attribute("action", "set_pausers")

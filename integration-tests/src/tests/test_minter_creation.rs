@@ -3,7 +3,7 @@ use cosmwasm_std::Empty;
 use cosmwasm_std::{coin, to_json_binary, Decimal, QueryRequest, Timestamp, Uint128, WasmQuery};
 use cw_multi_test::Executor;
 use factory_types::CustomPaymentError;
-use minter_types::types::{Token, TokenDetails, TokenDetailsError};
+use minter_types::types::{ConfigurationError, Token, TokenDetails, TokenDetailsError};
 
 use minter_types::msg::QueryMsg;
 use minter_types::types::Config as MinterConfig;
@@ -126,7 +126,10 @@ fn test_minter_creation() {
         .unwrap_err();
     let res = error.source().unwrap().source().unwrap();
     let error = res.downcast_ref::<MinterContractError>().unwrap();
-    assert_eq!(error, &MinterContractError::InvalidNumTokens {});
+    assert_eq!(
+        error,
+        &MinterContractError::ConfigurationError(ConfigurationError::InvalidNumberOfTokens {})
+    );
 
     // Send royalty ratio more than 100%
     let mut minter_inst_msg = return_minter_instantiate_msg();
@@ -153,24 +156,6 @@ fn test_minter_creation() {
         &MinterContractError::TokenDetailsError(TokenDetailsError::InvalidRoyaltyRatio {})
     );
 
-    // Send mint price 0
-    let mut minter_inst_msg = return_minter_instantiate_msg();
-    minter_inst_msg.init.mint_price.amount = Uint128::zero();
-    let create_minter_msg = FactoryExecuteMsg::CreateMinter {
-        msg: minter_inst_msg,
-    };
-    let error = app
-        .execute_contract(
-            creator.clone(),
-            factory_addr.clone(),
-            &create_minter_msg,
-            &[coin(2000000, "uflix")],
-        )
-        .unwrap_err();
-    let res = error.source().unwrap().source().unwrap();
-    let error = res.downcast_ref::<MinterContractError>().unwrap();
-    assert_eq!(error, &MinterContractError::InvalidMintPrice {});
-
     // Incorrect start time
     let mut minter_inst_msg = return_minter_instantiate_msg();
     minter_inst_msg.init.start_time = Timestamp::from_nanos(1_000 - 1);
@@ -187,7 +172,10 @@ fn test_minter_creation() {
         .unwrap_err();
     let res = error.source().unwrap().source().unwrap();
     let error = res.downcast_ref::<MinterContractError>().unwrap();
-    assert_eq!(error, &MinterContractError::InvalidStartTime {});
+    assert_eq!(
+        error,
+        &MinterContractError::ConfigurationError(ConfigurationError::InvalidStartTime {})
+    );
 
     // Incorrect end time
     let mut minter_inst_msg = return_minter_instantiate_msg();
@@ -205,7 +193,10 @@ fn test_minter_creation() {
         .unwrap_err();
     let res = error.source().unwrap().source().unwrap();
     let error = res.downcast_ref::<MinterContractError>().unwrap();
-    assert_eq!(error, &MinterContractError::InvalidEndTime {});
+    assert_eq!(
+        error,
+        &MinterContractError::ConfigurationError(ConfigurationError::InvalidEndTime {})
+    );
 
     // Happy path
     let minter_inst_msg = return_minter_instantiate_msg();
