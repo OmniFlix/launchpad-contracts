@@ -47,50 +47,50 @@ pub fn instantiate(
     info: MessageInfo,
     msg: MultiMinterCreateMsg,
 ) -> Result<Response, ContractError> {
-    // Query denom creation fee
+    // Set the contract version
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
-    // Query factory params of instantiator
-    // If the instantiator is not our factory then we wont be able to parse the response
+
+    // Query factory parameters of instantiator
+    // If the instantiator is not our factory, we won't be able to parse the response
     let _factory_params: ParamsResponse = deps.querier.query_wasm_smart(
         info.sender.clone().into_string(),
         &OpenEditionMinterFactoryQueryMsg::Params {},
     )?;
 
+    // Retrieve the collection creation fee
     let collection_creation_fee: Coin = check_collection_creation_fee(deps.as_ref().querier)?;
 
+    // Validate payment amount
     let amount = must_pay(&info.clone(), &collection_creation_fee.denom)?;
     // Exact amount must be paid
     if amount != collection_creation_fee.amount {
         return Err(ContractError::InvalidCreationFee {
-            expected: [Coin {
-                denom: collection_creation_fee.denom,
-                amount: collection_creation_fee.amount,
-            }]
-            .to_vec(),
+            expected: vec![collection_creation_fee.clone()],
             sent: info.funds.clone(),
         });
     };
 
+    // Validate and extract admin and payment collector
     let admin = deps.api.addr_validate(&msg.init.admin)?;
-
     let payment_collector =
         maybe_addr(deps.api, msg.init.payment_collector.clone())?.unwrap_or(admin.clone());
 
-    // Set the pause state
+    // Set the pause state with the sender as the initial pauser
     let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
     pause_state.set_pausers(deps.storage, info.sender.clone(), vec![admin.clone()])?;
 
+    // Save collection and authorization details
     let collection_details = msg.collection_details.clone();
     let auth_details = AuthDetails {
         admin: admin.clone(),
         payment_collector: payment_collector.clone(),
     };
-
     COLLECTION.save(deps.storage, &collection_details)?;
-    // If drop id is zero then it means no drop is available
     ACTIVE_DROP_ID.save(deps.storage, &0)?;
     LAST_MINTED_TOKEN_ID.save(deps.storage, &0)?;
     AUTH_DETAILS.save(deps.storage, &auth_details)?;
+
+    // Prepare and send the create denom message
     let nft_creation_fee = Coin {
         denom: collection_creation_fee.denom,
         amount: collection_creation_fee.amount,
@@ -166,10 +166,11 @@ pub fn execute_mint(
     info: MessageInfo,
     drop_id: Option<u32>,
 ) -> Result<Response, ContractError> {
+    // Ensure contract is not paused
     let pause_state = PauseState::new(PAUSED_KEY, PAUSERS_KEY)?;
     pause_state.error_if_paused(deps.storage)?;
 
-    // Find the drop
+    // Retrieve the drop
     let (drop_id, mut drop) = get_drop_by_id(drop_id, deps.storage)?;
 
     let collection_details = COLLECTION.load(deps.storage)?;
@@ -177,21 +178,23 @@ pub fn execute_mint(
     let token_details = drop.clone().drop_params.token_details;
     let drop_minted_count = drop.clone().minted_count;
     let auth_details = AUTH_DETAILS.load(deps.storage)?;
-    // Check if any token limit set and if it is reached
+
+    // Check if any token limit is set and if it's reached
     if let Some(num_tokens) = config.num_tokens {
         if drop_minted_count >= num_tokens {
             return Err(ContractError::NoTokensLeftToMint {});
         }
     }
 
-    // Check if end time is determined and if it is passed
+    // Check if the end time is set and if it's passed
     if let Some(end_time) = config.end_time {
         if env.block.time > end_time {
             return Err(ContractError::PublicMintingEnded {});
         }
     };
-    let user_minting_details = UserMintingDetails::new(USER_MINTING_DETAILS_KEY);
 
+    // Initialize user minting details
+    let user_minting_details = UserMintingDetails::new(USER_MINTING_DETAILS_KEY);
     let mut user_details = user_minting_details
         .load(deps.storage, drop_id, info.sender.clone())
         .unwrap_or_default();
@@ -202,8 +205,8 @@ pub fn execute_mint(
     LAST_MINTED_TOKEN_ID.save(deps.storage, &token_id)?;
 
     let mut mint_price = config.mint_price;
-    // Check if minting is started
 
+    // Check if minting is public
     let is_public = env.block.time >= config.start_time;
 
     let mut messages: Vec<CosmosMsg> = vec![];
@@ -248,17 +251,21 @@ pub fn execute_mint(
             }
         }
     }
+
     // Increment total minted count
     user_details.total_minted_count += 1;
 
+    // Add the minted token to user details
     user_details.minted_tokens.push(Token {
         token_id: token_id.to_string(),
     });
+
     // Save the user details
     user_minting_details.save(deps.storage, drop_id, info.sender.clone(), &user_details);
 
     // Check the payment
     let amount = may_pay(&info, &mint_price.denom)?;
+
     // Exact amount must be paid
     if amount != mint_price.amount {
         return Err(ContractError::IncorrectPaymentAmount {
@@ -266,6 +273,7 @@ pub fn execute_mint(
             sent: amount,
         });
     }
+
     // Get the payment collector address
     let payment_collector = auth_details.payment_collector;
 
@@ -274,6 +282,7 @@ pub fn execute_mint(
     DROPS.save(deps.storage, drop_id, &drop)?;
     let drop_token_id = drop.minted_count;
 
+    // Generate mint message
     let mint_msg: CosmosMsg = generate_mint_message(
         &collection_details,
         &token_details,
@@ -286,6 +295,7 @@ pub fn execute_mint(
     .into();
 
     if !mint_price.amount.is_zero() {
+        // Create the Bank send message
         let bank_msg: CosmosMsg = CosmosMsg::Bank(cosmwasm_std::BankMsg::Send {
             to_address: payment_collector.into_string(),
             amount: vec![Coin {
@@ -293,6 +303,7 @@ pub fn execute_mint(
                 amount: mint_price.amount,
             }],
         });
+
         messages.push(bank_msg.clone());
     }
 
@@ -594,28 +605,8 @@ pub fn execute_new_drop(
     }
     // Check integrity of token details
     token_details.check_integrity()?;
-    // Check if token limit is 0
-    if let Some(num_tokens) = config.num_tokens {
-        if num_tokens == 0 {
-            return Err(ContractError::InvalidNumTokens {});
-        }
-    }
-    // Check if per address limit is 0
-    if let Some(per_address_limit) = config.per_address_limit {
-        if per_address_limit == 0 {
-            return Err(ContractError::PerAddressLimitZero {});
-        }
-    }
-    // Check start time
-    if config.start_time < env.block.time {
-        return Err(ContractError::InvalidStartTime {});
-    }
-    // Check end time
-    if let Some(end_time) = config.end_time {
-        if end_time < config.start_time {
-            return Err(ContractError::InvalidEndTime {});
-        }
-    }
+    // Check integrity of config
+    config.check_integrity(env.block.time)?;
     // Check if any whitelist is present
     if let Some(whitelist_address) = config.whitelist_address.clone() {
         let is_active: bool = check_if_whitelist_is_active(
