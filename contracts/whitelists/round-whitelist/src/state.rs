@@ -87,7 +87,6 @@ impl<'a> Rounds<'a> {
             .transpose()?
             .map(|(id, _)| id)
             .unwrap_or(0);
-        // Check if the index is already used
         self.0.save(store, last_id + 1, round)?;
         Ok(last_id + 1)
     }
@@ -125,6 +124,8 @@ impl<'a> Rounds<'a> {
         self.0
             .range(store, None, None, Order::Ascending)
             .filter_map(|result| result.ok())
+            // We are assuming that there are no overlapping rounds in storage
+            // So the first round that is active is the active round
             .find(|(_, round)| round.is_active(current_time))
     }
 
