@@ -6,12 +6,15 @@ use factory_types::CustomPaymentError;
 use minter_types::types::{CollectionDetails, Config, ConfigurationError, TokenDetailsError};
 use omniflix_open_edition_minter_factory::msg::ExecuteMsg as OpenEditionMinterFactoryExecuteMsg;
 
-use crate::helpers::utils::{
-    get_contract_address_from_res, return_open_edition_minter_factory_inst_message,
-    return_open_edition_minter_inst_msg,
-};
+use crate::helpers::utils::get_contract_address_from_res;
 
-use crate::{helpers::setup::setup, helpers::utils::query_onft_collection};
+use crate::helpers::mock_messages::factory_mock_messages::return_open_edition_minter_factory_inst_message;
+
+use crate::helpers::mock_messages::oem_mock_messages::return_open_edition_minter_inst_msg;
+
+use crate::helpers::utils::query_onft_collection;
+
+use crate::helpers::setup::setup;
 
 use minter_types::msg::QueryMsg as OpenEditionMinterQueryMsg;
 use omniflix_open_edition_minter::msg::OEMQueryExtension;
@@ -22,27 +25,16 @@ use omniflix_open_edition_minter_factory::error::ContractError as OpenEditionMin
 
 #[test]
 fn test_open_edition_minter_creation() {
-    let (
-        mut app,
-        test_addresses,
-        _minter_factory_code_id,
-        _minter_code_id,
-        _round_whitelist_factory_code_id,
-        _round_whitelist_code_id,
-        open_edition_minter_factory_code_id,
-        open_edition_minter_code_id,
-        _multi_mint_open_edition_minter_code_id,
-    ) = setup();
-    let admin = test_addresses.admin;
-    let creator = test_addresses.creator;
-    let _collector = test_addresses.collector;
+    let res = setup();
+    let admin = res.test_accounts.admin;
+    let creator = res.test_accounts.creator;
+    let open_edition_minter_factory_code_id = res.open_edition_minter_factory_code_id;
+    let open_edition_minter_code_id = res.open_edition_minter_code_id;
+    let mut app = res.app;
 
-    // Instantiate the minter factory
+    // Instantiate the oem minter factory
     let open_edition_minter_factory_instantiate_msg =
-        return_open_edition_minter_factory_inst_message(
-            open_edition_minter_code_id,
-            open_edition_minter_code_id,
-        );
+        return_open_edition_minter_factory_inst_message(open_edition_minter_code_id, None);
 
     let open_edition_minter_factory_address = app
         .instantiate_contract(
@@ -55,7 +47,6 @@ fn test_open_edition_minter_creation() {
         )
         .unwrap();
 
-    // Create a minter
     let open_edition_minter_instantiate_msg = return_open_edition_minter_inst_msg();
     let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateOpenEditionMinter {
         msg: open_edition_minter_instantiate_msg,
@@ -246,7 +237,7 @@ fn test_open_edition_minter_creation() {
         *error
     );
 
-    // Send incorrect mint price this should not fail because mint price can be set to zero on open edition minter
+    // Send 0 mint price this should not fail because mint price can be set to zero on open edition minter
     let mut open_edition_minter_instantiate_msg = return_open_edition_minter_inst_msg();
     open_edition_minter_instantiate_msg.init.mint_price.amount = Uint128::zero();
     let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateOpenEditionMinter {
@@ -312,6 +303,7 @@ fn test_open_edition_minter_creation() {
         .query_balance(admin.clone(), "uflix".to_string())
         .unwrap();
     let uflix_after = query_res.amount;
+
     // We are collecting fee as expected
     assert_eq!(uflix_after - uflix_before, Uint128::from(1000000u128));
 

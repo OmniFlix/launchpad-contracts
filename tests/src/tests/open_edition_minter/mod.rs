@@ -1,2 +1,6 @@
-mod test_open_edition_minter;
+mod open_edition_minter_creation;
+mod pause_oem;
+mod paused_factory;
+mod private_minting;
+mod public_minting;
 mod test_open_edition_minting;

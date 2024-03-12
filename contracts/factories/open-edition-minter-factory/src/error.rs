@@ -36,3 +36,8 @@ pub enum ContractError {
     #[error("MultiMinter not enabled")]
     MultiMinterNotEnabled {},
 }
+impl From<ContractError> for StdError {
+    fn from(err: ContractError) -> StdError {
+        StdError::generic_err(err.to_string())
+    }
+}
