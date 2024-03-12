@@ -1,4 +1,5 @@
 pub mod scenarios;
+
 pub mod test_drops_configuration;
 pub mod test_minter_creation;
 pub mod test_minting;

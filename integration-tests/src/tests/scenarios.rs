@@ -25,10 +25,7 @@ use whitelist_types::RoundWhitelistQueryMsgs;
 type MultiMintOpenEditionMinterQueryMsg =
     CommonMinterQueryMsg<MultiMintOpenEditionMinterQueryMsgExtension>;
 
-use crate::helpers::utils::{
-    get_contract_address_from_res, mint_to_address, return_minter_factory_inst_message,
-    return_open_edition_minter_factory_inst_message, return_round_whitelist_factory_inst_message,
-};
+use crate::helpers::utils::{get_contract_address_from_res, mint_to_address};
 
 use crate::{helpers::setup::setup, helpers::utils::query_onft_collection};
 use omniflix_minter::error::ContractError as MinterContractError;

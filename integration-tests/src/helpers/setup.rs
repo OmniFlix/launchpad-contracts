@@ -33,13 +33,8 @@ use omniflix_multi_mint_open_edition_minter::contract::{
 };
 
 use omniflix_testing::app::OmniflixApp;
-pub struct TestAdresses {
-    pub admin: Addr,
-    pub creator: Addr,
-    pub collector: Addr,
-}
 
-pub fn setup() -> (OmniflixApp, TestAdresses, u64, u64, u64, u64, u64, u64, u64) {
+pub fn setup() -> SetupResponse {
     let mut app = OmniflixApp::new();
     let admin = Addr::unchecked("admin");
     let creator = Addr::unchecked("creator");
@@ -125,9 +120,10 @@ pub fn setup() -> (OmniflixApp, TestAdresses, u64, u64, u64, u64, u64, u64, u64)
 
     let multi_mint_open_edition_minter_code_id =
         app.store_code(multi_mint_open_edition_minter_contract);
-    (
+
+    SetupResponse {
         app,
-        TestAdresses {
+        test_accounts: TestAccounts {
             admin,
             creator,
             collector,
@@ -139,5 +135,22 @@ pub fn setup() -> (OmniflixApp, TestAdresses, u64, u64, u64, u64, u64, u64, u64)
         open_edition_minter_factory_code_id,
         open_edition_minter_code_id,
         multi_mint_open_edition_minter_code_id,
-    )
+    }
+}
+
+pub struct SetupResponse {
+    pub app: OmniflixApp,
+    pub test_accounts: TestAccounts,
+    pub minter_factory_code_id: u64,
+    pub minter_code_id: u64,
+    pub round_whitelist_factory_code_id: u64,
+    pub round_whitelist_code_id: u64,
+    pub open_edition_minter_factory_code_id: u64,
+    pub open_edition_minter_code_id: u64,
+    pub multi_mint_open_edition_minter_code_id: u64,
+}
+pub struct TestAccounts {
+    pub admin: Addr,
+    pub creator: Addr,
+    pub collector: Addr,
 }
