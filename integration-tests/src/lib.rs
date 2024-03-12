@@ -1,2 +1,2 @@
 mod helpers;
-mod tests;
+pub mod tests;
