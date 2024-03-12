@@ -3,7 +3,7 @@ members = [
     "contracts/minters/*",
     "contracts/whitelists/*",
     "contracts/factories/*",
-    "integration-tests",
+    "tests",
     "packages/*"
 ]
 resolver = "2"
