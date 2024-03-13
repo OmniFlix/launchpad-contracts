@@ -54,4 +54,8 @@ pub struct MinterFactoryParams {
 pub enum QueryMsg {
     #[returns(ParamsResponse)]
     Params {},
+    #[returns(bool)]
+    IsPaused {},
+    #[returns(Vec<Addr>)]
+    Pausers {},
 }

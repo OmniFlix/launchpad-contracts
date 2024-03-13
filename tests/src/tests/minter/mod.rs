@@ -1,4 +1,10 @@
 #[cfg(test)]
-mod test_minter_creation;
+mod pause_minter;
 #[cfg(test)]
-mod test_minting;
+mod paused_factory;
+#[cfg(test)]
+mod private_minting;
+#[cfg(test)]
+mod public_minting;
+#[cfg(test)]
+mod test_minter_creation;

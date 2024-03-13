@@ -1,5 +1,5 @@
-// #[cfg(test)]
-// mod minter;
+#[cfg(test)]
+mod minter;
 // #[cfg(test)]
 // mod multi_mint_open_edition_minter;
 

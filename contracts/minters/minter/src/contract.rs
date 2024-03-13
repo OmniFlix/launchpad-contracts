@@ -67,6 +67,7 @@ pub fn instantiate(
         .token_details
         .clone()
         .ok_or(ContractError::InvalidTokenDetails {})?;
+
     let collection_details = msg.collection_details.clone();
 
     // Check if whitelist is active
@@ -91,7 +92,7 @@ pub fn instantiate(
     };
     // Check config integrity
     config.check_integrity(env.block.time)?;
-    // Check token details
+    // Check token details integrity
     token_details.check_integrity()?;
 
     // Validate payment amount
@@ -219,7 +220,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     let mintable_tokens = collect_mintable_tokens(deps.as_ref().storage)?;
 
     // Check if public minting is started and if end time is passed
-    let is_public = env.block.time > config.start_time;
+    let is_public = env.block.time >= config.start_time;
     if let Some(end_time) = config.end_time {
         if env.block.time > end_time {
             return Err(ContractError::PublicMintingEnded {});
@@ -274,7 +275,6 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
         // Only for public minting
 
         user_details.public_mint_count += 1;
-
         // Check if per address limit is reached
         if let Some(per_address_limit) = config.per_address_limit {
             if user_details.public_mint_count > per_address_limit {

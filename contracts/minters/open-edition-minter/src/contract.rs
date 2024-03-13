@@ -277,7 +277,6 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
         }
     }
     // Save updated user details
-    println!("user_details: {:?}", user_details);
     USER_MINTING_DETAILS.save(deps.storage, info.sender.clone(), &user_details)?;
 
     // Validate payment
