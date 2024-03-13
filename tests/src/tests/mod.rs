@@ -6,8 +6,8 @@ mod minter;
 #[cfg(test)]
 mod open_edition_minter;
 
-// #[cfg(test)]
-// mod scenarios;
+#[cfg(test)]
+mod scenarios;
 
 #[cfg(test)]
 mod whitelist;
