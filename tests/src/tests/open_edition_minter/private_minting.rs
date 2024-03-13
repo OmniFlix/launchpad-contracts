@@ -1,434 +1,319 @@
-// #![cfg(test)]
-// use cosmwasm_std::{coin, coins, Addr, BlockInfo, Coin, Timestamp, Uint128};
+#![cfg(test)]
+use cosmwasm_std::{
+    coin, to_json_binary, Addr, BlockInfo, Coin, QueryRequest, Timestamp, WasmQuery,
+};
 
-// use cw_multi_test::{BankSudo, Executor, SudoMsg};
-// use minter_types::msg::QueryMsg;
-// use minter_types::types::UserDetails;
+use cw_multi_test::Executor;
+use cw_utils::PaymentError;
+use minter_types::types::{Token, UserDetails};
+use omniflix_open_edition_minter_factory::msg::ExecuteMsg as OpenEditionMinterFactoryExecuteMsg;
 
-// use omniflix_open_edition_minter_factory::msg::ExecuteMsg as OpenEditionMinterFactoryExecuteMsg;
+use crate::helpers::mock_messages::whitelist_mock_messages::return_rounds;
+use crate::helpers::utils::get_contract_address_from_res;
 
-// use crate::helpers::utils::{
-//     get_contract_address_from_res, return_open_edition_minter_factory_inst_message,
-//     return_open_edition_minter_inst_msg, return_round_whitelist_factory_inst_message,
-//     return_rounds,
-// };
+use crate::helpers::mock_messages::factory_mock_messages::{
+    return_open_edition_minter_factory_inst_message, return_round_whitelist_factory_inst_message,
+};
 
-// use crate::{helpers::setup::setup, helpers::utils::query_onft_collection};
+use crate::helpers::mock_messages::oem_mock_messages::return_open_edition_minter_inst_msg;
 
-// use omniflix_open_edition_minter::msg::{
-//     ExecuteMsg as OpenEditionMinterExecuteMsg, OEMQueryExtension,
-// };
-// type OpenEditionMinterQueryMsg = QueryMsg<OEMQueryExtension>;
+use crate::helpers::utils::query_onft_collection;
 
-// use omniflix_open_edition_minter::error::ContractError as OpenEditionMinterError;
+use crate::helpers::setup::setup;
+use omniflix_open_edition_minter::msg::OEMQueryExtension;
 
-// #[test]
-// fn test_open_edition_minting() {
-//     let (
-//         mut app,
-//         test_addresses,
-//         _minter_factory_code_id,
-//         _minter_code_id,
-//         _round_whitelist_factory_code_id,
-//         _round_whitelist_code_id,
-//         open_edition_minter_factory_code_id,
-//         open_edition_minter_code_id,
-//         _multi_mint_open_edition_minter_code_id,
-//     ) = setup();
-//     let admin = test_addresses.admin;
-//     let creator = test_addresses.creator;
-//     let collector = test_addresses.collector;
+use minter_types::msg::QueryMsg as BaseMinterQueryMsg;
 
-//     // Instantiate the minter factory
-//     let open_edition_minter_factory_instantiate_msg =
-//         return_open_edition_minter_factory_inst_message(
-//             open_edition_minter_code_id,
-//             open_edition_minter_code_id,
-//         );
+use omniflix_open_edition_minter::msg::ExecuteMsg as OpenEditionMinterExecuteMsg;
 
-//     let open_edition_minter_factory_address = app
-//         .instantiate_contract(
-//             open_edition_minter_factory_code_id,
-//             admin.clone(),
-//             &open_edition_minter_factory_instantiate_msg,
-//             &[],
-//             "Open Edition Minter Factory",
-//             None,
-//         )
-//         .unwrap();
+use omniflix_open_edition_minter::error::ContractError as OpenEditionMinterError;
 
-//     // Create a minter
-//     let open_edition_minter_instantiate_msg = return_open_edition_minter_inst_msg();
-//     let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateOpenEditionMinter {
-//         msg: open_edition_minter_instantiate_msg,
-//     };
+use omniflix_round_whitelist::error::ContractError as RoundWhitelistError;
 
-//     let res = app
-//         .execute_contract(
-//             creator.clone(),
-//             open_edition_minter_factory_address,
-//             &create_minter_msg,
-//             &[Coin::new(2000000, "uflix")],
-//         )
-//         .unwrap();
-//     let minter_address = get_contract_address_from_res(res);
+type OpenEditionMinterQueryMsg = BaseMinterQueryMsg<OEMQueryExtension>;
 
-//     // Try minting before start time
-//     let mint_msg = OpenEditionMinterExecuteMsg::Mint {};
-//     let res = app
-//         .execute_contract(
-//             collector.clone(),
-//             Addr::unchecked(minter_address.clone()),
-//             &mint_msg,
-//             &[Coin::new(1000000, "uflix")],
-//         )
-//         .unwrap_err();
-//     let err = res.source().unwrap();
-//     let error = err.downcast_ref::<OpenEditionMinterError>().unwrap();
-//     assert_eq!(
-//         error,
-//         &OpenEditionMinterError::MintingNotStarted {
-//             start_time: Timestamp::from_nanos(1_000_000_000),
-//             current_time: Timestamp::from_nanos(1_000)
-//         }
-//     );
+#[test]
+fn test_private_minting() {
+    let res = setup();
+    let admin = res.test_accounts.admin;
+    let creator = res.test_accounts.creator;
+    let collector = res.test_accounts.collector;
+    let open_edition_minter_factory_code_id = res.open_edition_minter_factory_code_id;
+    let open_edition_minter_code_id = res.open_edition_minter_code_id;
+    let round_whitelist_factory_code_id = res.round_whitelist_factory_code_id;
+    let round_whitelist_code_id = res.round_whitelist_code_id;
+    let mut app = res.app;
 
-//     // Try minting with incorrect payment amount
-//     app.set_block(BlockInfo {
-//         chain_id: "test_1".to_string(),
-//         height: 1_000,
-//         time: Timestamp::from_nanos(1_000_000_000),
-//     });
-//     let mint_msg = OpenEditionMinterExecuteMsg::Mint {};
-//     let res = app
-//         .execute_contract(
-//             collector.clone(),
-//             Addr::unchecked(minter_address.clone()),
-//             &mint_msg,
-//             &[Coin::new(1000000, "incorrect_denom")],
-//         )
-//         .unwrap_err();
-//     let err = res.source().unwrap();
-//     let error = err.downcast_ref::<OpenEditionMinterError>().unwrap();
-//     assert_eq!(
-//         error,
-//         &OpenEditionMinterError::PaymentError(cw_utils::PaymentError::ExtraDenom(
-//             "incorrect_denom".to_string()
-//         ))
-//     );
+    // Instantiate the oem minter factory
+    let open_edition_minter_factory_instantiate_msg =
+        return_open_edition_minter_factory_inst_message(open_edition_minter_code_id, None);
 
-//     // Try minting with incorrect payment amount
-//     let mint_msg = OpenEditionMinterExecuteMsg::Mint {};
-//     let res = app
-//         .execute_contract(
-//             collector.clone(),
-//             Addr::unchecked(minter_address.clone()),
-//             &mint_msg,
-//             &[Coin::new(1000000 - 1, "uflix")],
-//         )
-//         .unwrap_err();
-//     let err = res.source().unwrap();
-//     let error = err.downcast_ref::<OpenEditionMinterError>().unwrap();
-//     assert_eq!(
-//         error,
-//         &OpenEditionMinterError::IncorrectPaymentAmount {
-//             expected: Uint128::from(1000000u128),
-//             sent: Uint128::from(999999u128)
-//         }
-//     );
-//     // Minting after end time
-//     app.set_block(BlockInfo {
-//         chain_id: "test_1".to_string(),
-//         height: 1_000,
-//         time: Timestamp::from_nanos(2_000_000_000 + 1),
-//     });
-//     let mint_msg = OpenEditionMinterExecuteMsg::Mint {};
+    let open_edition_minter_factory_address = app
+        .instantiate_contract(
+            open_edition_minter_factory_code_id,
+            admin.clone(),
+            &open_edition_minter_factory_instantiate_msg.clone(),
+            &[],
+            "Open Edition Minter Factory",
+            None,
+        )
+        .unwrap();
 
-//     let res = app
-//         .execute_contract(
-//             collector.clone(),
-//             Addr::unchecked(minter_address.clone()),
-//             &mint_msg,
-//             &[Coin::new(1000000, "uflix")],
-//         )
-//         .unwrap_err();
-//     let err = res.source().unwrap();
-//     let error = err.downcast_ref::<OpenEditionMinterError>().unwrap();
-//     assert_eq!(error, &OpenEditionMinterError::PublicMintingEnded {});
+    // Create a whitelist factory
+    let round_whitelist_factory_inst_msg =
+        return_round_whitelist_factory_inst_message(round_whitelist_code_id);
+    let round_whitelist_factory_addr = app
+        .instantiate_contract(
+            round_whitelist_factory_code_id,
+            admin.clone(),
+            &round_whitelist_factory_inst_msg,
+            &[],
+            "round_whitelist_factory",
+            None,
+        )
+        .unwrap();
 
-//     // Set block time to valid minting time
-//     app.set_block(BlockInfo {
-//         chain_id: "test_1".to_string(),
-//         height: 1_000,
-//         time: Timestamp::from_nanos(1_000_000_000),
-//     });
+    let rounds = return_rounds();
 
-//     // Query uflix balance of creator before mint
-//     let creator_balance_before_mint: Uint128 = app
-//         .wrap()
-//         .query_balance(creator.to_string(), "uflix".to_string())
-//         .unwrap()
-//         .amount;
-//     // Mint
-//     let mint_msg = OpenEditionMinterExecuteMsg::Mint {};
-//     let _res = app
-//         .execute_contract(
-//             collector.clone(),
-//             Addr::unchecked(minter_address.clone()),
-//             &mint_msg,
-//             &[Coin::new(1000000, "uflix")],
-//         )
-//         .unwrap();
-//     // Query uflix balance of creator after mint
-//     let creator_balance_after_mint: Uint128 = app
-//         .wrap()
-//         .query_balance(creator.to_string(), "uflix".to_string())
-//         .unwrap()
-//         .amount;
-//     // Check if creator got paid
-//     assert_eq!(
-//         creator_balance_after_mint,
-//         creator_balance_before_mint + Uint128::from(1000000u128)
-//     );
+    let round_whitelist_inst_msg = whitelist_types::InstantiateMsg {
+        admin: admin.to_string(),
+        rounds: rounds.clone(),
+    };
+    let create_round_whitelist_msg =
+        omniflix_round_whitelist_factory::msg::ExecuteMsg::CreateWhitelist {
+            msg: round_whitelist_inst_msg,
+        };
+    // Create a whitelist
+    let res = app
+        .execute_contract(
+            admin.clone(),
+            round_whitelist_factory_addr,
+            &create_round_whitelist_msg,
+            &[coin(1000000, "uflix")],
+        )
+        .unwrap();
+    let whitelist_address = get_contract_address_from_res(res);
 
-//     // Query minter
-//     let query_msg = OpenEditionMinterQueryMsg::UserMintingDetails {
-//         address: collector.to_string(),
-//     };
-//     let res: UserDetails = app
-//         .wrap()
-//         .query_wasm_smart(Addr::unchecked(minter_address.clone()), &query_msg)
-//         .unwrap();
-//     assert_eq!(res.total_minted_count, 1);
-//     assert_eq!(res.minted_tokens[0].token_id, "1");
+    // Create a minter
+    let mut open_edition_minter_instantiate_msg = return_open_edition_minter_inst_msg();
+    open_edition_minter_instantiate_msg.init.whitelist_address = Some(whitelist_address.clone());
 
-//     // Query onft collection
-//     let collection = query_onft_collection(app.storage(), minter_address.clone());
-//     assert_eq!(collection.onfts.clone()[0].id, "1");
-//     assert_eq!(
-//         collection.onfts.clone()[0].metadata.clone().unwrap().name,
-//         "token_name #1".to_string()
-//     );
-//     //     Query minter
-//     let query_msg = OpenEditionMinterQueryMsg::Extension(OEMQueryExtension::TokensRemaining {});
-//     let res: u32 = app
-//         .wrap()
-//         .query_wasm_smart(Addr::unchecked(minter_address.clone()), &query_msg)
-//         .unwrap();
-//     assert_eq!(res, 999);
+    // Set block time to rounds start time and create a oem
+    // Should fail because the whitelist is active
+    app.set_block(BlockInfo {
+        chain_id: "test_1".to_string(),
+        height: 1_000,
+        time: Timestamp::from_nanos(2000 + 1),
+    });
 
-//     // Query minter
-//     let query_msg = OpenEditionMinterQueryMsg::TotalMintedCount {};
-//     let res: u32 = app
-//         .wrap()
-//         .query_wasm_smart(Addr::unchecked(minter_address.clone()), &query_msg)
-//         .unwrap();
-//     assert_eq!(res, 1);
+    let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateOpenEditionMinter {
+        msg: open_edition_minter_instantiate_msg,
+    };
 
-//     // Create a loop from 1 to 999 and mint every remaining token to receivers
-//     for i in 1..1000 {
-//         let collector = Addr::unchecked(format!("collector{}", i));
-//         // Mint money for collector
-//         app.sudo(SudoMsg::Bank(BankSudo::Mint {
-//             to_address: collector.to_string(),
-//             amount: coins(1000000, "uflix"),
-//         }))
-//         .unwrap();
-//         // Mint
-//         let mint_msg = OpenEditionMinterExecuteMsg::Mint {};
-//         let _res = app
-//             .execute_contract(
-//                 collector.clone(),
-//                 Addr::unchecked(minter_address.clone()),
-//                 &mint_msg,
-//                 &[Coin::new(1000000, "uflix")],
-//             )
-//             .unwrap();
+    let res = app
+        .execute_contract(
+            creator.clone(),
+            open_edition_minter_factory_address.clone(),
+            &create_minter_msg,
+            &[Coin::new(2000000, "uflix")],
+        )
+        .unwrap_err();
+    let error = res.source().unwrap().source().unwrap();
+    let error = error.downcast_ref::<OpenEditionMinterError>().unwrap();
+    assert_eq!(error, &OpenEditionMinterError::WhitelistAlreadyActive {});
 
-//         // Query minter
-//         let query_msg = OpenEditionMinterQueryMsg::UserMintingDetails {
-//             address: collector.to_string(),
-//         };
-//         let res: UserDetails = app
-//             .wrap()
-//             .query_wasm_smart(Addr::unchecked(minter_address.clone()), &query_msg)
-//             .unwrap();
-//         assert_eq!(res.total_minted_count, 1);
-//     }
+    // Reset block time to default
+    app.set_block(BlockInfo {
+        chain_id: "test_1".to_string(),
+        height: 1_000,
+        time: Timestamp::from_nanos(1_000),
+    });
 
-//     // Query minter
-//     let query_msg = OpenEditionMinterQueryMsg::Extension(OEMQueryExtension::TokensRemaining {});
-//     let res: u32 = app
-//         .wrap()
-//         .query_wasm_smart(Addr::unchecked(minter_address.clone()), &query_msg)
-//         .unwrap();
-//     assert_eq!(res, 0);
+    // Create a minter
+    let mut open_edition_minter_instantiate_msg = return_open_edition_minter_inst_msg();
+    open_edition_minter_instantiate_msg.init.whitelist_address = Some(whitelist_address.clone());
+    let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateOpenEditionMinter {
+        msg: open_edition_minter_instantiate_msg.clone(),
+    };
 
-//     // Query minter
-//     let query_msg = OpenEditionMinterQueryMsg::TotalMintedCount {};
-//     let res: u32 = app
-//         .wrap()
-//         .query_wasm_smart(Addr::unchecked(minter_address.clone()), &query_msg)
-//         .unwrap();
-//     assert_eq!(res, 1000);
+    let res = app
+        .execute_contract(
+            creator.clone(),
+            open_edition_minter_factory_address.clone(),
+            &create_minter_msg,
+            &[Coin::new(2000000, "uflix")],
+        )
+        .unwrap();
+    let minter_address = get_contract_address_from_res(res);
 
-//     // Try minting after all tokens are minted
-//     let mint_msg = OpenEditionMinterExecuteMsg::Mint {};
-//     let res = app
-//         .execute_contract(
-//             collector.clone(),
-//             Addr::unchecked(minter_address.clone()),
-//             &mint_msg,
-//             &[Coin::new(1000000, "uflix")],
-//         )
-//         .unwrap_err();
-//     let err = res.source().unwrap();
-//     let error = err.downcast_ref::<OpenEditionMinterError>().unwrap();
-//     assert_eq!(error, &OpenEditionMinterError::NoTokensLeftToMint {});
-// }
+    // Try minting should fail because the whitelist no rounds are active
+    let mint_msg = OpenEditionMinterExecuteMsg::Mint {};
+    let res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(minter_address.clone()),
+            &mint_msg,
+            &[Coin::new(1000000, "uflix")],
+        )
+        .unwrap_err();
+    let error = res.source().unwrap();
+    let error = error.downcast_ref::<OpenEditionMinterError>().unwrap();
+    assert_eq!(error, &OpenEditionMinterError::WhitelistNotActive {});
 
-// #[test]
-// fn test_open_edition_minter_private_minting() {
-//     let (
-//         mut app,
-//         test_addresses,
-//         _minter_factory_code_id,
-//         _minter_code_id,
-//         round_whitelist_factory_code_id,
-//         round_whitelist_code_id,
-//         open_edition_minter_factory_code_id,
-//         open_edition_minter_code_id,
-//         _multi_mint_open_edition_minter_code_id,
-//     ) = setup();
-//     let admin = test_addresses.admin;
-//     let creator = test_addresses.creator;
-//     let collector = test_addresses.collector;
+    let round_1_start_time = rounds[0].start_time;
+    app.set_block(BlockInfo {
+        chain_id: "test_1".to_string(),
+        height: 1_000,
+        time: round_1_start_time.clone(),
+    });
+    // Mint for creator should fail because the creator is not whitelisted for first round
+    // Creator is also an admin for this minter but this does not matter since executed msg is not MintAdmin{}
+    let mint_msg = OpenEditionMinterExecuteMsg::Mint {};
+    let res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(minter_address.clone()),
+            &mint_msg,
+            &[Coin::new(1000000, "diffirent_denom")],
+        )
+        .unwrap_err();
+    let error = res.source().unwrap();
+    let error = error.downcast_ref::<OpenEditionMinterError>().unwrap();
+    assert_eq!(error, &OpenEditionMinterError::AddressNotWhitelisted {});
 
-//     // Instantiate the minter factory
-//     let open_edition_minter_factory_instantiate_msg =
-//         return_open_edition_minter_factory_inst_message(
-//             open_edition_minter_code_id,
-//             open_edition_minter_code_id,
-//         );
-//     let open_edition_minter_factory_address = app
-//         .instantiate_contract(
-//             open_edition_minter_factory_code_id,
-//             admin.clone(),
-//             &open_edition_minter_factory_instantiate_msg,
-//             &[],
-//             "Open Edition Minter Factory",
-//             None,
-//         )
-//         .unwrap();
+    let round_1_mint_price = &rounds[0].mint_price;
 
-//     let round_whitelist_factory_inst_msg =
-//         return_round_whitelist_factory_inst_message(round_whitelist_code_id);
-//     let round_whitelist_factory_addr = app
-//         .instantiate_contract(
-//             round_whitelist_factory_code_id,
-//             admin.clone(),
-//             &round_whitelist_factory_inst_msg,
-//             &[],
-//             "round_whitelist_factory",
-//             None,
-//         )
-//         .unwrap();
+    // Mint for collector
+    let mint_msg = OpenEditionMinterExecuteMsg::Mint {};
+    let _res = app
+        .execute_contract(
+            collector.clone(),
+            Addr::unchecked(minter_address.clone()),
+            &mint_msg.clone(),
+            &[round_1_mint_price.clone()],
+        )
+        .unwrap();
+    // Query the collection
+    let collection = query_onft_collection(app.storage(), minter_address.clone());
+    assert_eq!(collection.onfts[0].id, 1.to_string());
+    // Query user minting details
+    let user_minting_details: UserDetails = app
+        .wrap()
+        .query(&QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr: minter_address.clone(),
+            msg: to_json_binary::<OpenEditionMinterQueryMsg>(
+                &OpenEditionMinterQueryMsg::UserMintingDetails {
+                    address: collector.clone().into_string(),
+                },
+            )
+            .unwrap(),
+        }))
+        .unwrap();
 
-//     let rounds = return_rounds();
+    assert_eq!(
+        user_minting_details.minted_tokens,
+        [Token {
+            token_id: "1".to_string()
+        }]
+    );
+    assert_eq!(user_minting_details.total_minted_count, 1);
+    assert_eq!(user_minting_details.public_mint_count, 0);
 
-//     let round_whitelist_inst_msg = whitelist_types::InstantiateMsg {
-//         admin: admin.to_string(),
-//         rounds: rounds.clone(),
-//     };
-//     let create_round_whitelist_msg =
-//         omniflix_round_whitelist_factory::msg::ExecuteMsg::CreateWhitelist {
-//             msg: round_whitelist_inst_msg,
-//         };
-//     let res = app
-//         .execute_contract(
-//             admin.clone(),
-//             round_whitelist_factory_addr,
-//             &create_round_whitelist_msg,
-//             &[coin(1000000, "uflix")],
-//         )
-//         .unwrap();
-//     let whitelist_address = get_contract_address_from_res(res);
+    // Try minting for collector again should fail because the collector has reached the mint limit
+    let res = app
+        .execute_contract(
+            collector.clone(),
+            Addr::unchecked(minter_address.clone()),
+            &mint_msg.clone(),
+            &[round_1_mint_price.clone()],
+        )
+        .unwrap_err();
+    let error = res.source().unwrap().source().unwrap();
+    let error = error.downcast_ref::<RoundWhitelistError>().unwrap();
+    assert_eq!(error, &RoundWhitelistError::RoundReachedMintLimit {});
 
-//     // Create a minter
-//     let mut open_edition_minter_instantiate_msg = return_open_edition_minter_inst_msg();
-//     open_edition_minter_instantiate_msg.init.whitelist_address = Some(whitelist_address.clone());
-//     let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateOpenEditionMinter {
-//         msg: open_edition_minter_instantiate_msg,
-//     };
+    // Set block time to round 2 start time
+    let round_2_start_time = rounds[1].start_time;
+    let round_2_mint_price = &rounds[1].mint_price;
 
-//     let res = app
-//         .execute_contract(
-//             creator.clone(),
-//             open_edition_minter_factory_address,
-//             &create_minter_msg,
-//             &[Coin::new(2000000, "uflix")],
-//         )
-//         .unwrap();
-//     let minter_address = get_contract_address_from_res(res);
+    app.set_block(BlockInfo {
+        chain_id: "test_1".to_string(),
+        height: 1_000,
+        time: round_2_start_time.clone(),
+    });
 
-//     // Round 1 starts at 2000 and ends at 3000
-//     app.set_block(BlockInfo {
-//         chain_id: "test_1".to_string(),
-//         height: 1_000,
-//         time: Timestamp::from_nanos(2000 + 1),
-//     });
+    // Mint for collector
+    // Should fail because the collector is not whitelisted for round 2
+    let res = app
+        .execute_contract(
+            collector.clone(),
+            Addr::unchecked(minter_address.clone()),
+            &mint_msg.clone(),
+            &[round_2_mint_price.clone()],
+        )
+        .unwrap_err();
+    let error = res.source().unwrap();
+    let error = error.downcast_ref::<OpenEditionMinterError>().unwrap();
+    assert_eq!(error, &OpenEditionMinterError::AddressNotWhitelisted {});
 
-//     // Mint for collector
-//     let mint_msg = OpenEditionMinterExecuteMsg::Mint {};
-//     let _res = app
-//         .execute_contract(
-//             collector.clone(),
-//             Addr::unchecked(minter_address.clone()),
-//             &mint_msg.clone(),
-//             &[Coin::new(1000000, "diffirent_denom")],
-//         )
-//         .unwrap();
+    // Mint for creator
+    // Send round 1's mint price
+    // Should fail because wrong mint price
+    let mint_msg = OpenEditionMinterExecuteMsg::Mint {};
+    let res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(minter_address.clone()),
+            &mint_msg.clone(),
+            &[round_1_mint_price.clone()],
+        )
+        .unwrap_err();
+    let error = res.source().unwrap();
+    let error = error.downcast_ref::<OpenEditionMinterError>().unwrap();
+    assert_eq!(
+        error,
+        &OpenEditionMinterError::PaymentError(PaymentError::ExtraDenom(
+            round_1_mint_price.clone().denom
+        ))
+    );
 
-//     // Try minting for creator
-//     let res = app
-//         .execute_contract(
-//             creator.clone(),
-//             Addr::unchecked(minter_address.clone()),
-//             &mint_msg.clone(),
-//             &[Coin::new(1000000, "diffirent_denom")],
-//         )
-//         .unwrap_err();
-//     let error = res.source().unwrap();
-//     let error = error.downcast_ref::<OpenEditionMinterError>().unwrap();
-//     assert_eq!(error, &OpenEditionMinterError::AddressNotWhitelisted {});
+    // Mint for creator
+    // Send round 2's mint price
+    // Should not fail because the creator is whitelisted for round 2
+    // Price is correct
+    // Round limit is not reached
+    let mint_msg = OpenEditionMinterExecuteMsg::Mint {};
+    let _res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(minter_address.clone()),
+            &mint_msg.clone(),
+            &[round_2_mint_price.clone()],
+        )
+        .unwrap();
 
-//     app.set_block(BlockInfo {
-//         chain_id: "test_1".to_string(),
-//         height: 1_000,
-//         time: Timestamp::from_nanos(4000 + 1),
-//     });
+    // Now this whitelist has been used to its limit
+    // Wait for public minting time
+    let public_minting_time = &open_edition_minter_instantiate_msg.clone().init.start_time;
+    app.set_block(BlockInfo {
+        chain_id: "test_1".to_string(),
+        height: 1_000,
+        time: public_minting_time.clone(),
+    });
+    let public_mint_price = &open_edition_minter_instantiate_msg.clone().init.mint_price;
 
-//     // Mint for creator
-//     let mint_msg = OpenEditionMinterExecuteMsg::Mint {};
-//     let _res = app
-//         .execute_contract(
-//             creator.clone(),
-//             Addr::unchecked(minter_address.clone()),
-//             &mint_msg,
-//             &[Coin::new(1000000, "uflix")],
-//         )
-//         .unwrap();
+    // Mint for collector
+    let mint_msg = OpenEditionMinterExecuteMsg::Mint {};
+    let _res = app
+        .execute_contract(
+            collector.clone(),
+            Addr::unchecked(minter_address.clone()),
+            &mint_msg,
+            &[public_mint_price.clone()],
+        )
+        .unwrap();
 
-//     // Try minting for creator
-//     let res = app
-//         .execute_contract(
-//             creator.clone(),
-//             Addr::unchecked(minter_address.clone()),
-//             &mint_msg,
-//             &[Coin::new(1000000, "uflix")],
-//         )
-//         .unwrap_err();
-//     let error = res.source().unwrap();
-//     let error = error.downcast_ref::<OpenEditionMinterError>().unwrap();
-//     assert_eq!(error, &OpenEditionMinterError::AddressReachedMintLimit {});
-// }
+    // Query the collection
+    let collection = query_onft_collection(app.storage(), minter_address.clone());
+    assert_eq!(collection.onfts.len(), 3);
+}

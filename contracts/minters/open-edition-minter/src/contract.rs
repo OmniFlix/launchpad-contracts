@@ -204,6 +204,9 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
         }
     }
 
+    // Generate a new token ID
+    let token_id = last_token_id(deps.storage) + 1;
+
     // Load or initialize user minting details
     let mut user_details = USER_MINTING_DETAILS
         .may_load(deps.storage, info.sender.clone())?
@@ -212,27 +215,14 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     // Increment the total minted count for the user
     user_details.total_minted_count += 1;
 
-    // Check if the user has reached the per-address minting limit, if set
-    if let Some(per_address_limit) = config.per_address_limit {
-        if user_details.total_minted_count > per_address_limit {
-            return Err(ContractError::AddressReachedMintLimit {});
-        }
-    }
-
-    // Generate a new token ID
-    let token_id = last_token_id(deps.storage) + 1;
-
     // Update user's minted tokens list
     user_details.minted_tokens.push(Token {
         token_id: token_id.to_string(),
     });
 
-    // Save updated user details
-    USER_MINTING_DETAILS.save(deps.storage, info.sender.clone(), &user_details)?;
-
     let mut mint_price = config.mint_price;
-    // Check if minting is started
 
+    // Check if minting is started
     let is_public = env.block.time >= config.start_time;
 
     let mut messages: Vec<CosmosMsg> = vec![];
@@ -248,6 +238,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
             // Check whitelist price
             let whitelist_price = check_whitelist_price(&whitelist_address, deps.as_ref())?;
             mint_price = whitelist_price;
+
             // Check if member is whitelisted
             let is_member = check_if_address_is_member(
                 &info.sender.clone(),
@@ -275,7 +266,19 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
                 current_time: env.block.time,
             });
         };
+    } else {
+        // Only for public minting
+        user_details.public_mint_count += 1;
+        // Check if per address limit is reached
+        if let Some(per_address_limit) = config.per_address_limit {
+            if user_details.public_mint_count > per_address_limit {
+                return Err(ContractError::AddressReachedMintLimit {});
+            }
+        }
     }
+    // Save updated user details
+    println!("user_details: {:?}", user_details);
+    USER_MINTING_DETAILS.save(deps.storage, info.sender.clone(), &user_details)?;
 
     // Validate payment
     let amount = may_pay(&info, &mint_price.denom)?;
@@ -298,9 +301,6 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
         total_tokens += 1;
         Ok(total_tokens)
     })?;
-
-    // Save updated user details
-    USER_MINTING_DETAILS.save(deps.storage, info.sender.clone(), &user_details)?;
 
     // Create the mint message
     let mint_msg: CosmosMsg = generate_mint_message(
@@ -394,6 +394,12 @@ pub fn execute_mint_admin(
 
     // Save updated user details
     USER_MINTING_DETAILS.save(deps.storage, recipient.clone(), &user_details)?;
+
+    // Increment total minted count
+    MINTED_COUNT.update(deps.storage, |mut total_tokens| -> StdResult<_> {
+        total_tokens += 1;
+        Ok(total_tokens)
+    })?;
 
     // Create the mint message
     let mint_msg: CosmosMsg = generate_mint_message(

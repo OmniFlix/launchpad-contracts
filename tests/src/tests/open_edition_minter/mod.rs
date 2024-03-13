@@ -3,4 +3,3 @@ mod pause_oem;
 mod paused_factory;
 mod private_minting;
 mod public_minting;
-mod test_open_edition_minting;

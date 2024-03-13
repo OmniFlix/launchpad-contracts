@@ -1,9 +1,8 @@
 #![cfg(test)]
-use cosmwasm_std::{coin, Addr, BlockInfo, Coin, Decimal, Empty, Timestamp, Uint128};
+use cosmwasm_std::{coin, Addr, BlockInfo};
 
 use cw_multi_test::Executor;
-use factory_types::CustomPaymentError;
-use minter_types::types::{Config, ConfigurationError, TokenDetailsError};
+use minter_types::types::Config;
 use omniflix_open_edition_minter_factory::msg::ExecuteMsg as OpenEditionMinterFactoryExecuteMsg;
 use pauser::PauseError;
 
@@ -13,12 +12,8 @@ use crate::helpers::mock_messages::factory_mock_messages::return_open_edition_mi
 
 use crate::helpers::mock_messages::oem_mock_messages::return_open_edition_minter_inst_msg;
 
-use crate::helpers::utils::query_onft_collection;
-
 use crate::helpers::setup::setup;
 use omniflix_open_edition_minter::msg::OEMQueryExtension;
-
-use omniflix_open_edition_minter_factory::error::ContractError as OpenEditionMinterFactoryError;
 
 use minter_types::msg::QueryMsg as BaseMinterQueryMsg;
 
