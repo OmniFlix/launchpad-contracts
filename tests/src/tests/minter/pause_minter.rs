@@ -23,7 +23,7 @@ fn test_minter_public_minting() {
     let res = setup();
     let admin = res.test_accounts.admin;
     let creator = res.test_accounts.creator;
-    let _collector = res.test_accounts.collector;
+    let collector = res.test_accounts.collector;
     let minter_factory_code_id = res.minter_factory_code_id;
     let minter_code_id = res.minter_code_id;
     let mut app = res.app;
@@ -82,8 +82,34 @@ fn test_minter_public_minting() {
             &[public_minting_price.clone()],
         )
         .unwrap();
+    // Query pausers
+    let pausers: Vec<Addr> = app
+        .wrap()
+        .query_wasm_smart(&minter_address, &MinterQueryMsg::Pausers {})
+        .unwrap();
+    assert_eq!(pausers.len(), 1);
+    assert_eq!(pausers[0], creator);
 
-    // Pause the minter
+    // Non pauser should not be able to pause
+    let pause_msg = MinterExecuteMsg::Pause {};
+    let res = app
+        .execute_contract(
+            collector.clone(),
+            Addr::unchecked(minter_address.clone()),
+            &pause_msg,
+            &[],
+        )
+        .unwrap_err();
+    let err = res.source().unwrap();
+    let error = err.downcast_ref::<MinterContractError>().unwrap();
+    assert_eq!(
+        error,
+        &MinterContractError::Pause(PauseError::Unauthorized {
+            sender: collector.clone()
+        })
+    );
+
+    // Pauser should be able to pause
     let pause_msg = MinterExecuteMsg::Pause {};
     let _res = app
         .execute_contract(
@@ -94,41 +120,54 @@ fn test_minter_public_minting() {
         )
         .unwrap();
 
-    // Ensure that the minter is paused
+    // Now query contract
     let is_paused: bool = app
         .wrap()
         .query_wasm_smart(&minter_address, &MinterQueryMsg::IsPaused {})
         .unwrap();
-    assert_eq!(is_paused, true);
+    assert!(is_paused);
 
-    // Ensure that the minter cannot mint
+    // Try pausing again
+    let pause_msg = MinterExecuteMsg::Pause {};
+    let res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(minter_address.clone()),
+            &pause_msg,
+            &[],
+        )
+        .unwrap_err();
+    let err = res.source().unwrap();
+    let error = err.downcast_ref::<MinterContractError>().unwrap();
+    assert_eq!(error, &MinterContractError::Pause(PauseError::Paused {}));
+
     let mint_msg = MinterExecuteMsg::Mint {};
-    let error = app
+    let res = app
         .execute_contract(
             creator.clone(),
             Addr::unchecked(minter_address.clone()),
             &mint_msg,
-            &[public_minting_price.clone()],
+            &[coin(1000000, "uflix")],
         )
         .unwrap_err();
-    let error = error.source().unwrap();
-    let error = error.downcast_ref::<MinterContractError>().unwrap();
+    let err = res.source().unwrap();
+    let error = err.downcast_ref::<MinterContractError>().unwrap();
     assert_eq!(error, &MinterContractError::Pause(PauseError::Paused {}));
 
-    // Ensure that the Admin cannot mint
+    // Try mint admin when paused
     let mint_msg = MinterExecuteMsg::MintAdmin {
         recipient: creator.clone().into_string(),
         token_id: None,
     };
-    let error = app
+    let res = app
         .execute_contract(
-            admin.clone(),
+            creator.clone(),
             Addr::unchecked(minter_address.clone()),
             &mint_msg,
-            &[public_minting_price.clone()],
+            &[coin(1000000, "uflix")],
         )
         .unwrap_err();
-    let error = error.source().unwrap();
-    let error = error.downcast_ref::<MinterContractError>().unwrap();
+    let err = res.source().unwrap();
+    let error = err.downcast_ref::<MinterContractError>().unwrap();
     assert_eq!(error, &MinterContractError::Pause(PauseError::Paused {}));
 }
