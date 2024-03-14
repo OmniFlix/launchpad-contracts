@@ -10,7 +10,7 @@ use minter_types::types::{
     AuthDetails, CollectionDetails, Config, Token, TokenDetails, UserDetails,
 };
 use minter_types::utils::{
-    check_collection_creation_fee, generate_create_denom_msg, generate_mint_message,
+    check_collection_creation_fee, generate_create_denom_msg, generate_oem_mint_message,
     generate_update_denom_msg, update_collection_details,
 };
 use std::str::FromStr;
@@ -302,15 +302,13 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     })?;
 
     // Create the mint message
-    let mint_msg: CosmosMsg = generate_mint_message(
+    let mint_msg: CosmosMsg = generate_oem_mint_message(
         &collection,
         &token_details,
         token_id.to_string(),
         env.contract.address.clone(),
         info.sender.clone(),
-        None,
-        true,
-    )
+    )?
     .into();
     messages.push(mint_msg);
 
@@ -401,15 +399,13 @@ pub fn execute_mint_admin(
     })?;
 
     // Create the mint message
-    let mint_msg: CosmosMsg = generate_mint_message(
+    let mint_msg: CosmosMsg = generate_oem_mint_message(
         &collection,
         &token_details,
         token_id.to_string(),
         env.contract.address,
         recipient,
-        None,
-        true,
-    )
+    )?
     .into();
 
     // Prepare response with attributes

@@ -120,7 +120,7 @@ fn multi_mint_oem_public_minting() {
         royalty_ratio: Decimal::percent(10),
         extensible: true,
         nsfw: false,
-        data: Some("Drop number 1 data".to_string()),
+        data: Some("Additional token data".to_string()),
     };
     let config = Config {
         mint_price: coin(5_000_000, "uflix"),

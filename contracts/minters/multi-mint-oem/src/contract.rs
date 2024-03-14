@@ -10,7 +10,7 @@ use minter_types::types::{
     AuthDetails, CollectionDetails, Config, Token, TokenDetails, UserDetails,
 };
 use minter_types::utils::{
-    check_collection_creation_fee, generate_create_denom_msg, generate_mint_message,
+    check_collection_creation_fee, generate_create_denom_msg, generate_multi_minter_mint_message,
     generate_update_denom_msg, update_collection_details,
 };
 use pauser::PauseState;
@@ -283,15 +283,15 @@ pub fn execute_mint(
     let drop_token_id = drop.minted_count;
 
     // Generate mint message
-    let mint_msg: CosmosMsg = generate_mint_message(
+    let mint_msg: CosmosMsg = generate_multi_minter_mint_message(
         &collection_details,
         &token_details,
         token_id.to_string(),
         env.contract.address,
         info.sender,
-        Some((drop_token_id).to_string()),
-        true,
-    )
+        drop_id.to_string(),
+        drop_token_id.to_string(),
+    )?
     .into();
 
     if !mint_price.amount.is_zero() {
@@ -382,15 +382,15 @@ pub fn execute_mint_admin(
     DROPS.save(deps.storage, drop_id, &drop)?;
     let drop_token_id = drop.minted_count;
 
-    let mint_msg: CosmosMsg = generate_mint_message(
+    let mint_msg: CosmosMsg = generate_multi_minter_mint_message(
         &collection_details,
         &token_details,
         token_id.to_string(),
         env.contract.address,
         recipient.clone(),
-        Some((drop_token_id).to_string()),
-        true,
-    )
+        drop_id.to_string(),
+        drop_token_id.to_string(),
+    )?
     .into();
 
     let res = Response::new()

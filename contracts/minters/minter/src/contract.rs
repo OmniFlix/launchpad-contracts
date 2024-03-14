@@ -10,7 +10,7 @@ use cosmwasm_std::{
 };
 use cw_utils::{may_pay, maybe_addr, must_pay, nonpayable};
 use minter_types::utils::{
-    check_collection_creation_fee, generate_create_denom_msg, generate_mint_message,
+    check_collection_creation_fee, generate_create_denom_msg, generate_minter_mint_message,
     generate_update_denom_msg, update_collection_details,
 };
 use omniflix_minter_factory::msg::QueryMsg::Params as QueryFactoryParams;
@@ -319,15 +319,13 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     let token_id = random_token.1.token_id;
 
     // Generate mint message
-    let mint_msg: CosmosMsg = generate_mint_message(
+    let mint_msg: CosmosMsg = generate_minter_mint_message(
         &collection,
         &token_details,
         token_id.clone(),
         env.contract.address,
         info.sender,
-        None,
-        false,
-    )
+    )?
     .into();
 
     // Generate bank send message if payment amount is non-zero
@@ -420,15 +418,13 @@ pub fn execute_mint_admin(
     let token_id = token.1.token_id;
 
     // Generate mint message
-    let mint_msg: CosmosMsg = generate_mint_message(
+    let mint_msg: CosmosMsg = generate_minter_mint_message(
         &collection,
         &TOKEN_DETAILS.load(deps.storage)?,
         token_id.clone(),
         env.contract.address,
         recipient.clone(),
-        None,
-        false,
-    )
+    )?
     .into();
 
     let res = Response::new()

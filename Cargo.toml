@@ -37,3 +37,4 @@ whitelist-types = {  path = "packages/whitelist-types" }
 minter-types = { path = "packages/minter-types" }
 factory-types = { path = "packages/factory-types" }
 pauser = {  path = "packages/pauser" }
+serde_json = "1.0"

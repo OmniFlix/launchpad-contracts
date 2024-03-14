@@ -60,7 +60,7 @@ whitelist-types ={ workspace = true }
 omniflix-round-whitelist = {path="../../whitelists/round-whitelist"}
 omniflix-minter-factory = {path = "../../factories/minter-factory"}
 pauser = { workspace = true }
-
+serde_json= {workspace = true }
 
 
 
