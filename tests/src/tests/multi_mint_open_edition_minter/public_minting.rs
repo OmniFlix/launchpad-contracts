@@ -1,18 +1,13 @@
 #![cfg(test)]
-use std::ops::Add;
-
 use cosmwasm_std::{coin, Addr, BlockInfo, Timestamp};
 use cosmwasm_std::{Decimal, Uint128};
 use cw_multi_test::Executor;
-use cw_utils::PaymentError;
 use minter_types::msg::QueryMsg as CommonMinterQueryMsg;
-use minter_types::types::{CollectionDetails, Config, ConfigurationError, UserDetails};
-use minter_types::types::{TokenDetails, TokenDetailsError};
+use minter_types::types::TokenDetails;
+use minter_types::types::{CollectionDetails, Config, UserDetails};
 use omniflix_multi_mint_open_edition_minter::error::ContractError as MultiMintOpenEditionMinterContractError;
 use omniflix_multi_mint_open_edition_minter::msg::ExecuteMsg as MultiMintOpenEditionMinterExecuteMsg;
 use omniflix_multi_mint_open_edition_minter::msg::QueryMsgExtension as MultiMintOpenEditionMinterQueryMsgExtension;
-
-use omniflix_multi_mint_open_edition_minter::drop::{Drop, DropParams};
 use omniflix_open_edition_minter_factory::msg::{
     ExecuteMsg as OpenEditionMinterFactoryExecuteMsg, MultiMinterCreateMsg,
     MultiMinterInitExtention,
@@ -286,6 +281,12 @@ fn test_multi_mint_oem_public_minting() {
             sent: Uint128::from(2000000u128)
         }
     );
+    // Check creator balance before mint
+    let creator_balance_before_mint: Uint128 = app
+        .wrap()
+        .query_balance(creator.to_string(), "uflix")
+        .unwrap()
+        .amount;
 
     // Mint with correct funds
     let _res = app
@@ -296,6 +297,16 @@ fn test_multi_mint_oem_public_minting() {
             &[coin(5000000, "uflix")],
         )
         .unwrap();
+    // Check creator balance after mint
+    let creator_balance_after_mint: Uint128 = app
+        .wrap()
+        .query_balance(creator.to_string(), "uflix")
+        .unwrap()
+        .amount;
+    assert_eq!(
+        creator_balance_after_mint - creator_balance_before_mint,
+        Uint128::from(5000000u128)
+    );
     // Query collection
     let onft_collection = query_onft_collection(app.storage(), multi_minter_addr.clone());
     assert_eq!(onft_collection.onfts.len(), 2);

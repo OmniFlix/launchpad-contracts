@@ -1,15 +1,10 @@
 #![cfg(test)]
-use cosmwasm_std::Decimal;
-use cosmwasm_std::{coin, Addr, BlockInfo, Timestamp};
+use cosmwasm_std::coin;
 use cw_multi_test::Executor;
 use minter_types::msg::QueryMsg as CommonMinterQueryMsg;
-use minter_types::types::TokenDetails;
-use minter_types::types::{CollectionDetails, Config, UserDetails};
-use omniflix_multi_mint_open_edition_minter::error::ContractError as MultiMintOpenEditionMinterContractError;
-use omniflix_multi_mint_open_edition_minter::msg::ExecuteMsg as MultiMintOpenEditionMinterExecuteMsg;
+use minter_types::types::CollectionDetails;
+use omniflix_multi_mint_open_edition_minter::drop::Drop;
 use omniflix_multi_mint_open_edition_minter::msg::QueryMsgExtension as MultiMintOpenEditionMinterQueryMsgExtension;
-
-use omniflix_multi_mint_open_edition_minter::drop::{Drop, DropParams};
 use omniflix_open_edition_minter_factory::error::ContractError as OpenEditionMinterFactoryError;
 use omniflix_open_edition_minter_factory::msg::{
     ExecuteMsg as OpenEditionMinterFactoryExecuteMsg, MultiMinterCreateMsg,
@@ -23,14 +18,13 @@ use crate::helpers::mock_messages::factory_mock_messages::return_open_edition_mi
 use crate::helpers::utils::get_contract_address_from_res;
 
 use crate::helpers::setup::setup;
-use crate::tests::multi_mint_open_edition_minter;
 
 #[test]
 fn test_multi_mint_oem_creation() {
     let res = setup();
     let admin = res.test_accounts.admin;
     let creator = res.test_accounts.creator;
-    let collector = res.test_accounts.collector;
+    let _collector = res.test_accounts.collector;
     let open_edition_minter_factory_code_id = res.open_edition_minter_factory_code_id;
     let multi_mint_open_edition_minter_code_id = res.multi_mint_open_edition_minter_code_id;
     // Instantiate the minter factory
