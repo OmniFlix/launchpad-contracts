@@ -11,7 +11,7 @@ use omniflix_round_whitelist_factory::msg::{
 };
 
 #[test]
-fn test_paused_factory() {
+fn paused_factory() {
     let res: SetupResponse = setup();
     let admin = res.test_accounts.admin;
     let creator = res.test_accounts.creator;

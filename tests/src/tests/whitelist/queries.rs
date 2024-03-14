@@ -11,7 +11,7 @@ use cw_multi_test::Executor;
 use whitelist_types::{IsMemberResponse, MintPriceResponse, Round, RoundWhitelistQueryMsgs};
 
 #[test]
-fn test_whitelist_queries() {
+fn whitelist_queries() {
     let res: SetupResponse = setup();
     let admin = res.test_accounts.admin;
     let creator = res.test_accounts.creator;

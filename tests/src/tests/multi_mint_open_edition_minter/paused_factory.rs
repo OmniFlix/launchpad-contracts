@@ -15,7 +15,7 @@ use crate::helpers::mock_messages::factory_mock_messages::return_open_edition_mi
 use crate::helpers::setup::setup;
 
 #[test]
-fn pause_mm_oem_factory() {
+fn paused_mm_oem_factory() {
     let res = setup();
     let admin = res.test_accounts.admin;
     let creator = res.test_accounts.creator;

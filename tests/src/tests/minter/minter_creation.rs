@@ -22,7 +22,7 @@ use omniflix_minter::error::ContractError as MinterContractError;
 use omniflix_minter_factory::error::ContractError as MinterFactoryError;
 
 #[test]
-fn test_minter_creation() {
+fn minter_creation() {
     let res = setup();
     let admin = res.test_accounts.admin;
     let creator = res.test_accounts.creator;

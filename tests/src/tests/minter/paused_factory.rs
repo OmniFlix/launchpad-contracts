@@ -10,7 +10,7 @@ use omniflix_minter_factory::msg::QueryMsg as MinterFactoryQueryMsg;
 use pauser::PauseError;
 
 #[test]
-fn test_paused_factory() {
+fn paused_factory() {
     let res = setup();
     let admin = res.test_accounts.admin;
     let creator = res.test_accounts.creator;

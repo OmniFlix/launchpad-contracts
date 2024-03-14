@@ -15,7 +15,7 @@ use omniflix_open_edition_minter_factory::error::ContractError as OpenEditionMin
 use omniflix_open_edition_minter_factory::msg::QueryMsg as OpenEditionMinterFactoryQueryMsg;
 
 #[test]
-fn test_paused_oem_factory() {
+fn paused_oem_factory() {
     let res = setup();
     let admin = res.test_accounts.admin;
     let creator = res.test_accounts.creator;

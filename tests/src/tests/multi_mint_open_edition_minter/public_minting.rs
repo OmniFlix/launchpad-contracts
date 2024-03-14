@@ -22,7 +22,7 @@ use crate::helpers::utils::{get_contract_address_from_res, query_onft_collection
 use crate::helpers::setup::setup;
 
 #[test]
-fn test_multi_mint_oem_public_minting() {
+fn multi_mint_oem_public_minting() {
     let res = setup();
     let admin = res.test_accounts.admin;
     let creator = res.test_accounts.creator;

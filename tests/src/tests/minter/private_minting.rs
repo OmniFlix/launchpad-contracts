@@ -24,7 +24,7 @@ use omniflix_round_whitelist::error::ContractError as RoundWhitelistContractErro
 type MinterQueryMsg = QueryMsg<MinterExtensionQueryMsg>;
 
 #[test]
-fn test_minter_private_minting() {
+fn minter_private_minting() {
     let res = setup();
     let admin = res.test_accounts.admin;
     let creator = res.test_accounts.creator;

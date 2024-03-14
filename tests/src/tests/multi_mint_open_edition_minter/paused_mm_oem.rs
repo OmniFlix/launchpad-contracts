@@ -24,7 +24,7 @@ use crate::helpers::utils::get_contract_address_from_res;
 use crate::helpers::setup::setup;
 
 #[test]
-fn test_paused_mm_oem() {
+fn paused_mm_oem() {
     let res = setup();
     let admin = res.test_accounts.admin;
     let creator = res.test_accounts.creator;

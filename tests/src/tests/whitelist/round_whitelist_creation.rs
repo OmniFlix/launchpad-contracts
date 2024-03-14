@@ -10,7 +10,7 @@ use omniflix_round_whitelist::error::ContractError as RoundWhitelistContractErro
 use omniflix_round_whitelist_factory::error::ContractError as RoundWhitelistFactoryContractError;
 
 #[test]
-fn test_whitelist_creation() {
+fn whitelist_creation() {
     let res: SetupResponse = setup();
     let admin = res.test_accounts.admin;
     let creator = res.test_accounts.creator;

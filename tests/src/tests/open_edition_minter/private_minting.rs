@@ -33,7 +33,7 @@ use omniflix_round_whitelist::error::ContractError as RoundWhitelistError;
 type OpenEditionMinterQueryMsg = BaseMinterQueryMsg<OEMQueryExtension>;
 
 #[test]
-fn test_private_minting() {
+fn private_minting() {
     let res = setup();
     let admin = res.test_accounts.admin;
     let creator = res.test_accounts.creator;

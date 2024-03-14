@@ -10,7 +10,7 @@ use omniflix_round_whitelist::error::ContractError as RoundWhitelistContractErro
 use whitelist_types::Round;
 
 #[test]
-fn test_add_round() {
+fn add_round() {
     let res: SetupResponse = setup();
     let admin = res.test_accounts.admin;
     let creator = res.test_accounts.creator;

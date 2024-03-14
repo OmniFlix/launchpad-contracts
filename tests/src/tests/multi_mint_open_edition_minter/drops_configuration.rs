@@ -24,7 +24,7 @@ use crate::helpers::utils::get_contract_address_from_res;
 use crate::helpers::setup::setup;
 
 #[test]
-fn test_remove_drop() {
+fn remove_drop() {
     let res = setup();
     let admin = res.test_accounts.admin;
     let creator = res.test_accounts.creator;
@@ -381,7 +381,7 @@ fn test_remove_drop() {
     assert_eq!(active_drop, 2);
 }
 #[test]
-fn test_remove_first_drop() {
+fn remove_first_drop() {
     let res = setup();
     let admin = res.test_accounts.admin;
     let creator = res.test_accounts.creator;
@@ -560,7 +560,7 @@ fn test_remove_first_drop() {
     );
 }
 #[test]
-fn test_add_drop() {
+fn add_drop() {
     let res = setup();
     let admin = res.test_accounts.admin;
     let creator = res.test_accounts.creator;

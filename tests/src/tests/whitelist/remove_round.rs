@@ -10,7 +10,7 @@ use omniflix_round_whitelist::error::ContractError as RoundWhitelistContractErro
 use whitelist_types::{Round, RoundWhitelistQueryMsgs};
 
 #[test]
-fn test_remove_round() {
+fn remove_round() {
     let res: SetupResponse = setup();
     let admin = res.test_accounts.admin;
     let creator = res.test_accounts.creator;

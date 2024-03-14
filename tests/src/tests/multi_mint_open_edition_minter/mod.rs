@@ -1,7 +1,7 @@
 #[cfg(test)]
-mod mm_oem_creation;
+mod drops_configuration;
 #[cfg(test)]
-mod test_drops_configuration;
+mod mm_oem_creation;
 
 #[cfg(test)]
 mod paused_factory;

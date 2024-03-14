@@ -24,7 +24,7 @@ use omniflix_open_edition_minter::error::ContractError as OpenEditionMinterError
 type OpenEditionMinterQueryMsg = BaseMinterQueryMsg<OEMQueryExtension>;
 
 #[test]
-fn test_pause_oem() {
+fn pause_oem() {
     let res = setup();
     let admin = res.test_accounts.admin;
     let creator = res.test_accounts.creator;

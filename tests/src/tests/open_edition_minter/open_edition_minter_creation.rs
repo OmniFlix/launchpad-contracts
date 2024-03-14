@@ -24,7 +24,7 @@ use omniflix_open_edition_minter::error::ContractError as OpenEditionMinterError
 use omniflix_open_edition_minter_factory::error::ContractError as OpenEditionMinterFactoryError;
 
 #[test]
-fn test_open_edition_minter_creation() {
+fn open_edition_minter_creation() {
     let res = setup();
     let admin = res.test_accounts.admin;
     let creator = res.test_accounts.creator;

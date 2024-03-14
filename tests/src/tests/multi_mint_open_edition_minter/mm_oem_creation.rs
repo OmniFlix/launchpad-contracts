@@ -20,7 +20,7 @@ use crate::helpers::utils::get_contract_address_from_res;
 use crate::helpers::setup::setup;
 
 #[test]
-fn test_multi_mint_oem_creation() {
+fn multi_mint_oem_creation() {
     let res = setup();
     let admin = res.test_accounts.admin;
     let creator = res.test_accounts.creator;
