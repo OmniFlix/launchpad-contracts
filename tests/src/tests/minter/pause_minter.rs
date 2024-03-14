@@ -19,7 +19,7 @@ use omniflix_minter::msg::MinterExtensionQueryMsg;
 type MinterQueryMsg = QueryMsg<MinterExtensionQueryMsg>;
 
 #[test]
-fn minter_public_minting() {
+fn pause_minter() {
     let res = setup();
     let admin = res.test_accounts.admin;
     let creator = res.test_accounts.creator;
