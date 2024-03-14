@@ -108,7 +108,7 @@ fn multi_mint_oem_private_minting() {
 
     // Get rounds
     let rounds = return_rounds();
-    let round_1_start_at = rounds[0].start_time.clone();
+    let round_1_start_at = rounds[0].start_time;
     let round_1_price = rounds[0].mint_price.clone();
     let round_2_price = rounds[1].mint_price.clone();
     let round_whitelist_inst_msg = whitelist_types::InstantiateMsg {
@@ -186,7 +186,7 @@ fn multi_mint_oem_private_minting() {
 
     // Set time to first round
     let block = BlockInfo {
-        time: round_1_start_at.clone(),
+        time: round_1_start_at,
         height: 0,
         chain_id: "test".to_string(),
     };
@@ -244,9 +244,9 @@ fn multi_mint_oem_private_minting() {
         .unwrap();
 
     // Query the collection
-    let collection = query_onft_collection(&app.storage(), minter_addr.clone());
+    let collection = query_onft_collection(app.storage(), minter_addr.clone());
     assert_eq!(collection.onfts.len(), 1);
-    let onft = collection.onfts.get(0).unwrap();
+    let onft = collection.onfts.first().unwrap();
     assert_eq!(onft.owner, collector);
     assert_eq!(onft.id, 1.to_string());
 
@@ -273,7 +273,7 @@ fn multi_mint_oem_private_minting() {
     assert_eq!(user_minting_details.public_mint_count, 0);
     assert_eq!(user_minting_details.minted_tokens.len(), 1);
     assert_eq!(
-        user_minting_details.minted_tokens.get(0).unwrap().token_id,
+        user_minting_details.minted_tokens.first().unwrap().token_id,
         1.to_string()
     );
 

@@ -62,7 +62,7 @@ fn pause_minter() {
         .wrap()
         .query_wasm_smart(&minter_address, &MinterQueryMsg::IsPaused {})
         .unwrap();
-    assert_eq!(is_paused, false);
+    assert!(!is_paused);
 
     // Set time to public minting time
     app.set_block(BlockInfo {

@@ -34,7 +34,7 @@ fn paused_minter_factory() {
         .wrap()
         .query_wasm_smart(&factory_addr, &MinterFactoryQueryMsg::IsPaused {})
         .unwrap();
-    assert_eq!(is_paused, false);
+    assert!(!is_paused);
 
     let minter_inst_msg = return_minter_instantiate_msg();
     let create_minter_msg = FactoryExecuteMsg::CreateMinter {
@@ -61,7 +61,7 @@ fn paused_minter_factory() {
         .wrap()
         .query_wasm_smart(&factory_addr, &MinterFactoryQueryMsg::IsPaused {})
         .unwrap();
-    assert_eq!(is_paused, true);
+    assert!(is_paused);
 
     // Ensure that the minter cannot be created
     let minter_inst_msg = return_minter_instantiate_msg();

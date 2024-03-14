@@ -164,7 +164,7 @@ fn private_minting() {
     app.set_block(BlockInfo {
         chain_id: "test_1".to_string(),
         height: 1_000,
-        time: round_1_start_time.clone(),
+        time: round_1_start_time,
     });
     // Mint for creator should fail because the creator is not whitelisted for first round
     // Creator is also an admin for this minter but this does not matter since executed msg is not MintAdmin{}
@@ -239,7 +239,7 @@ fn private_minting() {
     app.set_block(BlockInfo {
         chain_id: "test_1".to_string(),
         height: 1_000,
-        time: round_2_start_time.clone(),
+        time: round_2_start_time,
     });
 
     // Mint for collector
@@ -298,7 +298,7 @@ fn private_minting() {
     app.set_block(BlockInfo {
         chain_id: "test_1".to_string(),
         height: 1_000,
-        time: public_minting_time.clone(),
+        time: *public_minting_time,
     });
     let public_mint_price = &open_edition_minter_instantiate_msg.clone().init.mint_price;
 

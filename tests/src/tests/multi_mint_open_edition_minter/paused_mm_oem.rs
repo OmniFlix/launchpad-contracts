@@ -134,7 +134,7 @@ fn paused_mm_oem() {
         .wrap()
         .query_wasm_smart(multi_minter_addr.clone(), &query_msg)
         .unwrap();
-    assert_eq!(is_paused, false);
+    assert!(!is_paused);
 
     // Pause the minter
     // Only creator can pause the minter
@@ -172,7 +172,7 @@ fn paused_mm_oem() {
         .wrap()
         .query_wasm_smart(multi_minter_addr.clone(), &query_msg)
         .unwrap();
-    assert_eq!(is_paused, true);
+    assert!(is_paused);
 
     // Ensure that the minter can not mint
     let mint_msg = MultiMintOpenEditionMinterExecuteMsg::Mint { drop_id: None };

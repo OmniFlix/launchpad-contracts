@@ -40,7 +40,7 @@ fn paused_factory() {
             msg: to_json_binary(&RoundWhitelistFactoryQueryMsgs::IsPaused {}).unwrap(),
         }))
         .unwrap();
-    assert_eq!(is_paused, false);
+    assert!(!is_paused);
 
     // Create a whitelist
     let rounds = return_rounds();
@@ -73,7 +73,7 @@ fn paused_factory() {
             msg: to_json_binary(&RoundWhitelistFactoryQueryMsgs::IsPaused {}).unwrap(),
         }))
         .unwrap();
-    assert_eq!(is_paused, true);
+    assert!(is_paused);
 
     // Try creating a whitelist while factory is paused
     let error = app

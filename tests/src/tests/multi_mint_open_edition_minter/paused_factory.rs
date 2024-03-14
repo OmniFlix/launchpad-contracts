@@ -47,7 +47,7 @@ fn paused_mm_oem_factory() {
         .wrap()
         .query_wasm_smart(open_edition_minter_factory_address.clone(), &query_msg)
         .unwrap();
-    assert_eq!(is_paused, false);
+    assert!(!is_paused);
 
     let collection_details = CollectionDetails {
         collection_name: "Multi mint test".to_string(),
@@ -99,7 +99,7 @@ fn paused_mm_oem_factory() {
         .wrap()
         .query_wasm_smart(open_edition_minter_factory_address.clone(), &query_msg)
         .unwrap();
-    assert_eq!(is_paused, true);
+    assert!(is_paused);
 
     // Ensure that the minter cannot be created
     let error = app

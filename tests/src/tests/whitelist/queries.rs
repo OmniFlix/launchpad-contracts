@@ -138,7 +138,7 @@ fn whitelist_queries() {
             .unwrap(),
         }))
         .unwrap();
-    assert_eq!(is_member.is_member, false);
+    assert!(!is_member.is_member);
 
     // Query is_member for collector should return true
     let is_member: IsMemberResponse = app
@@ -151,5 +151,5 @@ fn whitelist_queries() {
             .unwrap(),
         }))
         .unwrap();
-    assert_eq!(is_member.is_member, true);
+    assert!(is_member.is_member);
 }

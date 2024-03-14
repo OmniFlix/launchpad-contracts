@@ -46,7 +46,7 @@ fn paused_oem_factory() {
             &OpenEditionMinterFactoryQueryMsg::IsPaused {},
         )
         .unwrap();
-    assert_eq!(is_paused, false);
+    assert!(!is_paused);
 
     // Create an open edition minter
     let open_edition_minter_instantiate_msg = return_open_edition_minter_inst_msg();
@@ -95,7 +95,7 @@ fn paused_oem_factory() {
             &OpenEditionMinterFactoryQueryMsg::IsPaused {},
         )
         .unwrap();
-    assert_eq!(is_paused, true);
+    assert!(is_paused);
 
     // Attempt to create an open edition minter
     let open_edition_minter_instantiate_msg = return_open_edition_minter_inst_msg();

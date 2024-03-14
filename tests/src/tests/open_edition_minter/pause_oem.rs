@@ -72,7 +72,7 @@ fn pause_oem() {
             &OpenEditionMinterQueryMsg::IsPaused {},
         )
         .unwrap();
-    assert_eq!(is_paused, false);
+    assert!(!is_paused);
 
     // Pause only affects minting
     // Try to mint a token
@@ -130,7 +130,7 @@ fn pause_oem() {
             &OpenEditionMinterQueryMsg::IsPaused {},
         )
         .unwrap();
-    assert_eq!(is_paused, true);
+    assert!(is_paused);
 
     // Attempt to mint a token
     let error = app

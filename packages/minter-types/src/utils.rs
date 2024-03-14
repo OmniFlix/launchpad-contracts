@@ -94,7 +94,7 @@ pub fn generate_multi_minter_mint_message(
     let data = NftData {
         creator_token_data: token_details.data.clone().unwrap_or("".to_string()),
         multi_mint_data: Some(MultiMintData {
-            drop_id: drop_id,
+            drop_id,
             drop_token_id: drop_token_id.clone(),
             token_name: token_details.token_name.clone(),
         }),
@@ -160,7 +160,7 @@ pub fn generate_create_denom_msg(
         uri: collection.uri.clone().unwrap_or("".to_string()),
         uri_hash: collection.uri_hash.clone().unwrap_or("".to_string()),
         data: collection.data.clone().unwrap_or("".to_string()),
-        royalty_receivers: royalty_receivers,
+        royalty_receivers,
     };
     Ok(create_denom_msg)
 }
