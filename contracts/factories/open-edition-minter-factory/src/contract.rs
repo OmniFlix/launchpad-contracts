@@ -7,8 +7,8 @@ use crate::state::PARAMS;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_json_binary, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response,
-    StdResult, Uint128, WasmMsg,
+    to_json_binary, Addr, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo,
+    Response, StdResult, Uint128, WasmMsg,
 };
 use factory_types::check_payment;
 use minter_types::utils::check_collection_creation_fee;
@@ -326,12 +326,26 @@ fn set_pausers(
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::Params {} => to_json_binary(&query_params(deps)?),
+        QueryMsg::IsPaused {} => to_json_binary(&query_is_paused(deps, _env)?),
+        QueryMsg::Pausers {} => to_json_binary(&query_pausers(deps, _env)?),
     }
 }
 
 fn query_params(deps: Deps) -> StdResult<ParamsResponse> {
     let params = PARAMS.load(deps.storage)?;
     Ok(ParamsResponse { params })
+}
+
+fn query_is_paused(deps: Deps, _env: Env) -> Result<bool, ContractError> {
+    let pause_state = PauseState::new()?;
+    let is_paused = pause_state.is_paused(deps.storage)?;
+    Ok(is_paused)
+}
+
+fn query_pausers(deps: Deps, _env: Env) -> Result<Vec<Addr>, ContractError> {
+    let pause_state = PauseState::new()?;
+    let pausers = pause_state.pausers.load(deps.storage).unwrap_or(vec![]);
+    Ok(pausers)
 }
 
 #[cfg(test)]

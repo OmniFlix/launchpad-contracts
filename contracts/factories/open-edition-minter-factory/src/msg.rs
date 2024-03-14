@@ -85,4 +85,8 @@ pub struct OpenEditionMinterFactoryParams {
 pub enum QueryMsg {
     #[returns(ParamsResponse)]
     Params {},
+    #[returns(bool)]
+    IsPaused {},
+    #[returns(Vec<Addr>)]
+    Pausers {},
 }

@@ -3,8 +3,8 @@ use cosmwasm_std::Decimal;
 use cosmwasm_std::{coin, Addr, BlockInfo, Timestamp};
 use cw_multi_test::Executor;
 use minter_types::msg::QueryMsg as CommonMinterQueryMsg;
-use minter_types::types::TokenDetails;
-use minter_types::types::{CollectionDetails, Config, UserDetails};
+use minter_types::types::{CollectionDetails, Config, ConfigurationError, UserDetails};
+use minter_types::types::{TokenDetails, TokenDetailsError};
 use omniflix_multi_mint_open_edition_minter::error::ContractError as MultiMintOpenEditionMinterContractError;
 use omniflix_multi_mint_open_edition_minter::msg::ExecuteMsg as MultiMintOpenEditionMinterExecuteMsg;
 use omniflix_multi_mint_open_edition_minter::msg::QueryMsgExtension as MultiMintOpenEditionMinterQueryMsgExtension;
@@ -18,34 +18,27 @@ use omniflix_open_edition_minter_factory::msg::{
 type MultiMintOpenEditionMinterQueryMsg =
     CommonMinterQueryMsg<MultiMintOpenEditionMinterQueryMsgExtension>;
 
-use crate::helpers::utils::{
-    get_contract_address_from_res, return_open_edition_minter_factory_inst_message,
-};
+use crate::helpers::mock_messages::factory_mock_messages::return_open_edition_minter_factory_inst_message;
+use crate::helpers::utils::get_contract_address_from_res;
 
 use crate::helpers::setup::setup;
 
 #[test]
-fn test_remove_drop() {
-    let (
-        mut app,
-        test_addresses,
-        _minter_factory_code_id,
-        _minter_code_id,
-        _round_whitelist_factory_code_id,
-        _round_whitelist_code_id,
-        open_edition_minter_factory_code_id,
-        _open_edition_minter_code_id,
-        multi_minter_code_id,
-    ) = setup();
-    let admin = test_addresses.admin;
-    let creator = test_addresses.creator;
-    let collector = test_addresses.collector;
+fn remove_drop() {
+    let res = setup();
+    let admin = res.test_accounts.admin;
+    let creator = res.test_accounts.creator;
+    let collector = res.test_accounts.collector;
+    let open_edition_minter_factory_code_id = res.open_edition_minter_factory_code_id;
+    let multi_mint_open_edition_minter_code_id = res.multi_mint_open_edition_minter_code_id;
     // Instantiate the minter factory
     let open_edition_minter_factory_instantiate_msg =
         return_open_edition_minter_factory_inst_message(
             open_edition_minter_factory_code_id,
-            multi_minter_code_id,
+            Some(multi_mint_open_edition_minter_code_id),
         );
+
+    let mut app = res.app;
 
     let open_edition_minter_factory_address = app
         .instantiate_contract(
@@ -388,26 +381,19 @@ fn test_remove_drop() {
     assert_eq!(active_drop, 2);
 }
 #[test]
-fn test_remove_first_drop() {
-    let (
-        mut app,
-        test_addresses,
-        _minter_factory_code_id,
-        _minter_code_id,
-        _round_whitelist_factory_code_id,
-        _round_whitelist_code_id,
-        open_edition_minter_factory_code_id,
-        _open_edition_minter_code_id,
-        multi_minter_code_id,
-    ) = setup();
-    let admin = test_addresses.admin;
-    let creator = test_addresses.creator;
-    let collector = test_addresses.collector;
+fn remove_first_drop() {
+    let res = setup();
+    let admin = res.test_accounts.admin;
+    let creator = res.test_accounts.creator;
+    let collector = res.test_accounts.collector;
+    let open_edition_minter_factory_code_id = res.open_edition_minter_factory_code_id;
+    let multi_mint_open_edition_minter_code_id = res.multi_mint_open_edition_minter_code_id;
+    let mut app = res.app;
     // Instantiate the minter factory
     let open_edition_minter_factory_instantiate_msg =
         return_open_edition_minter_factory_inst_message(
             open_edition_minter_factory_code_id,
-            multi_minter_code_id,
+            Some(multi_mint_open_edition_minter_code_id),
         );
 
     let open_edition_minter_factory_address = app
@@ -572,4 +558,379 @@ fn test_remove_first_drop() {
         err,
         &MultiMintOpenEditionMinterContractError::NoDropAvailable {}
     );
+}
+#[test]
+fn add_drop() {
+    let res = setup();
+    let admin = res.test_accounts.admin;
+    let creator = res.test_accounts.creator;
+    let collector = res.test_accounts.collector;
+    let open_edition_minter_factory_code_id = res.open_edition_minter_factory_code_id;
+    let multi_mint_open_edition_minter_code_id = res.multi_mint_open_edition_minter_code_id;
+    let mut app = res.app;
+    // Instantiate the minter factory
+    let open_edition_minter_factory_instantiate_msg =
+        return_open_edition_minter_factory_inst_message(
+            open_edition_minter_factory_code_id,
+            Some(multi_mint_open_edition_minter_code_id),
+        );
+
+    let open_edition_minter_factory_address = app
+        .instantiate_contract(
+            open_edition_minter_factory_code_id,
+            admin.clone(),
+            &open_edition_minter_factory_instantiate_msg,
+            &[],
+            "Open Edition Minter Factory",
+            None,
+        )
+        .unwrap();
+    let collection_details = CollectionDetails {
+        collection_name: "Multi mint test".to_string(),
+        description: Some("COLLECTION DESCRIPTION".to_string()),
+        preview_uri: Some("Preview uri of COLLECTION".to_string()),
+        schema: Some("Some schema of collection".to_string()),
+        symbol: "MMOEM".to_string(),
+        id: "MMOEM test 1".to_string(),
+        uri: Some("Some uri".to_string()),
+        uri_hash: Some("uri_hash".to_string()),
+        data: Some("data".to_string()),
+        royalty_receivers: None,
+    };
+    let init = MultiMinterInitExtention {
+        admin: creator.to_string(),
+        payment_collector: Some(creator.to_string()),
+    };
+
+    let multi_minter_inst_msg = MultiMinterCreateMsg {
+        collection_details,
+        init,
+        token_details: None,
+    };
+
+    let res = app
+        .execute_contract(
+            creator.clone(),
+            open_edition_minter_factory_address.clone(),
+            &OpenEditionMinterFactoryExecuteMsg::CreateMultiMintOpenEditionMinter {
+                msg: multi_minter_inst_msg,
+            },
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap();
+    let multi_minter_addr = get_contract_address_from_res(res);
+
+    let drop = DropParams {
+        token_details: TokenDetails {
+            token_name: "Drop number 1".to_string(),
+            description: Some("Drop number 1 description".to_string()),
+            preview_uri: Some("Drop number 1 prev uri".to_string()),
+            base_token_uri: "Drop number 1 base_token_uri".to_string(),
+            transferable: true,
+            royalty_ratio: Decimal::percent(10),
+            extensible: true,
+            nsfw: false,
+            data: Some("Drop number 1 data".to_string()),
+        },
+        config: Config {
+            mint_price: coin(5_000_000, "uflix"),
+            start_time: Timestamp::from_nanos(10_000_000),
+            end_time: Some(Timestamp::from_nanos(50_500_000)),
+            per_address_limit: Some(100),
+            whitelist_address: None,
+            num_tokens: Some(100),
+        },
+    };
+    // Non admin tries to add drop
+    let res = app
+        .execute_contract(
+            collector.clone(),
+            Addr::unchecked(multi_minter_addr.clone()),
+            &MultiMintOpenEditionMinterExecuteMsg::NewDrop {
+                config: drop.config.clone(),
+                token_details: drop.token_details.clone(),
+            },
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap_err();
+    let err = res
+        .source()
+        .unwrap()
+        .downcast_ref::<MultiMintOpenEditionMinterContractError>()
+        .unwrap();
+    assert_eq!(
+        err,
+        &MultiMintOpenEditionMinterContractError::Unauthorized {}
+    );
+    // Send too long token name
+    let mut new_drop = drop.clone();
+    new_drop.token_details.token_name = "a".repeat(257);
+    let res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(multi_minter_addr.clone()),
+            &MultiMintOpenEditionMinterExecuteMsg::NewDrop {
+                config: new_drop.config.clone(),
+                token_details: new_drop.token_details.clone(),
+            },
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap_err();
+    let err = res
+        .source()
+        .unwrap()
+        .downcast_ref::<MultiMintOpenEditionMinterContractError>()
+        .unwrap();
+    assert_eq!(
+        err,
+        &MultiMintOpenEditionMinterContractError::TokenDetailsError(
+            TokenDetailsError::TokenNameTooLong {}
+        )
+    );
+
+    // Send too long token description
+    let mut new_drop = drop.clone();
+    new_drop.token_details.description = Some("a".repeat(4097));
+    let res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(multi_minter_addr.clone()),
+            &MultiMintOpenEditionMinterExecuteMsg::NewDrop {
+                config: new_drop.config.clone(),
+                token_details: new_drop.token_details.clone(),
+            },
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap_err();
+    let err = res
+        .source()
+        .unwrap()
+        .downcast_ref::<MultiMintOpenEditionMinterContractError>()
+        .unwrap();
+    assert_eq!(
+        err,
+        &MultiMintOpenEditionMinterContractError::TokenDetailsError(
+            TokenDetailsError::TokenDescriptionTooLong {}
+        )
+    );
+
+    // Send too long token preview uri
+    let mut new_drop = drop.clone();
+    new_drop.token_details.preview_uri = Some("a".repeat(257));
+    let res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(multi_minter_addr.clone()),
+            &MultiMintOpenEditionMinterExecuteMsg::NewDrop {
+                config: new_drop.config.clone(),
+                token_details: new_drop.token_details.clone(),
+            },
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap_err();
+    let err = res
+        .source()
+        .unwrap()
+        .downcast_ref::<MultiMintOpenEditionMinterContractError>()
+        .unwrap();
+    assert_eq!(
+        err,
+        &MultiMintOpenEditionMinterContractError::TokenDetailsError(
+            TokenDetailsError::PreviewUriTooLong {}
+        )
+    );
+
+    // Send too long token data
+    let mut new_drop = drop.clone();
+    new_drop.token_details.data = Some("a".repeat(4097));
+    let res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(multi_minter_addr.clone()),
+            &MultiMintOpenEditionMinterExecuteMsg::NewDrop {
+                config: new_drop.config.clone(),
+                token_details: new_drop.token_details.clone(),
+            },
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap_err();
+    let err = res
+        .source()
+        .unwrap()
+        .downcast_ref::<MultiMintOpenEditionMinterContractError>()
+        .unwrap();
+    assert_eq!(
+        err,
+        &MultiMintOpenEditionMinterContractError::TokenDetailsError(
+            TokenDetailsError::DataTooLong {}
+        )
+    );
+
+    // Send too long token base uri
+    let mut new_drop = drop.clone();
+    new_drop.token_details.base_token_uri = "a".repeat(257);
+    let res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(multi_minter_addr.clone()),
+            &MultiMintOpenEditionMinterExecuteMsg::NewDrop {
+                config: new_drop.config.clone(),
+                token_details: new_drop.token_details.clone(),
+            },
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap_err();
+    let err = res
+        .source()
+        .unwrap()
+        .downcast_ref::<MultiMintOpenEditionMinterContractError>()
+        .unwrap();
+    assert_eq!(
+        err,
+        &MultiMintOpenEditionMinterContractError::TokenDetailsError(
+            TokenDetailsError::BaseTokenUriTooLong {}
+        )
+    );
+
+    // Send already active drop
+    let mut new_drop = drop.clone();
+    new_drop.config.start_time = Timestamp::from_nanos(0);
+
+    let res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(multi_minter_addr.clone()),
+            &MultiMintOpenEditionMinterExecuteMsg::NewDrop {
+                config: new_drop.config.clone(),
+                token_details: new_drop.token_details.clone(),
+            },
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap_err();
+    let err = res
+        .source()
+        .unwrap()
+        .downcast_ref::<MultiMintOpenEditionMinterContractError>()
+        .unwrap();
+    assert_eq!(
+        err,
+        &MultiMintOpenEditionMinterContractError::ConfigurationError(
+            ConfigurationError::InvalidStartTime {}
+        )
+    );
+
+    // Send end time before start time
+    let mut new_drop = drop.clone();
+    new_drop.config.start_time = Timestamp::from_nanos(100);
+    new_drop.config.end_time = Some(Timestamp::from_nanos(50));
+
+    let res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(multi_minter_addr.clone()),
+            &MultiMintOpenEditionMinterExecuteMsg::NewDrop {
+                config: new_drop.config.clone(),
+                token_details: new_drop.token_details.clone(),
+            },
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap_err();
+    let err = res
+        .source()
+        .unwrap()
+        .downcast_ref::<MultiMintOpenEditionMinterContractError>()
+        .unwrap();
+    assert_eq!(
+        err,
+        &MultiMintOpenEditionMinterContractError::ConfigurationError(
+            ConfigurationError::InvalidStartTime {}
+        )
+    );
+
+    // Send zero per address limit
+    let mut new_drop = drop.clone();
+    new_drop.config.per_address_limit = Some(0);
+
+    let res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(multi_minter_addr.clone()),
+            &MultiMintOpenEditionMinterExecuteMsg::NewDrop {
+                config: new_drop.config.clone(),
+                token_details: new_drop.token_details.clone(),
+            },
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap_err();
+    let err = res
+        .source()
+        .unwrap()
+        .downcast_ref::<MultiMintOpenEditionMinterContractError>()
+        .unwrap();
+    assert_eq!(
+        err,
+        &MultiMintOpenEditionMinterContractError::ConfigurationError(
+            ConfigurationError::InvalidPerAddressLimit {}
+        )
+    );
+
+    // Send zero number of tokens
+    let mut new_drop = drop.clone();
+    new_drop.config.num_tokens = Some(0);
+
+    let res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(multi_minter_addr.clone()),
+            &MultiMintOpenEditionMinterExecuteMsg::NewDrop {
+                config: new_drop.config.clone(),
+                token_details: new_drop.token_details.clone(),
+            },
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap_err();
+    let err = res
+        .source()
+        .unwrap()
+        .downcast_ref::<MultiMintOpenEditionMinterContractError>()
+        .unwrap();
+    assert_eq!(
+        err,
+        &MultiMintOpenEditionMinterContractError::ConfigurationError(
+            ConfigurationError::InvalidNumberOfTokens {}
+        )
+    );
+
+    // Happy path
+    let _res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(multi_minter_addr.clone()),
+            &MultiMintOpenEditionMinterExecuteMsg::NewDrop {
+                config: drop.config.clone(),
+                token_details: drop.token_details.clone(),
+            },
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap();
+    let active_drop: u32 = app
+        .wrap()
+        .query_wasm_smart(
+            multi_minter_addr.clone(),
+            &MultiMintOpenEditionMinterQueryMsg::Extension(
+                MultiMintOpenEditionMinterQueryMsgExtension::ActiveDropId {},
+            ),
+        )
+        .unwrap();
+    assert_eq!(active_drop, 1);
+    // Query all the drops
+    let drops: Result<Vec<(u32, Drop)>, _> = app.wrap().query_wasm_smart(
+        multi_minter_addr.clone(),
+        &MultiMintOpenEditionMinterQueryMsg::Extension(
+            MultiMintOpenEditionMinterQueryMsgExtension::AllDrops {},
+        ),
+    );
+    assert_eq!(drops.as_ref().unwrap().len(), 1);
+    // Check drop id
+    assert_eq!(drops.as_ref().unwrap()[0].0, 1);
 }

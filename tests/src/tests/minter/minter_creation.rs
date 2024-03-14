@@ -1,6 +1,6 @@
 #![cfg(test)]
-use cosmwasm_std::Empty;
 use cosmwasm_std::{coin, to_json_binary, Decimal, QueryRequest, Timestamp, Uint128, WasmQuery};
+use cosmwasm_std::{BlockInfo, Empty};
 use cw_multi_test::Executor;
 use factory_types::CustomPaymentError;
 use minter_types::types::{ConfigurationError, Token, TokenDetails, TokenDetailsError};
@@ -10,31 +10,25 @@ use minter_types::types::Config as MinterConfig;
 
 use omniflix_minter_factory::msg::ExecuteMsg as FactoryExecuteMsg;
 
-use crate::helpers::utils::{
-    get_contract_address_from_res, return_minter_factory_inst_message,
-    return_minter_instantiate_msg,
+use crate::helpers::mock_messages::factory_mock_messages::{
+    return_minter_factory_inst_message, return_round_whitelist_factory_inst_message,
 };
+use crate::helpers::mock_messages::minter_mock_messages::return_minter_instantiate_msg;
+use crate::helpers::mock_messages::whitelist_mock_messages::return_rounds;
+use crate::helpers::utils::get_contract_address_from_res;
 
 use crate::{helpers::setup::setup, helpers::utils::query_onft_collection};
 use omniflix_minter::error::ContractError as MinterContractError;
 use omniflix_minter_factory::error::ContractError as MinterFactoryError;
 
 #[test]
-fn test_minter_creation() {
-    let (
-        mut app,
-        test_addresses,
-        minter_factory_code_id,
-        minter_code_id,
-        _round_whitelist_factory_code_id,
-        _round_whitelist_code_id,
-        _open_edition_minter_factory_code_id,
-        _open_edition_minter_code_id,
-        _multi_mint_open_edition_minter_code_id,
-    ) = setup();
-    let admin = test_addresses.admin;
-    let creator = test_addresses.creator;
-    let _collector = test_addresses.collector;
+fn minter_creation() {
+    let res = setup();
+    let admin = res.test_accounts.admin;
+    let creator = res.test_accounts.creator;
+    let minter_factory_code_id = res.minter_factory_code_id;
+    let minter_code_id = res.minter_code_id;
+    let mut app = res.app;
 
     let factory_inst_msg = return_minter_factory_inst_message(minter_code_id);
     let factory_addr = app
@@ -198,6 +192,24 @@ fn test_minter_creation() {
         &MinterContractError::ConfigurationError(ConfigurationError::InvalidEndTime {})
     );
 
+    // Send none token details
+    let mut minter_inst_msg = return_minter_instantiate_msg();
+    minter_inst_msg.token_details = None;
+    let create_minter_msg = FactoryExecuteMsg::CreateMinter {
+        msg: minter_inst_msg,
+    };
+    let error = app
+        .execute_contract(
+            creator.clone(),
+            factory_addr.clone(),
+            &create_minter_msg,
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap_err();
+    let res = error.source().unwrap().source().unwrap();
+    let error = res.downcast_ref::<MinterContractError>().unwrap();
+    assert_eq!(error, &MinterContractError::InvalidTokenDetails {});
+
     // Happy path
     let minter_inst_msg = return_minter_instantiate_msg();
     let create_minter_msg = FactoryExecuteMsg::CreateMinter {
@@ -281,4 +293,109 @@ fn test_minter_creation() {
         }))
         .unwrap();
     assert_eq!(total_tokens_remaining_data, 1000);
+}
+
+#[test]
+fn test_minter_creation_with_whitelist() {
+    let res = setup();
+    let admin = res.test_accounts.admin;
+    let _creator = res.test_accounts.creator;
+    let minter_factory_code_id = res.minter_factory_code_id;
+    let minter_code_id = res.minter_code_id;
+    let round_whitelist_code_id = res.round_whitelist_code_id;
+    let round_whitelist_factory_code_id = res.round_whitelist_factory_code_id;
+    let mut app = res.app;
+
+    let factory_inst_msg = return_minter_factory_inst_message(minter_code_id);
+    let factory_addr = app
+        .instantiate_contract(
+            minter_factory_code_id,
+            admin.clone(),
+            &factory_inst_msg,
+            &[],
+            "factory",
+            None,
+        )
+        .unwrap();
+
+    let round_whitelist_factory_inst_msg =
+        return_round_whitelist_factory_inst_message(round_whitelist_code_id);
+    let round_whitelist_factory_addr = app
+        .instantiate_contract(
+            round_whitelist_factory_code_id,
+            admin.clone(),
+            &round_whitelist_factory_inst_msg,
+            &[],
+            "round_whitelist_factory",
+            None,
+        )
+        .unwrap();
+    let rounds = return_rounds();
+    let round_1_start = rounds.clone()[0].start_time;
+    let round_whitelist_inst_msg = whitelist_types::InstantiateMsg {
+        admin: admin.to_string(),
+        rounds: rounds.clone(),
+    };
+    let create_round_whitelist_msg =
+        omniflix_round_whitelist_factory::msg::ExecuteMsg::CreateWhitelist {
+            msg: round_whitelist_inst_msg,
+        };
+    // Create a whitelist
+    let res = app
+        .execute_contract(
+            admin.clone(),
+            round_whitelist_factory_addr,
+            &create_round_whitelist_msg,
+            &[coin(1000000, "uflix")],
+        )
+        .unwrap();
+    let whitelist_address = get_contract_address_from_res(res);
+
+    // Try creating a minter with already active whitelist
+    let mut minter_inst_msg = return_minter_instantiate_msg();
+    minter_inst_msg.init.whitelist_address = Some(whitelist_address.clone());
+    let create_minter_msg = FactoryExecuteMsg::CreateMinter {
+        msg: minter_inst_msg,
+    };
+
+    // Set time to round 1 start time
+    app.set_block(BlockInfo {
+        time: round_1_start,
+        height: 1,
+        chain_id: "".to_string(),
+    });
+
+    let res = app
+        .execute_contract(
+            admin.clone(),
+            factory_addr.clone(),
+            &create_minter_msg,
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap_err();
+    let res = res.source().unwrap().source().unwrap();
+    let error = res.downcast_ref::<MinterContractError>().unwrap();
+    assert_eq!(error, &MinterContractError::WhitelistAlreadyActive {});
+
+    // Reset time to default
+    app.set_block(BlockInfo {
+        time: Timestamp::from_nanos(1_000),
+        height: 1,
+        chain_id: "".to_string(),
+    });
+
+    // Create a minter with inactive whitelist
+    let mut minter_inst_msg = return_minter_instantiate_msg();
+    minter_inst_msg.init.whitelist_address = Some(whitelist_address.clone());
+    let create_minter_msg = FactoryExecuteMsg::CreateMinter {
+        msg: minter_inst_msg,
+    };
+    let _res = app
+        .execute_contract(
+            admin.clone(),
+            factory_addr.clone(),
+            &create_minter_msg,
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap();
 }

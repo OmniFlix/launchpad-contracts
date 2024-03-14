@@ -88,7 +88,6 @@ pub fn execute_remove_round(
     // Check if the round exists
     let round = rounds.load(deps.storage, round_index)?;
     // Check if the round has started
-    // It should not have started even if it has ended
     if round.has_started(env.block.time) {
         return Err(ContractError::RoundAlreadyStarted {});
     }

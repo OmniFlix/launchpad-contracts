@@ -358,8 +358,10 @@ pub fn execute_mint_admin(
     pause_state.error_if_paused(deps.storage)?;
 
     let recipient = deps.api.addr_validate(&recipient)?;
+
     let last_token_id = LAST_MINTED_TOKEN_ID.load(deps.storage)?;
     let token_id = last_token_id + 1;
+    LAST_MINTED_TOKEN_ID.save(deps.storage, &token_id)?;
 
     let user_minting_details = UserMintingDetails::new(USER_MINTING_DETAILS_KEY);
 

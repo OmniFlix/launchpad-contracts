@@ -135,8 +135,8 @@ pub struct AuthDetails {
     pub payment_collector: Addr,
 }
 
-#[cw_serde]
 #[derive(Default)]
+#[cw_serde]
 pub struct UserDetails {
     pub minted_tokens: Vec<Token>,
     pub total_minted_count: u32,

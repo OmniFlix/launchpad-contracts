@@ -25,10 +25,11 @@ use whitelist_types::RoundWhitelistQueryMsgs;
 type MultiMintOpenEditionMinterQueryMsg =
     CommonMinterQueryMsg<MultiMintOpenEditionMinterQueryMsgExtension>;
 
-use crate::helpers::utils::{
-    get_contract_address_from_res, mint_to_address, return_minter_factory_inst_message,
-    return_open_edition_minter_factory_inst_message, return_round_whitelist_factory_inst_message,
+use crate::helpers::mock_messages::factory_mock_messages::{
+    return_minter_factory_inst_message, return_open_edition_minter_factory_inst_message,
+    return_round_whitelist_factory_inst_message,
 };
+use crate::helpers::utils::{get_contract_address_from_res, mint_to_address};
 
 use crate::{helpers::setup::setup, helpers::utils::query_onft_collection};
 use omniflix_minter::error::ContractError as MinterContractError;
@@ -108,20 +109,15 @@ fn test_scenario_1() {
     // 11. Creator waits for public mint to start and buys 1 NFT from Minter_1
     // 12. Creator can not buy another NFT from Minter_1 because public mint limit is 1
 
-    let (
-        mut app,
-        test_addresses,
-        minter_factory_code_id,
-        minter_code_id,
-        round_whitelist_factory_code_id,
-        round_whitelist_code_id,
-        _open_edition_minter_code_id,
-        _open_edition_minter_factory_code_id,
-        _multi_mint_open_edition_minter_code_id,
-    ) = setup();
-    let admin = test_addresses.admin;
-    let creator = test_addresses.creator;
-    let _collector = test_addresses.collector;
+    let res = setup();
+    let admin = res.test_accounts.admin;
+    let creator = res.test_accounts.creator;
+    let _collector = res.test_accounts.collector;
+    let minter_factory_code_id = res.minter_factory_code_id;
+    let minter_code_id = res.minter_code_id;
+    let round_whitelist_factory_code_id = res.round_whitelist_factory_code_id;
+    let round_whitelist_code_id = res.round_whitelist_code_id;
+    let mut app = res.app;
 
     let minter_factory_inst_msg = return_minter_factory_inst_message(minter_code_id);
     let minter_factory_addr = app
@@ -575,25 +571,21 @@ fn test_scenario_2() {
     // Creator also decides to change royalty ratio to 20%
     // Creator also changes payment collector and admin addresses
     // Now Creator 2 decides create a new drop
-    let (
-        mut app,
-        test_addresses,
-        _minter_factory_code_id,
-        _minter_code_id,
-        round_whitelist_factory_code_id,
-        round_whitelist_code_id,
-        open_edition_minter_factory_code_id,
-        _open_edition_minter_code_id,
-        multi_minter_code_id,
-    ) = setup();
-    let admin = test_addresses.admin;
-    let creator = test_addresses.creator;
-    let collector = test_addresses.collector;
+    let res = setup();
+    let admin = res.test_accounts.admin;
+    let creator = res.test_accounts.creator;
+    let collector = res.test_accounts.collector;
+    let multi_minter_code_id = res.multi_mint_open_edition_minter_code_id;
+    let open_edition_minter_factory_code_id = res.open_edition_minter_factory_code_id;
+    let round_whitelist_factory_code_id = res.round_whitelist_factory_code_id;
+    let round_whitelist_code_id = res.round_whitelist_code_id;
+    let mut app = res.app;
+
     // Instantiate the minter factory
     let open_edition_minter_factory_instantiate_msg =
         return_open_edition_minter_factory_inst_message(
             open_edition_minter_factory_code_id,
-            multi_minter_code_id,
+            Some(multi_minter_code_id),
         );
 
     let open_edition_minter_factory_address = app
