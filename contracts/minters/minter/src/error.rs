@@ -6,6 +6,7 @@ use cosmwasm_std::{
 use cw_utils::PaymentError;
 use minter_types::types::{ConfigurationError, TokenDetailsError};
 use pauser::PauseError;
+use serde_json::Error as SerdeError;
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq)]
@@ -117,5 +118,10 @@ impl From<Infallible> for ContractError {
 impl From<ConversionOverflowError> for ContractError {
     fn from(_err: ConversionOverflowError) -> Self {
         ContractError::OverflowError {}
+    }
+}
+impl From<SerdeError> for ContractError {
+    fn from(err: SerdeError) -> ContractError {
+        ContractError::Std(StdError::generic_err(err.to_string()))
     }
 }

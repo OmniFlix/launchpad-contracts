@@ -729,6 +729,7 @@ dependencies = [
  "cw721-base 0.18.0",
  "omniflix-std",
  "serde",
+ "serde_json",
  "thiserror",
 ]
 
@@ -761,6 +762,7 @@ dependencies = [
  "rand_xoshiro",
  "schemars",
  "serde",
+ "serde_json",
  "sha2 0.10.8",
  "shuffle",
  "thiserror",
@@ -804,6 +806,7 @@ dependencies = [
  "pauser",
  "schemars",
  "serde",
+ "serde_json",
  "sha2 0.10.8",
  "thiserror",
  "whitelist-types",
@@ -827,6 +830,7 @@ dependencies = [
  "pauser",
  "schemars",
  "serde",
+ "serde_json",
  "sha2 0.10.8",
  "thiserror",
  "whitelist-types",

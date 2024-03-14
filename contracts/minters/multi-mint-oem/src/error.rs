@@ -2,6 +2,7 @@ use cosmwasm_std::{Coin, StdError, Timestamp, Uint128};
 use cw_utils::PaymentError;
 use minter_types::types::{ConfigurationError, TokenDetailsError};
 use pauser::PauseError;
+use serde_json::Error as SerdeError;
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq)]
@@ -114,5 +115,11 @@ pub enum ContractError {
 impl From<ContractError> for StdError {
     fn from(err: ContractError) -> StdError {
         StdError::generic_err(err.to_string())
+    }
+}
+
+impl From<SerdeError> for ContractError {
+    fn from(err: SerdeError) -> ContractError {
+        ContractError::Std(StdError::generic_err(err.to_string()))
     }
 }
