@@ -9,6 +9,7 @@ use omniflix_round_whitelist_factory::error::ContractError as RoundWhitelistFact
 use omniflix_round_whitelist_factory::msg::{
     ExecuteMsg as RoundWhitelistFactoryExecuteMsgs, QueryMsg as RoundWhitelistFactoryQueryMsgs,
 };
+use whitelist_types::CreateWhitelistMsg;
 
 #[test]
 fn paused_factory() {
@@ -49,7 +50,7 @@ fn paused_factory() {
             creator.clone(),
             round_whitelist_factory_addr.clone(),
             &omniflix_round_whitelist_factory::msg::ExecuteMsg::CreateWhitelist {
-                msg: whitelist_types::InstantiateMsg {
+                msg: whitelist_types::CreateWhitelistMsg {
                     admin: admin.to_string(),
                     rounds: rounds.clone(),
                 },
@@ -81,7 +82,7 @@ fn paused_factory() {
             creator.clone(),
             round_whitelist_factory_addr.clone(),
             &omniflix_round_whitelist_factory::msg::ExecuteMsg::CreateWhitelist {
-                msg: whitelist_types::InstantiateMsg {
+                msg: CreateWhitelistMsg {
                     admin: admin.to_string(),
                     rounds: rounds.clone(),
                 },

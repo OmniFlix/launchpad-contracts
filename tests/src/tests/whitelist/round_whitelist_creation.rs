@@ -8,6 +8,7 @@ use crate::helpers::setup::{setup, SetupResponse};
 use cw_multi_test::Executor;
 use omniflix_round_whitelist::error::ContractError as RoundWhitelistContractError;
 use omniflix_round_whitelist_factory::error::ContractError as RoundWhitelistFactoryContractError;
+use whitelist_types::CreateWhitelistMsg;
 
 #[test]
 fn whitelist_creation() {
@@ -40,7 +41,7 @@ fn whitelist_creation() {
             creator.clone(),
             round_whitelist_factory_addr.clone(),
             &omniflix_round_whitelist_factory::msg::ExecuteMsg::CreateWhitelist {
-                msg: whitelist_types::InstantiateMsg {
+                msg: CreateWhitelistMsg {
                     admin: admin.to_string(),
                     rounds: rounds.clone(),
                 },
@@ -65,7 +66,7 @@ fn whitelist_creation() {
             creator.clone(),
             round_whitelist_factory_addr.clone(),
             &omniflix_round_whitelist_factory::msg::ExecuteMsg::CreateWhitelist {
-                msg: whitelist_types::InstantiateMsg {
+                msg: CreateWhitelistMsg {
                     admin: admin.to_string(),
                     rounds: rounds.clone(),
                 },
@@ -90,7 +91,7 @@ fn whitelist_creation() {
             creator.clone(),
             round_whitelist_factory_addr.clone(),
             &omniflix_round_whitelist_factory::msg::ExecuteMsg::CreateWhitelist {
-                msg: whitelist_types::InstantiateMsg {
+                msg: CreateWhitelistMsg {
                     admin: admin.to_string(),
                     rounds: rounds.clone(),
                 },
@@ -111,7 +112,7 @@ fn whitelist_creation() {
             creator.clone(),
             round_whitelist_factory_addr.clone(),
             &omniflix_round_whitelist_factory::msg::ExecuteMsg::CreateWhitelist {
-                msg: whitelist_types::InstantiateMsg {
+                msg: CreateWhitelistMsg {
                     admin: admin.to_string(),
                     rounds: rounds.clone(),
                 },
@@ -131,7 +132,7 @@ fn whitelist_creation() {
             creator.clone(),
             round_whitelist_factory_addr.clone(),
             &omniflix_round_whitelist_factory::msg::ExecuteMsg::CreateWhitelist {
-                msg: whitelist_types::InstantiateMsg {
+                msg: CreateWhitelistMsg {
                     admin: admin.to_string(),
                     rounds: rounds.clone(),
                 },
@@ -153,7 +154,7 @@ fn whitelist_creation() {
         .instantiate_contract(
             round_whitelist_code_id,
             admin.clone(),
-            &whitelist_types::InstantiateMsg {
+            &CreateWhitelistMsg {
                 admin: admin.to_string(),
                 rounds: rounds.clone(),
             },
@@ -173,7 +174,7 @@ fn whitelist_creation() {
             creator.clone(),
             round_whitelist_factory_addr.clone(),
             &omniflix_round_whitelist_factory::msg::ExecuteMsg::CreateWhitelist {
-                msg: whitelist_types::InstantiateMsg {
+                msg: CreateWhitelistMsg {
                     admin: admin.to_string(),
                     rounds: rounds.clone(),
                 },
@@ -199,7 +200,7 @@ fn whitelist_creation() {
             creator.clone(),
             round_whitelist_factory_addr.clone(),
             &omniflix_round_whitelist_factory::msg::ExecuteMsg::CreateWhitelist {
-                msg: whitelist_types::InstantiateMsg {
+                msg: CreateWhitelistMsg {
                     admin: admin.to_string(),
                     rounds: rounds.clone(),
                 },

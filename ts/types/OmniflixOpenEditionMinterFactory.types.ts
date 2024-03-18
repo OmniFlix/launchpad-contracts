@@ -125,7 +125,13 @@ export interface MultiMinterInitExtention {
 }
 export type QueryMsg = {
   params: {};
+} | {
+  is_paused: {};
+} | {
+  pausers: {};
 };
+export type Boolean = boolean;
 export interface ParamsResponse {
   params: OpenEditionMinterFactoryParams;
 }
+export type ArrayOfAddr = Addr[];

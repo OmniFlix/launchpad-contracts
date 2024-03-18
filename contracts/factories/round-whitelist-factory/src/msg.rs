@@ -1,6 +1,6 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Addr, Coin};
-use whitelist_types::InstantiateMsg as WhitelistInstantiateMsg;
+use whitelist_types::CreateWhitelistMsg;
 
 #[cw_serde]
 pub struct InstantiateMsg {
@@ -18,7 +18,7 @@ pub struct RoundWhitelistFactoryParams {
 #[allow(clippy::large_enum_variant)]
 #[cw_serde]
 pub enum ExecuteMsg {
-    CreateWhitelist { msg: WhitelistInstantiateMsg },
+    CreateWhitelist { msg: CreateWhitelistMsg },
     UpdateAdmin { admin: String },
     UpdateFeeCollectorAddress { fee_collector_address: String },
     UpdateWhitelistCreationFee { whitelist_creation_fee: Coin },

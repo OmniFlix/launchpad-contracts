@@ -6,10 +6,12 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { StdFee } from "@cosmjs/amino";
-import { Addr, Uint128, InstantiateMsg, OpenEditionMinterFactoryParams, MultiMinterParams, Coin, ExecuteMsg, Timestamp, Uint64, Decimal, MinterInstantiateMsgForOpenEditionMinterInitExtention, CollectionDetails, WeightedAddress, OpenEditionMinterInitExtention, TokenDetails, MinterInstantiateMsgForMultiMinterInitExtention, MultiMinterInitExtention, QueryMsg, ParamsResponse } from "./OmniflixOpenEditionMinterFactory.types";
+import { Addr, Uint128, InstantiateMsg, OpenEditionMinterFactoryParams, MultiMinterParams, Coin, ExecuteMsg, Timestamp, Uint64, Decimal, MinterInstantiateMsgForOpenEditionMinterInitExtention, CollectionDetails, WeightedAddress, OpenEditionMinterInitExtention, TokenDetails, MinterInstantiateMsgForMultiMinterInitExtention, MultiMinterInitExtention, QueryMsg, Boolean, ParamsResponse, ArrayOfAddr } from "./OmniflixOpenEditionMinterFactory.types";
 export interface OmniflixOpenEditionMinterFactoryReadOnlyInterface {
   contractAddress: string;
   params: () => Promise<ParamsResponse>;
+  isPaused: () => Promise<Boolean>;
+  pausers: () => Promise<ArrayOfAddr>;
 }
 export class OmniflixOpenEditionMinterFactoryQueryClient implements OmniflixOpenEditionMinterFactoryReadOnlyInterface {
   client: CosmWasmClient;
@@ -19,11 +21,23 @@ export class OmniflixOpenEditionMinterFactoryQueryClient implements OmniflixOpen
     this.client = client;
     this.contractAddress = contractAddress;
     this.params = this.params.bind(this);
+    this.isPaused = this.isPaused.bind(this);
+    this.pausers = this.pausers.bind(this);
   }
 
   params = async (): Promise<ParamsResponse> => {
     return this.client.queryContractSmart(this.contractAddress, {
       params: {}
+    });
+  };
+  isPaused = async (): Promise<Boolean> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      is_paused: {}
+    });
+  };
+  pausers = async (): Promise<ArrayOfAddr> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      pausers: {}
     });
   };
 }

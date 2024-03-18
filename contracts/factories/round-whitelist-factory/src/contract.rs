@@ -9,7 +9,7 @@ use cosmwasm_std::{
 };
 use cw_utils::may_pay;
 use pauser::PauseState;
-use whitelist_types::InstantiateMsg as WhitelistInstantiateMsg;
+use whitelist_types::CreateWhitelistMsg;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -61,7 +61,7 @@ pub fn create_whitelist(
     deps: DepsMut,
     _env: Env,
     info: MessageInfo,
-    msg: WhitelistInstantiateMsg,
+    msg: CreateWhitelistMsg,
 ) -> Result<Response, ContractError> {
     let pause_state = PauseState::new()?;
     pause_state.error_if_paused(deps.as_ref().storage)?;

@@ -5,7 +5,7 @@ use minter_types::msg::QueryMsg as MinterQueryMsg;
 use minter_types::types::Config as MinterConfig;
 
 #[cw_serde]
-pub struct InstantiateMsg {
+pub struct CreateWhitelistMsg {
     pub admin: String,
     pub rounds: Vec<Round>,
 }

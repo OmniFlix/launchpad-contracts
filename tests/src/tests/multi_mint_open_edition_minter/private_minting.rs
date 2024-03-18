@@ -17,6 +17,7 @@ use omniflix_open_edition_minter_factory::msg::{
 use omniflix_round_whitelist::error::ContractError as RoundWhitelistError;
 
 use omniflix_round_whitelist_factory::msg::ExecuteMsg as RoundWhitelistFactoryExecuteMsg;
+use whitelist_types::CreateWhitelistMsg;
 
 type MultiMintOpenEditionMinterQueryMsg =
     CommonMinterQueryMsg<MultiMintOpenEditionMinterQueryMsgExtension>;
@@ -111,7 +112,7 @@ fn multi_mint_oem_private_minting() {
     let round_1_start_at = rounds[0].start_time;
     let round_1_price = rounds[0].mint_price.clone();
     let round_2_price = rounds[1].mint_price.clone();
-    let round_whitelist_inst_msg = whitelist_types::InstantiateMsg {
+    let round_whitelist_inst_msg = CreateWhitelistMsg {
         admin: admin.to_string(),
         rounds: rounds.clone(),
     };

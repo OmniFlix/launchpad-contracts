@@ -19,8 +19,8 @@ use omniflix_open_edition_minter_factory::msg::{
     MultiMinterInitExtention,
 };
 use omniflix_round_whitelist::msg::ExecuteMsg as RoundWhitelistExecuteMsg;
-use whitelist_types::Round;
 use whitelist_types::RoundWhitelistQueryMsgs;
+use whitelist_types::{CreateWhitelistMsg, Round};
 
 type MultiMintOpenEditionMinterQueryMsg =
     CommonMinterQueryMsg<MultiMintOpenEditionMinterQueryMsgExtension>;
@@ -174,7 +174,7 @@ fn test_scenario_1() {
     ]
     .to_vec();
 
-    let round_whitelist_inst_msg = whitelist_types::InstantiateMsg {
+    let round_whitelist_inst_msg = CreateWhitelistMsg {
         admin: admin.to_string(),
         rounds: rounds.clone(),
     };
@@ -641,7 +641,7 @@ fn test_scenario_2() {
     ]
     .to_vec();
 
-    let round_whitelist_inst_msg = whitelist_types::InstantiateMsg {
+    let round_whitelist_inst_msg = CreateWhitelistMsg {
         admin: admin.to_string(),
         rounds: rounds.clone(),
     };
@@ -905,7 +905,7 @@ fn test_scenario_2() {
             .collect::<Vec<Addr>>(),
         mint_price: coin(200_000, "uflix"),
     }];
-    let round_whitelist_inst_msg = whitelist_types::InstantiateMsg {
+    let round_whitelist_inst_msg = CreateWhitelistMsg {
         admin: admin.to_string(),
         rounds: rounds.clone(),
     };

@@ -7,6 +7,7 @@ use cosmwasm_std::{coin, to_json_binary, Addr, BlockInfo, QueryRequest, Timestam
 
 use cw_multi_test::Executor;
 use omniflix_round_whitelist::error::ContractError as RoundWhitelistContractError;
+use whitelist_types::CreateWhitelistMsg;
 use whitelist_types::{Round, RoundWhitelistQueryMsgs};
 
 #[test]
@@ -37,7 +38,7 @@ fn remove_round() {
             creator.clone(),
             round_whitelist_factory_addr.clone(),
             &omniflix_round_whitelist_factory::msg::ExecuteMsg::CreateWhitelist {
-                msg: whitelist_types::InstantiateMsg {
+                msg: CreateWhitelistMsg {
                     admin: admin.to_string(),
                     rounds: rounds.clone(),
                 },

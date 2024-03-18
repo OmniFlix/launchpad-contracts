@@ -98,7 +98,13 @@ export interface TokenDetails {
 }
 export type QueryMsg = {
   params: {};
+} | {
+  is_paused: {};
+} | {
+  pausers: {};
 };
+export type Boolean = boolean;
 export interface ParamsResponse {
   params: MinterFactoryParams;
 }
+export type ArrayOfAddr = Addr[];

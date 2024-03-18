@@ -8,7 +8,9 @@ use cosmwasm_std::{
 };
 
 use cw_multi_test::Executor;
-use whitelist_types::{IsMemberResponse, MintPriceResponse, Round, RoundWhitelistQueryMsgs};
+use whitelist_types::{
+    CreateWhitelistMsg, IsMemberResponse, MintPriceResponse, Round, RoundWhitelistQueryMsgs,
+};
 
 #[test]
 fn whitelist_queries() {
@@ -38,7 +40,7 @@ fn whitelist_queries() {
             creator.clone(),
             round_whitelist_factory_addr.clone(),
             &omniflix_round_whitelist_factory::msg::ExecuteMsg::CreateWhitelist {
-                msg: whitelist_types::InstantiateMsg {
+                msg: CreateWhitelistMsg {
                     admin: admin.to_string(),
                     rounds: rounds.clone(),
                 },

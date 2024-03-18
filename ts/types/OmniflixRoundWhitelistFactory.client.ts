@@ -6,10 +6,12 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { StdFee } from "@cosmjs/amino";
-import { Addr, Uint128, InstantiateMsg, RoundWhitelistFactoryParams, Coin, ExecuteMsg, Timestamp, Uint64, Round, QueryMsg, ParamsResponse } from "./OmniflixRoundWhitelistFactory.types";
+import { Addr, Uint128, InstantiateMsg, RoundWhitelistFactoryParams, Coin, ExecuteMsg, Timestamp, Uint64, CreateWhitelistMsg, Round, QueryMsg, Boolean, ParamsResponse, ArrayOfAddr } from "./OmniflixRoundWhitelistFactory.types";
 export interface OmniflixRoundWhitelistFactoryReadOnlyInterface {
   contractAddress: string;
   params: () => Promise<ParamsResponse>;
+  isPaused: () => Promise<Boolean>;
+  pausers: () => Promise<ArrayOfAddr>;
 }
 export class OmniflixRoundWhitelistFactoryQueryClient implements OmniflixRoundWhitelistFactoryReadOnlyInterface {
   client: CosmWasmClient;
@@ -19,11 +21,23 @@ export class OmniflixRoundWhitelistFactoryQueryClient implements OmniflixRoundWh
     this.client = client;
     this.contractAddress = contractAddress;
     this.params = this.params.bind(this);
+    this.isPaused = this.isPaused.bind(this);
+    this.pausers = this.pausers.bind(this);
   }
 
   params = async (): Promise<ParamsResponse> => {
     return this.client.queryContractSmart(this.contractAddress, {
       params: {}
+    });
+  };
+  isPaused = async (): Promise<Boolean> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      is_paused: {}
+    });
+  };
+  pausers = async (): Promise<ArrayOfAddr> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      pausers: {}
     });
   };
 }
@@ -33,7 +47,7 @@ export interface OmniflixRoundWhitelistFactoryInterface extends OmniflixRoundWhi
   createWhitelist: ({
     msg
   }: {
-    msg: InstantiateMsg;
+    msg: CreateWhitelistMsg;
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   updateAdmin: ({
     admin
@@ -86,7 +100,7 @@ export class OmniflixRoundWhitelistFactoryClient extends OmniflixRoundWhitelistF
   createWhitelist = async ({
     msg
   }: {
-    msg: InstantiateMsg;
+    msg: CreateWhitelistMsg;
   }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       create_whitelist: {

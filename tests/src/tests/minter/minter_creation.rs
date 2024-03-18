@@ -9,6 +9,7 @@ use minter_types::msg::QueryMsg;
 use minter_types::types::Config as MinterConfig;
 
 use omniflix_minter_factory::msg::ExecuteMsg as FactoryExecuteMsg;
+use whitelist_types::CreateWhitelistMsg;
 
 use crate::helpers::mock_messages::factory_mock_messages::{
     return_minter_factory_inst_message, return_round_whitelist_factory_inst_message,
@@ -332,7 +333,7 @@ fn test_minter_creation_with_whitelist() {
         .unwrap();
     let rounds = return_rounds();
     let round_1_start = rounds.clone()[0].start_time;
-    let round_whitelist_inst_msg = whitelist_types::InstantiateMsg {
+    let round_whitelist_inst_msg = CreateWhitelistMsg {
         admin: admin.to_string(),
         rounds: rounds.clone(),
     };

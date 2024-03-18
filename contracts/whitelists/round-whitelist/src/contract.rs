@@ -12,7 +12,7 @@ use crate::round::RoundMethods;
 
 use crate::state::{Config, Rounds, UserMintDetails, CONFIG, ROUNDS_KEY, USERMINTDETAILS_KEY};
 use whitelist_types::{
-    check_if_minter, InstantiateMsg, IsActiveResponse, IsMemberResponse, MembersResponse,
+    check_if_minter, CreateWhitelistMsg, IsActiveResponse, IsMemberResponse, MembersResponse,
     MintPriceResponse, Round, RoundWhitelistQueryMsgs,
 };
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -20,7 +20,7 @@ pub fn instantiate(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    msg: InstantiateMsg,
+    msg: CreateWhitelistMsg,
 ) -> Result<Response, ContractError> {
     set_contract_version(deps.storage, "whitelist-round", "1.0.0")?;
 

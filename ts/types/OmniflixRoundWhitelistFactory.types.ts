@@ -7,8 +7,7 @@
 export type Addr = string;
 export type Uint128 = string;
 export interface InstantiateMsg {
-  admin: string;
-  rounds: Round[];
+  params: RoundWhitelistFactoryParams;
 }
 export interface RoundWhitelistFactoryParams {
   admin: Addr;
@@ -24,7 +23,7 @@ export interface Coin {
 }
 export type ExecuteMsg = {
   create_whitelist: {
-    msg: InstantiateMsg;
+    msg: CreateWhitelistMsg;
   };
 } | {
   update_admin: {
@@ -53,6 +52,10 @@ export type ExecuteMsg = {
 };
 export type Timestamp = Uint64;
 export type Uint64 = string;
+export interface CreateWhitelistMsg {
+  admin: string;
+  rounds: Round[];
+}
 export interface Round {
   addresses: Addr[];
   end_time: Timestamp;
@@ -62,7 +65,13 @@ export interface Round {
 }
 export type QueryMsg = {
   params: {};
+} | {
+  is_paused: {};
+} | {
+  pausers: {};
 };
+export type Boolean = boolean;
 export interface ParamsResponse {
   params: RoundWhitelistFactoryParams;
 }
+export type ArrayOfAddr = Addr[];

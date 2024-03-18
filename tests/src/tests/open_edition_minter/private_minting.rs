@@ -7,6 +7,7 @@ use cw_multi_test::Executor;
 use cw_utils::PaymentError;
 use minter_types::types::{Token, UserDetails};
 use omniflix_open_edition_minter_factory::msg::ExecuteMsg as OpenEditionMinterFactoryExecuteMsg;
+use whitelist_types::CreateWhitelistMsg;
 
 use crate::helpers::mock_messages::whitelist_mock_messages::return_rounds;
 use crate::helpers::utils::get_contract_address_from_res;
@@ -75,7 +76,7 @@ fn private_minting() {
 
     let rounds = return_rounds();
 
-    let round_whitelist_inst_msg = whitelist_types::InstantiateMsg {
+    let round_whitelist_inst_msg = CreateWhitelistMsg {
         admin: admin.to_string(),
         rounds: rounds.clone(),
     };

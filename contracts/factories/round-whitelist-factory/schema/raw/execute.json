@@ -15,7 +15,7 @@
           ],
           "properties": {
             "msg": {
-              "$ref": "#/definitions/InstantiateMsg"
+              "$ref": "#/definitions/CreateWhitelistMsg"
             }
           },
           "additionalProperties": false
@@ -180,7 +180,7 @@
         }
       }
     },
-    "InstantiateMsg": {
+    "CreateWhitelistMsg": {
       "type": "object",
       "required": [
         "admin",

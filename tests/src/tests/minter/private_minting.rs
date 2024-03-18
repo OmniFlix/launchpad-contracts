@@ -7,6 +7,7 @@ use minter_types::types::UserDetails;
 use minter_types::msg::QueryMsg;
 
 use omniflix_minter_factory::msg::ExecuteMsg as FactoryExecuteMsg;
+use whitelist_types::CreateWhitelistMsg;
 
 use crate::helpers::mock_messages::factory_mock_messages::{
     return_minter_factory_inst_message, return_round_whitelist_factory_inst_message,
@@ -64,7 +65,7 @@ fn minter_private_minting() {
     let round_2_price = rounds[1].mint_price.clone();
 
     // Now is 1_000 as default
-    let round_whitelist_inst_msg = whitelist_types::InstantiateMsg {
+    let round_whitelist_inst_msg = CreateWhitelistMsg {
         admin: admin.to_string(),
         rounds: rounds.clone(),
     };
