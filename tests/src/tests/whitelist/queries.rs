@@ -4,13 +4,11 @@ use crate::helpers::mock_messages::whitelist_mock_messages::return_rounds;
 use crate::helpers::setup::{setup, SetupResponse};
 use crate::helpers::utils::get_contract_address_from_res;
 use cosmwasm_std::{
-    coin, to_json_binary, Addr, BlockInfo, QueryRequest, StdError, Timestamp, WasmQuery,
+    coin, to_json_binary, Addr, BlockInfo, Coin, QueryRequest, StdError, Timestamp, WasmQuery,
 };
 
 use cw_multi_test::Executor;
-use whitelist_types::{
-    CreateWhitelistMsg, IsMemberResponse, MintPriceResponse, Round, RoundWhitelistQueryMsgs,
-};
+use whitelist_types::{CreateWhitelistMsg, Round, RoundWhitelistQueryMsgs};
 
 #[test]
 fn whitelist_queries() {
@@ -119,18 +117,18 @@ fn whitelist_queries() {
     assert_eq!(round_data.1.end_time, Timestamp::from_nanos(3000));
 
     // Query price should be first round price
-    let price: MintPriceResponse = app
+    let price: Coin = app
         .wrap()
         .query(&QueryRequest::Wasm(WasmQuery::Smart {
             contract_addr: round_whitelist_address.clone(),
             msg: to_json_binary(&RoundWhitelistQueryMsgs::Price {}).unwrap(),
         }))
         .unwrap();
-    assert_eq!(price.mint_price, rounds[0].mint_price);
+    assert_eq!(price, rounds[0].mint_price);
 
     // Query is_member
     // Creator is not a member of first round
-    let is_member: IsMemberResponse = app
+    let is_member: bool = app
         .wrap()
         .query(&QueryRequest::Wasm(WasmQuery::Smart {
             contract_addr: round_whitelist_address.clone(),
@@ -140,10 +138,10 @@ fn whitelist_queries() {
             .unwrap(),
         }))
         .unwrap();
-    assert!(!is_member.is_member);
+    assert!(!is_member);
 
     // Query is_member for collector should return true
-    let is_member: IsMemberResponse = app
+    let is_member: bool = app
         .wrap()
         .query(&QueryRequest::Wasm(WasmQuery::Smart {
             contract_addr: round_whitelist_address.clone(),
@@ -153,5 +151,5 @@ fn whitelist_queries() {
             .unwrap(),
         }))
         .unwrap();
-    assert!(is_member.is_member);
+    assert!(is_member);
 }

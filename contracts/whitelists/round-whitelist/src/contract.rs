@@ -11,10 +11,7 @@ use crate::msg::ExecuteMsg;
 use crate::round::RoundMethods;
 
 use crate::state::{Config, Rounds, UserMintDetails, CONFIG, ROUNDS_KEY, USERMINTDETAILS_KEY};
-use whitelist_types::{
-    check_if_minter, CreateWhitelistMsg, IsActiveResponse, IsMemberResponse, MembersResponse,
-    MintPriceResponse, Round, RoundWhitelistQueryMsgs,
-};
+use whitelist_types::{check_if_minter, CreateWhitelistMsg, Round, RoundWhitelistQueryMsgs};
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
     deps: DepsMut,
@@ -255,11 +252,11 @@ pub fn query_active_round(deps: Deps, env: Env) -> Result<(u32, Round), Contract
     Ok(active_round)
 }
 
-pub fn query_is_active(deps: Deps, env: Env) -> Result<IsActiveResponse, ContractError> {
+pub fn query_is_active(deps: Deps, env: Env) -> Result<bool, ContractError> {
     let rounds = Rounds::new(ROUNDS_KEY);
     let active_round = rounds.load_active_round(deps.storage, env.block.time);
     let is_active = active_round.is_some();
-    Ok(IsActiveResponse { is_active })
+    Ok(is_active)
 }
 
 pub fn query_members(
@@ -268,15 +265,14 @@ pub fn query_members(
     round_index: u32,
     start_after: Option<String>,
     limit: Option<u32>,
-) -> Result<MembersResponse, ContractError> {
+) -> Result<Vec<String>, ContractError> {
     let rounds = Rounds::new(ROUNDS_KEY);
     let round = rounds.load(deps.storage, round_index)?;
     let members = round.members(start_after, limit)?;
-    let res = MembersResponse { members };
-    Ok(res)
+    Ok(members)
 }
 
-pub fn query_price(deps: Deps, env: Env) -> Result<MintPriceResponse, ContractError> {
+pub fn query_price(deps: Deps, env: Env) -> Result<Coin, ContractError> {
     let rounds = Rounds::new(ROUNDS_KEY);
     let active_round = rounds.load_active_round(deps.storage, env.block.time);
     let active_round = match active_round {
@@ -284,7 +280,7 @@ pub fn query_price(deps: Deps, env: Env) -> Result<MintPriceResponse, ContractEr
         None => return Err(ContractError::NoActiveRound {}),
     };
     let price = active_round.1.mint_price();
-    Ok(MintPriceResponse { mint_price: price })
+    Ok(price)
 }
 
 pub fn query_rounds(deps: Deps, _env: Env) -> Result<Vec<(u32, Round)>, ContractError> {
@@ -307,11 +303,7 @@ pub fn query_round(deps: Deps, round_index: u32) -> Result<Round, ContractError>
     Ok(round)
 }
 
-pub fn query_is_member(
-    deps: Deps,
-    env: Env,
-    address: String,
-) -> Result<IsMemberResponse, ContractError> {
+pub fn query_is_member(deps: Deps, env: Env, address: String) -> Result<bool, ContractError> {
     let rounds = Rounds::new(ROUNDS_KEY);
     let active_round = rounds.load_active_round(deps.storage, env.block.time);
     let active_round = match active_round {
@@ -320,7 +312,7 @@ pub fn query_is_member(
     };
     let address = deps.api.addr_validate(&address)?;
     let is_member = active_round.1.is_member(&address);
-    Ok(IsMemberResponse { is_member })
+    Ok(is_member)
 }
 
 pub fn query_admin(deps: Deps, _env: Env) -> Result<String, ContractError> {

@@ -19,46 +19,27 @@ pub enum RoundWhitelistQueryMsgs {
     #[returns(Round)]
     Round { round_index: u32 },
     // Returns true if any round is active
-    #[returns(IsActiveResponse)]
+    #[returns(bool)]
     IsActive {},
 
     #[returns((u32,Round))]
     ActiveRound {},
 
-    #[returns(MembersResponse)]
+    #[returns(Vec<String>)]
     Members {
         round_index: u32,
         start_after: Option<String>,
         limit: Option<u32>,
     },
     // Returns price of the active round
-    #[returns(MintPriceResponse)]
+    #[returns(Coin)]
     Price {},
 
-    #[returns(IsMemberResponse)]
+    #[returns(bool)]
     IsMember { address: String },
 
     #[returns(String)]
     Admin {},
-}
-#[cw_serde]
-pub struct MembersResponse {
-    pub members: Vec<String>,
-}
-
-#[cw_serde]
-pub struct IsMemberResponse {
-    pub is_member: bool,
-}
-
-#[cw_serde]
-pub struct IsActiveResponse {
-    pub is_active: bool,
-}
-
-#[cw_serde]
-pub struct MintPriceResponse {
-    pub mint_price: Coin,
 }
 
 #[cw_serde]
@@ -79,10 +60,10 @@ pub fn check_if_minter(address: &Addr, deps: Deps) -> Result<(), StdError> {
 }
 
 pub fn check_if_whitelist_is_active(address: &Addr, deps: Deps) -> Result<bool, StdError> {
-    let is_active_res: IsActiveResponse = deps
+    let is_active_res: bool = deps
         .querier
         .query_wasm_smart(address, &RoundWhitelistQueryMsgs::IsActive {})?;
-    Ok(is_active_res.is_active)
+    Ok(is_active_res)
 }
 
 pub fn check_if_address_is_member(
@@ -90,18 +71,18 @@ pub fn check_if_address_is_member(
     whitelist_address: &Addr,
     deps: Deps,
 ) -> Result<bool, StdError> {
-    let is_member_res: IsMemberResponse = deps.querier.query_wasm_smart(
+    let is_member_res: bool = deps.querier.query_wasm_smart(
         whitelist_address,
         &RoundWhitelistQueryMsgs::IsMember {
             address: address.to_string(),
         },
     )?;
-    Ok(is_member_res.is_member)
+    Ok(is_member_res)
 }
 
 pub fn check_whitelist_price(address: &Addr, deps: Deps) -> Result<Coin, StdError> {
-    let price_res: MintPriceResponse = deps
+    let price_res: Coin = deps
         .querier
         .query_wasm_smart(address, &RoundWhitelistQueryMsgs::Price {})?;
-    Ok(price_res.mint_price)
+    Ok(price_res)
 }

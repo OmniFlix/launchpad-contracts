@@ -8,7 +8,7 @@ use cosmwasm_std::{coin, Addr};
 use cw_multi_test::Executor;
 use omniflix_round_whitelist::error::ContractError as RoundWhitelistContractError;
 use omniflix_round_whitelist::msg::ExecuteMsg;
-use whitelist_types::{CreateWhitelistMsg, MembersResponse, RoundWhitelistQueryMsgs};
+use whitelist_types::{CreateWhitelistMsg, RoundWhitelistQueryMsgs};
 
 #[test]
 fn add_member() {
@@ -97,7 +97,7 @@ fn add_member() {
         )
         .unwrap();
     // Query members
-    let members: MembersResponse = app
+    let members: Vec<String> = app
         .wrap()
         .query_wasm_smart(
             round_whitelist_address.clone(),
@@ -108,7 +108,7 @@ fn add_member() {
             },
         )
         .unwrap();
-    assert_eq!(members.members, vec![("collector".to_string())]);
+    assert_eq!(members, vec![("collector".to_string())]);
 
     // Try adding 500 same address to first round
     let _res = app
@@ -123,7 +123,7 @@ fn add_member() {
         )
         .unwrap();
     // Query members
-    let members: MembersResponse = app
+    let members: Vec<String> = app
         .wrap()
         .query_wasm_smart(
             round_whitelist_address.clone(),
@@ -134,7 +134,7 @@ fn add_member() {
             },
         )
         .unwrap();
-    assert_eq!(members.members, vec![("collector".to_string())]);
+    assert_eq!(members, vec![("collector".to_string())]);
 
     // Try adding 500 different addresses to first round
     let mut addresses: Vec<String> = Vec::new();
@@ -154,7 +154,7 @@ fn add_member() {
         )
         .unwrap();
     // Query members
-    let members: MembersResponse = app
+    let members: Vec<String> = app
         .wrap()
         .query_wasm_smart(
             round_whitelist_address.clone(),
@@ -166,9 +166,9 @@ fn add_member() {
         )
         .unwrap();
     // Default limit is 100
-    assert_eq!(members.members.len(), 100);
+    assert_eq!(members.len(), 100);
     // Query members with limit
-    let members: MembersResponse = app
+    let members: Vec<String> = app
         .wrap()
         .query_wasm_smart(
             round_whitelist_address.clone(),
@@ -179,10 +179,10 @@ fn add_member() {
             },
         )
         .unwrap();
-    assert_eq!(members.members.len(), 200);
+    assert_eq!(members.len(), 200);
 
     // Query members with start_after
-    let members: MembersResponse = app
+    let members: Vec<String> = app
         .wrap()
         .query_wasm_smart(
             round_whitelist_address.clone(),
@@ -193,12 +193,12 @@ fn add_member() {
             },
         )
         .unwrap();
-    assert_eq!(members.members.len(), 100);
-    assert_eq!(members.members[0], "collector150".to_string());
+    assert_eq!(members.len(), 100);
+    assert_eq!(members[0], "collector150".to_string());
 
     // Query members with start_after and limit
     // Send limit more than 350
-    let members: MembersResponse = app
+    let members: Vec<String> = app
         .wrap()
         .query_wasm_smart(
             round_whitelist_address.clone(),
@@ -210,5 +210,6 @@ fn add_member() {
         )
         .unwrap();
 
-    assert_eq!(members.members.len(), 350);
+    assert_eq!(members.len(), 350);
+    assert_eq!(members[0], "collector150".to_string());
 }
