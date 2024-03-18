@@ -1,7 +1,8 @@
+use crate::error::ContractError;
 use cosmwasm_std::{Addr, Coin, Deps, Timestamp};
 use whitelist_types::Round;
 
-use crate::error::ContractError;
+const MEMBER_QUERY_LIMIT: u32 = 100;
 pub trait RoundMethods {
     fn is_active(&self, current_time: Timestamp) -> bool;
     fn is_member(&self, address: &Addr) -> bool;
@@ -37,17 +38,19 @@ impl RoundMethods for Round {
         start_after: Option<String>,
         limit: Option<u32>,
     ) -> Result<Vec<String>, ContractError> {
-        let members: Vec<String> = self.addresses.iter().map(|x| x.to_string()).collect();
         let start_after = start_after.unwrap_or_default();
-        let start_index = members
+        let limit = limit.unwrap_or(MEMBER_QUERY_LIMIT);
+        let start_index = self
+            .addresses
             .iter()
-            .position(|x| x.as_str() == start_after.as_str())
-            .unwrap_or_default();
-        let end_index = match limit {
-            Some(limit) => start_index + limit as usize,
-            None => members.len(),
-        };
-        Ok(members[start_index..end_index].to_vec())
+            .position(|x| x.to_string() == start_after)
+            .unwrap_or(0);
+        let end_index = (start_index + limit as usize).min(self.addresses.len());
+        Ok(self.addresses[start_index..end_index]
+            .to_vec()
+            .iter()
+            .map(|x| x.to_string())
+            .collect())
     }
 
     fn mint_price(&self) -> Coin {
@@ -73,15 +76,14 @@ impl RoundMethods for Round {
         Ok(())
     }
     fn add_members(&mut self, deps: Deps, address: Vec<String>) -> Result<(), ContractError> {
-        let mut addr_list: Vec<Addr> = address
+        let addr_list: Vec<Addr> = address
             .iter()
             .map(|x| deps.api.addr_validate(x.as_str()))
             .collect::<Result<Vec<Addr>, _>>()?;
-        //remove duplicates
-        addr_list.sort();
-        addr_list.dedup();
 
         self.addresses.extend(addr_list);
+        // Remove duplicates final list
+        self.addresses.dedup();
         Ok(())
     }
 }
