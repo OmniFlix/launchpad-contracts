@@ -2,7 +2,7 @@
 
 ## Omniflix Launchpad Contracts
 
-This repository contains the smart contracts for the Omniflix Launchpad platform. These contracts are responsible for launching an NFT collection.
+This repository hosts the smart contracts for the OmniFlix launchpad. These contracts empower creators to launch an NFT collection. After setting these up, creators can share the details with their community or users, enabling them to mint an NFT.
 
 ## Factories
 

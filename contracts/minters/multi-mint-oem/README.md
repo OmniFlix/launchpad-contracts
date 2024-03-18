@@ -1,6 +1,4 @@
-## Multi-Minter
-
-Multi minter contract is a Open edition minter contract with configurable token parameters called "drop".
+Multi mint contract is a Open edition minter contract with configurable token parameters called "drop".
 
 #### Drop
 
@@ -15,7 +13,7 @@ Drop is a configuration for a set of tokens. It includes the following parameter
 
 #### Instantiate
 
-Similar with the Minter contract, the creator should send Collection details along with trading information such as price, denomination, and trading start time. Factory contract will create a new MultiMinter contract and initialize it with the given parameters. Upon creation, First drop will be created with the given parameters.
+Similar to the Minter contract, the creator is required to send Collection details. This process initiates the creation of an NFT collection. It's important to note that the contract begins without any drop, meaning neither the creator nor the user can mint an NFT without the creator initiating the first drop.
 
 ### NewDrop
 
