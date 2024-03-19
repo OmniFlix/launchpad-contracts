@@ -154,7 +154,7 @@ fn paused_mm_oem() {
     assert_eq!(
         *error,
         MultiMintOpenEditionMinterContractError::Pause(PauseError::Unauthorized {
-            sender: collector
+            sender: collector.clone()
         })
     );
     // Pause the minter with the creator
@@ -213,4 +213,41 @@ fn paused_mm_oem() {
         *error,
         MultiMintOpenEditionMinterContractError::Pause(PauseError::Paused {})
     );
+    // Try unpausing the minter with a non pauser
+    let unpause_msg = MultiMintOpenEditionMinterExecuteMsg::Unpause {};
+    let error = app
+        .execute_contract(
+            collector.clone(),
+            Addr::unchecked(multi_minter_addr.clone()),
+            &unpause_msg,
+            &[],
+        )
+        .unwrap_err();
+    let error = error
+        .downcast_ref::<MultiMintOpenEditionMinterContractError>()
+        .unwrap();
+    assert_eq!(
+        *error,
+        MultiMintOpenEditionMinterContractError::Pause(PauseError::Unauthorized {
+            sender: collector.clone()
+        })
+    );
+
+    // Unpause the minter
+    let unpause_msg = MultiMintOpenEditionMinterExecuteMsg::Unpause {};
+    let _res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(multi_minter_addr.clone()),
+            &unpause_msg,
+            &[],
+        )
+        .unwrap();
+
+    // Ensure that the minter is unpaused
+    let is_paused: bool = app
+        .wrap()
+        .query_wasm_smart(multi_minter_addr.clone(), &query_msg)
+        .unwrap();
+    assert!(!is_paused);
 }

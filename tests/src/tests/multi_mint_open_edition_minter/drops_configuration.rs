@@ -1,6 +1,6 @@
 #![cfg(test)]
-use cosmwasm_std::Decimal;
 use cosmwasm_std::{coin, Addr, BlockInfo, Timestamp};
+use cosmwasm_std::{Decimal, StdError};
 use cw_multi_test::Executor;
 use minter_types::msg::QueryMsg as CommonMinterQueryMsg;
 use minter_types::types::{CollectionDetails, Config, ConfigurationError, UserDetails};
@@ -933,4 +933,408 @@ fn add_drop() {
     assert_eq!(drops.as_ref().unwrap().len(), 1);
     // Check drop id
     assert_eq!(drops.as_ref().unwrap()[0].0, 1);
+}
+
+#[test]
+fn update_mint_price() {
+    let res = setup();
+    let admin = res.test_accounts.admin;
+    let creator = res.test_accounts.creator;
+    let collector = res.test_accounts.collector;
+    let open_edition_minter_factory_code_id = res.open_edition_minter_factory_code_id;
+    let multi_mint_open_edition_minter_code_id = res.multi_mint_open_edition_minter_code_id;
+    let mut app = res.app;
+    // Instantiate the minter factory
+    let open_edition_minter_factory_instantiate_msg =
+        return_open_edition_minter_factory_inst_message(
+            open_edition_minter_factory_code_id,
+            Some(multi_mint_open_edition_minter_code_id),
+        );
+
+    let open_edition_minter_factory_address = app
+        .instantiate_contract(
+            open_edition_minter_factory_code_id,
+            admin.clone(),
+            &open_edition_minter_factory_instantiate_msg,
+            &[],
+            "Open Edition Minter Factory",
+            None,
+        )
+        .unwrap();
+    let collection_details = CollectionDetails {
+        collection_name: "Multi mint test".to_string(),
+        description: Some("COLLECTION DESCRIPTION".to_string()),
+        preview_uri: Some("Preview uri of COLLECTION".to_string()),
+        schema: Some("Some schema of collection".to_string()),
+        symbol: "MMOEM".to_string(),
+        id: "MMOEM test 1".to_string(),
+        uri: Some("Some uri".to_string()),
+        uri_hash: Some("uri_hash".to_string()),
+        data: Some("data".to_string()),
+        royalty_receivers: None,
+    };
+    let init = MultiMinterInitExtention {
+        admin: creator.to_string(),
+        payment_collector: Some(creator.to_string()),
+    };
+
+    let multi_minter_inst_msg = MultiMinterCreateMsg {
+        collection_details,
+        init,
+        token_details: None,
+    };
+
+    let res = app
+        .execute_contract(
+            creator.clone(),
+            open_edition_minter_factory_address.clone(),
+            &OpenEditionMinterFactoryExecuteMsg::CreateMultiMintOpenEditionMinter {
+                msg: multi_minter_inst_msg,
+            },
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap();
+    let multi_minter_addr = get_contract_address_from_res(res);
+    // Try updating mint price without any drop
+    let res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(multi_minter_addr.clone()),
+            &MultiMintOpenEditionMinterExecuteMsg::UpdateMintPrice {
+                mint_price: coin(5_000_000, "uflix"),
+                drop_id: None,
+            },
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap_err();
+    let err = res
+        .source()
+        .unwrap()
+        .downcast_ref::<MultiMintOpenEditionMinterContractError>()
+        .unwrap();
+    assert_eq!(
+        err,
+        &MultiMintOpenEditionMinterContractError::NoDropAvailable {}
+    );
+
+    let drop = DropParams {
+        token_details: TokenDetails {
+            token_name: "Drop number 1".to_string(),
+            description: Some("Drop number 1 description".to_string()),
+            preview_uri: Some("Drop number 1 prev uri".to_string()),
+            base_token_uri: "Drop number 1 base_token_uri".to_string(),
+            transferable: true,
+            royalty_ratio: Decimal::percent(10),
+            extensible: true,
+            nsfw: false,
+            data: Some("Drop number 1 data".to_string()),
+        },
+        config: Config {
+            mint_price: coin(5_000_000, "uflix"),
+            start_time: Timestamp::from_nanos(10_000_000),
+            end_time: Some(Timestamp::from_nanos(50_500_000)),
+            per_address_limit: Some(100),
+            whitelist_address: None,
+            num_tokens: Some(100),
+        },
+    };
+    // Add drop
+    let _res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(multi_minter_addr.clone()),
+            &MultiMintOpenEditionMinterExecuteMsg::NewDrop {
+                config: drop.config.clone(),
+                token_details: drop.token_details.clone(),
+            },
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap();
+
+    // Update mint price with non admin
+    let res = app
+        .execute_contract(
+            collector.clone(),
+            Addr::unchecked(multi_minter_addr.clone()),
+            &MultiMintOpenEditionMinterExecuteMsg::UpdateMintPrice {
+                mint_price: coin(5_000_000, "uflix"),
+                drop_id: None,
+            },
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap_err();
+    let err = res
+        .source()
+        .unwrap()
+        .downcast_ref::<MultiMintOpenEditionMinterContractError>()
+        .unwrap();
+    assert_eq!(
+        err,
+        &MultiMintOpenEditionMinterContractError::Unauthorized {}
+    );
+
+    // Update mint price with invalid drop id
+    let res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(multi_minter_addr.clone()),
+            &MultiMintOpenEditionMinterExecuteMsg::UpdateMintPrice {
+                mint_price: coin(5_000_000, "uflix"),
+                drop_id: Some(2),
+            },
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap_err();
+    let err = res
+        .source()
+        .unwrap()
+        .downcast_ref::<MultiMintOpenEditionMinterContractError>()
+        .unwrap();
+    assert_eq!(
+        err,
+        &MultiMintOpenEditionMinterContractError::InvalidDropId {}
+    );
+
+    // Update mint price
+    let _res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(multi_minter_addr.clone()),
+            &MultiMintOpenEditionMinterExecuteMsg::UpdateMintPrice {
+                mint_price: coin(10_000_000, "uflix"),
+                drop_id: None,
+            },
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap();
+    // Query mint price
+    let config: Config = app
+        .wrap()
+        .query_wasm_smart(
+            multi_minter_addr.clone(),
+            &MultiMintOpenEditionMinterQueryMsg::Extension(
+                MultiMintOpenEditionMinterQueryMsgExtension::Config { drop_id: Some(1) },
+            ),
+        )
+        .unwrap();
+    assert_eq!(config.mint_price, coin(10_000_000, "uflix"));
+}
+
+#[test]
+fn update_royalty_ratio() {
+    let res = setup();
+    let admin = res.test_accounts.admin;
+    let creator = res.test_accounts.creator;
+    let collector = res.test_accounts.collector;
+    let open_edition_minter_factory_code_id = res.open_edition_minter_factory_code_id;
+    let multi_mint_open_edition_minter_code_id = res.multi_mint_open_edition_minter_code_id;
+    let mut app = res.app;
+    // Instantiate the minter factory
+    let open_edition_minter_factory_instantiate_msg =
+        return_open_edition_minter_factory_inst_message(
+            open_edition_minter_factory_code_id,
+            Some(multi_mint_open_edition_minter_code_id),
+        );
+
+    let open_edition_minter_factory_address = app
+        .instantiate_contract(
+            open_edition_minter_factory_code_id,
+            admin.clone(),
+            &open_edition_minter_factory_instantiate_msg,
+            &[],
+            "Open Edition Minter Factory",
+            None,
+        )
+        .unwrap();
+    let collection_details = CollectionDetails {
+        collection_name: "Multi mint test".to_string(),
+        description: Some("COLLECTION DESCRIPTION".to_string()),
+        preview_uri: Some("Preview uri of COLLECTION".to_string()),
+        schema: Some("Some schema of collection".to_string()),
+        symbol: "MMOEM".to_string(),
+        id: "MMOEM test 1".to_string(),
+        uri: Some("Some uri".to_string()),
+        uri_hash: Some("uri_hash".to_string()),
+        data: Some("data".to_string()),
+        royalty_receivers: None,
+    };
+    let init = MultiMinterInitExtention {
+        admin: creator.to_string(),
+        payment_collector: Some(creator.to_string()),
+    };
+
+    let multi_minter_inst_msg = MultiMinterCreateMsg {
+        collection_details,
+        init,
+        token_details: None,
+    };
+
+    let res = app
+        .execute_contract(
+            creator.clone(),
+            open_edition_minter_factory_address.clone(),
+            &OpenEditionMinterFactoryExecuteMsg::CreateMultiMintOpenEditionMinter {
+                msg: multi_minter_inst_msg,
+            },
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap();
+    let multi_minter_addr = get_contract_address_from_res(res);
+    // Try updating royalty ratio without any drop
+    let res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(multi_minter_addr.clone()),
+            &MultiMintOpenEditionMinterExecuteMsg::UpdateRoyaltyRatio {
+                ratio: Decimal::percent(10).to_string(),
+                drop_id: None,
+            },
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap_err();
+    let err = res
+        .source()
+        .unwrap()
+        .downcast_ref::<MultiMintOpenEditionMinterContractError>()
+        .unwrap();
+    assert_eq!(
+        err,
+        &MultiMintOpenEditionMinterContractError::NoDropAvailable {}
+    );
+
+    let drop = DropParams {
+        token_details: TokenDetails {
+            token_name: "Drop number 1".to_string(),
+            description: Some("Drop number 1 description".to_string()),
+            preview_uri: Some("Drop number 1 prev uri".to_string()),
+            base_token_uri: "Drop number 1 base_token_uri".to_string(),
+            transferable: true,
+            royalty_ratio: Decimal::percent(10),
+            extensible: true,
+            nsfw: false,
+            data: Some("Drop number 1 data".to_string()),
+        },
+        config: Config {
+            mint_price: coin(5_000_000, "uflix"),
+            start_time: Timestamp::from_nanos(10_000_000),
+            end_time: Some(Timestamp::from_nanos(50_500_000)),
+            per_address_limit: Some(100),
+            whitelist_address: None,
+            num_tokens: Some(100),
+        },
+    };
+    // Add drop
+    let _res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(multi_minter_addr.clone()),
+            &MultiMintOpenEditionMinterExecuteMsg::NewDrop {
+                config: drop.config.clone(),
+                token_details: drop.token_details.clone(),
+            },
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap();
+
+    // Update royalty ratio with non admin
+    let res = app
+        .execute_contract(
+            collector.clone(),
+            Addr::unchecked(multi_minter_addr.clone()),
+            &MultiMintOpenEditionMinterExecuteMsg::UpdateRoyaltyRatio {
+                ratio: Decimal::percent(10).to_string(),
+                drop_id: None,
+            },
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap_err();
+    let err = res
+        .source()
+        .unwrap()
+        .downcast_ref::<MultiMintOpenEditionMinterContractError>()
+        .unwrap();
+    assert_eq!(
+        err,
+        &MultiMintOpenEditionMinterContractError::Unauthorized {}
+    );
+
+    // Update royalty ratio with invalid drop id
+    let res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(multi_minter_addr.clone()),
+            &MultiMintOpenEditionMinterExecuteMsg::UpdateRoyaltyRatio {
+                ratio: Decimal::percent(10).to_string(),
+                drop_id: Some(2),
+            },
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap_err();
+    let err = res
+        .source()
+        .unwrap()
+        .downcast_ref::<MultiMintOpenEditionMinterContractError>()
+        .unwrap();
+    assert_eq!(
+        err,
+        &MultiMintOpenEditionMinterContractError::InvalidDropId {}
+    );
+    // Send invalid ratio
+    let res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(multi_minter_addr.clone()),
+            &MultiMintOpenEditionMinterExecuteMsg::UpdateRoyaltyRatio {
+                ratio: "One".to_string(),
+                drop_id: None,
+            },
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap_err();
+    let err = res
+        .source()
+        .unwrap()
+        .downcast_ref::<MultiMintOpenEditionMinterContractError>()
+        .unwrap();
+    assert_eq!(
+        err,
+        &MultiMintOpenEditionMinterContractError::Std(StdError::generic_err("Error parsing whole")),
+    );
+
+    // Send ratio more than 100%
+    let res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(multi_minter_addr.clone()),
+            &MultiMintOpenEditionMinterExecuteMsg::UpdateRoyaltyRatio {
+                ratio: Decimal::percent(101).to_string(),
+                drop_id: None,
+            },
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap_err();
+    let err = res
+        .source()
+        .unwrap()
+        .downcast_ref::<MultiMintOpenEditionMinterContractError>()
+        .unwrap();
+    assert_eq!(
+        err,
+        &MultiMintOpenEditionMinterContractError::TokenDetailsError(
+            TokenDetailsError::InvalidRoyaltyRatio {}
+        )
+    );
+
+    // Update royalty ratio
+    let _res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(multi_minter_addr.clone()),
+            &MultiMintOpenEditionMinterExecuteMsg::UpdateRoyaltyRatio {
+                ratio: Decimal::percent(20).to_string(),
+                drop_id: None,
+            },
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap();
 }
