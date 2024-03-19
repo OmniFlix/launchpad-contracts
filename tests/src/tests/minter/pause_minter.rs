@@ -170,4 +170,62 @@ fn pause_minter() {
     let err = res.source().unwrap();
     let error = err.downcast_ref::<MinterContractError>().unwrap();
     assert_eq!(error, &MinterContractError::Pause(PauseError::Paused {}));
+
+    // Unpause the minter
+    let unpause_msg = MinterExecuteMsg::Unpause {};
+    let _res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(minter_address.clone()),
+            &unpause_msg,
+            &[],
+        )
+        .unwrap();
+
+    // Now query contract
+    let is_paused: bool = app
+        .wrap()
+        .query_wasm_smart(&minter_address, &MinterQueryMsg::IsPaused {})
+        .unwrap();
+    assert!(!is_paused);
+
+    // Pause again and try unpausing with set_pausers
+    let pause_msg = MinterExecuteMsg::Pause {};
+    let _res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(minter_address.clone()),
+            &pause_msg,
+            &[],
+        )
+        .unwrap();
+
+    // Contract is paused and creator is the only pauser
+    // Set collector as pauser
+    // This should unpause the contract
+    let set_pausers_msg = MinterExecuteMsg::SetPausers {
+        pausers: vec![collector.clone().into_string()],
+    };
+    let _res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(minter_address.clone()),
+            &set_pausers_msg,
+            &[],
+        )
+        .unwrap();
+
+    let is_paused: bool = app
+        .wrap()
+        .query_wasm_smart(&minter_address, &MinterQueryMsg::IsPaused {})
+        .unwrap();
+    assert!(!is_paused);
+
+    // Now query pausers
+    let pausers: Vec<Addr> = app
+        .wrap()
+        .query_wasm_smart(&minter_address, &MinterQueryMsg::Pausers {})
+        .unwrap();
+    assert_eq!(pausers.len(), 1);
+    assert_eq!(pausers[0], collector);
 }

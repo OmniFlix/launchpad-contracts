@@ -470,12 +470,10 @@ pub fn execute_update_royalty_ratio(
         return Err(ContractError::Unauthorized {});
     }
 
-    let ratio = Decimal::from_str(&ratio)?; // Check if ratio is decimal number
-    if ratio < Decimal::zero() || ratio > Decimal::one() {
-        return Err(ContractError::InvalidRoyaltyRatio {});
-    }
+    let ratio = Decimal::from_str(&ratio)?;
     let mut token_details = TOKEN_DETAILS.load(deps.storage)?;
     token_details.royalty_ratio = ratio;
+    token_details.check_integrity()?;
     TOKEN_DETAILS.save(deps.storage, &token_details)?;
 
     let res = Response::new()

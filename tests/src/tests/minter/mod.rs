@@ -8,3 +8,6 @@ mod paused_factory;
 mod private_minting;
 #[cfg(test)]
 mod public_minting;
+
+#[cfg(test)]
+mod admin_configurations;
