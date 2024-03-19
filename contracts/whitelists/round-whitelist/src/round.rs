@@ -3,6 +3,7 @@ use cosmwasm_std::{Addr, Coin, Deps, Timestamp};
 use whitelist_types::Round;
 
 const MEMBER_QUERY_LIMIT: u32 = 100;
+const MAX_MEMBERS_PER_ROUND: usize = 5000;
 pub trait RoundMethods {
     fn is_active(&self, current_time: Timestamp) -> bool;
     fn is_member(&self, address: &Addr) -> bool;
@@ -14,7 +15,8 @@ pub trait RoundMethods {
         limit: Option<u32>,
     ) -> Result<Vec<String>, ContractError>;
     fn mint_price(&self) -> Coin;
-    fn check_integrity(&self, deps: Deps, now: Timestamp) -> Result<(), ContractError>;
+    fn check_integrity(&self, now: Timestamp) -> Result<(), ContractError>;
+    fn validate_members_and_return(&self, deps: Deps) -> Result<Round, ContractError>;
     fn add_members(&mut self, deps: Deps, address: Vec<String>) -> Result<(), ContractError>;
 }
 impl RoundMethods for Round {
@@ -56,7 +58,7 @@ impl RoundMethods for Round {
     fn mint_price(&self) -> Coin {
         self.mint_price.clone()
     }
-    fn check_integrity(&self, deps: Deps, now: Timestamp) -> Result<(), ContractError> {
+    fn check_integrity(&self, now: Timestamp) -> Result<(), ContractError> {
         if self.start_time > self.end_time {
             return Err(ContractError::InvalidEndTime {});
         }
@@ -66,15 +68,32 @@ impl RoundMethods for Round {
         if self.round_per_address_limit == 0 {
             return Err(ContractError::InvalidPerAddressLimit {});
         }
-        if self.addresses.is_empty() {
-            return Err(ContractError::EmptyAddressList {});
-        }
-        self.addresses
-            .iter()
-            .try_for_each(|address| deps.api.addr_validate(address.as_str()).map(|_| ()))?;
 
         Ok(())
     }
+    fn validate_members_and_return(&self, deps: Deps) -> Result<Round, ContractError> {
+        if self.addresses.is_empty() {
+            return Err(ContractError::EmptyAddressList {});
+        }
+        let mut valid_members: Vec<Addr> = vec![];
+        for address in self.addresses.iter() {
+            let addr = deps.api.addr_validate(address.as_str())?;
+            valid_members.push(addr);
+        }
+        valid_members.sort();
+        valid_members.dedup();
+        if valid_members.len() > MAX_MEMBERS_PER_ROUND {
+            return Err(ContractError::WhitelistMemberLimitExceeded {});
+        }
+        Ok(Round {
+            addresses: valid_members,
+            start_time: self.start_time,
+            end_time: self.end_time,
+            mint_price: self.mint_price.clone(),
+            round_per_address_limit: self.round_per_address_limit,
+        })
+    }
+
     fn add_members(&mut self, deps: Deps, address: Vec<String>) -> Result<(), ContractError> {
         let addr_list: Vec<Addr> = address
             .iter()
@@ -84,6 +103,9 @@ impl RoundMethods for Round {
         self.addresses.extend(addr_list);
         // Remove duplicates final list
         self.addresses.dedup();
+        if self.addresses.len() > MAX_MEMBERS_PER_ROUND {
+            return Err(ContractError::WhitelistMemberLimitExceeded {});
+        }
         Ok(())
     }
 }

@@ -60,6 +60,9 @@ pub enum ContractError {
 
     #[error("Overflow error")]
     OverflowError {},
+
+    #[error("Whitelist member limit exceeded")]
+    WhitelistMemberLimitExceeded {},
 }
 impl From<ContractError> for StdError {
     fn from(err: ContractError) -> StdError {

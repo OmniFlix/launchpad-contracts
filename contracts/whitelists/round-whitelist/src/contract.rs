@@ -25,17 +25,22 @@ pub fn instantiate(
         info.sender.clone().into_string(),
         &QueryFactoryParams::Params {},
     )?;
-
     let admin = deps.api.addr_validate(&msg.admin)?;
+    let rounds = msg
+        .rounds
+        .into_iter()
+        .map(|round| {
+            // Check round integrity
+            round.check_integrity(env.block.time)?;
+            // Validate members and remove duplicates
+            let validated_round = round.validate_members_and_return(deps.as_ref())?;
+            Ok(validated_round)
+        })
+        .collect::<Result<Vec<Round>, ContractError>>()?;
 
-    let rounds = msg.rounds;
-    // Check if rounds are valid
-    for round in rounds.clone() {
-        round.check_integrity(deps.as_ref(), env.block.time)?;
-    }
+    // Save the rounds
     let rounds_state = Rounds::new(ROUNDS_KEY);
     rounds_state.check_round_overlaps(deps.storage, Some(rounds.clone()))?;
-    //  Save the rounds
     rounds.clone().into_iter().for_each(|round| {
         let _ = rounds_state.save(deps.storage, &round);
     });
@@ -108,13 +113,14 @@ pub fn execute_add_round(
     if info.sender != config.admin {
         return Err(ContractError::Unauthorized {});
     }
-    round.check_integrity(deps.as_ref(), env.block.time)?;
+    round.check_integrity(env.block.time)?;
+    let validated_round = round.validate_members_and_return(deps.as_ref())?;
 
     let rounds = Rounds::new(ROUNDS_KEY);
     // Check overlaps
-    rounds.check_round_overlaps(deps.storage, Some([round.clone()].to_vec()))?;
+    rounds.check_round_overlaps(deps.storage, Some([validated_round.clone()].to_vec()))?;
     // Save the round
-    let new_round_index = rounds.save(deps.storage, &round)?;
+    let new_round_index = rounds.save(deps.storage, &validated_round)?;
 
     let res = Response::new()
         .add_attribute("action", "add_round")

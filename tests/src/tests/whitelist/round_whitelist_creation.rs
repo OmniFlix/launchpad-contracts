@@ -1,14 +1,15 @@
 #![cfg(test)]
-use cosmwasm_std::{coin, Timestamp, Uint128};
+use cosmwasm_std::{coin, Addr, Timestamp, Uint128};
 
 use crate::helpers::mock_messages::factory_mock_messages::return_round_whitelist_factory_inst_message;
 use crate::helpers::mock_messages::whitelist_mock_messages::return_rounds;
 use crate::helpers::setup::{setup, SetupResponse};
+use crate::helpers::utils::get_contract_address_from_res;
 
 use cw_multi_test::Executor;
 use omniflix_round_whitelist::error::ContractError as RoundWhitelistContractError;
 use omniflix_round_whitelist_factory::error::ContractError as RoundWhitelistFactoryContractError;
-use whitelist_types::CreateWhitelistMsg;
+use whitelist_types::{CreateWhitelistMsg, RoundWhitelistQueryMsgs};
 
 #[test]
 fn whitelist_creation() {
@@ -185,6 +186,67 @@ fn whitelist_creation() {
     let res = error.source().unwrap().source().unwrap();
     let error = res.downcast_ref::<RoundWhitelistContractError>().unwrap();
     assert_eq!(error, &RoundWhitelistContractError::RoundsOverlapped {});
+
+    // Send more than 5000 diffirent members for a round
+    let mut rounds = return_rounds();
+    for i in 0..5001 {
+        let address = Addr::unchecked(format!("collector{}", i));
+        rounds[0].addresses.push(address);
+    }
+
+    let error = app
+        .execute_contract(
+            creator.clone(),
+            round_whitelist_factory_addr.clone(),
+            &omniflix_round_whitelist_factory::msg::ExecuteMsg::CreateWhitelist {
+                msg: CreateWhitelistMsg {
+                    admin: admin.to_string(),
+                    rounds: rounds.clone(),
+                },
+            },
+            &[coin(1000000, "uflix")],
+        )
+        .unwrap_err();
+    let res = error.source().unwrap().source().unwrap();
+    let error = res.downcast_ref::<RoundWhitelistContractError>().unwrap();
+    assert_eq!(
+        error,
+        &RoundWhitelistContractError::WhitelistMemberLimitExceeded {}
+    );
+    // Send more than 5000 Same members for a round should not fail
+    let mut rounds = return_rounds();
+    for _i in 0..5001 {
+        let address = Addr::unchecked("collector");
+        rounds[0].addresses.push(address);
+    }
+
+    let res = app
+        .execute_contract(
+            creator.clone(),
+            round_whitelist_factory_addr.clone(),
+            &omniflix_round_whitelist_factory::msg::ExecuteMsg::CreateWhitelist {
+                msg: CreateWhitelistMsg {
+                    admin: admin.to_string(),
+                    rounds: rounds.clone(),
+                },
+            },
+            &[coin(1000000, "uflix")],
+        )
+        .unwrap();
+    let round_whitelist_address = get_contract_address_from_res(res);
+    // Query round 1 members
+    let members: Vec<String> = app
+        .wrap()
+        .query_wasm_smart(
+            round_whitelist_address.clone(),
+            &RoundWhitelistQueryMsgs::Members {
+                round_index: 1,
+                start_after: None,
+                limit: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(members.len(), 1);
 
     // Check factory admin balance before
     let query_res = app

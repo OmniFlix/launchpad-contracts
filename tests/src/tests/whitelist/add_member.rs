@@ -212,4 +212,29 @@ fn add_member() {
 
     assert_eq!(members.len(), 350);
     assert_eq!(members[0], "collector150".to_string());
+
+    // Max members per round is 5000
+    // Try adding more than 5000 members
+    let mut addresses: Vec<String> = Vec::new();
+    for i in 500..5000 {
+        let address = format!("collector{}", i);
+        addresses.push(address.clone());
+    }
+    let res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(round_whitelist_address.clone()),
+            &ExecuteMsg::AddMembers {
+                address: addresses.clone(),
+                round_index: 1,
+            },
+            &[coin(1000000, "uflix")],
+        )
+        .unwrap_err();
+    let err = res.source().unwrap();
+    let error = err.downcast_ref::<RoundWhitelistContractError>().unwrap();
+    assert_eq!(
+        error,
+        &RoundWhitelistContractError::WhitelistMemberLimitExceeded {}
+    );
 }
