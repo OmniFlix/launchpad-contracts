@@ -160,4 +160,94 @@ fn pause_oem() {
     let res = error.source().unwrap();
     let error = res.downcast_ref::<OpenEditionMinterError>().unwrap();
     assert_eq!(error, &OpenEditionMinterError::Pause(PauseError::Paused {}));
+
+    // Try unpausing the oem minter with non pauser
+    let error = app
+        .execute_contract(
+            collector.clone(),
+            Addr::unchecked(oem_contract_address.clone()),
+            &OpenEditionMinterFactoryExecuteMsg::Unpause {},
+            &[],
+        )
+        .unwrap_err();
+    let res = error.source().unwrap();
+    let error = res.downcast_ref::<OpenEditionMinterError>().unwrap();
+    assert_eq!(
+        error,
+        &OpenEditionMinterError::Pause(PauseError::Unauthorized {
+            sender: collector.clone()
+        })
+    );
+
+    // Unpause the oem minter
+    let _res = app.execute_contract(
+        creator.clone(),
+        Addr::unchecked(oem_contract_address.clone()),
+        &OpenEditionMinterFactoryExecuteMsg::Unpause {},
+        &[],
+    );
+
+    let is_paused: bool = app
+        .wrap()
+        .query_wasm_smart(
+            &oem_contract_address,
+            &OpenEditionMinterQueryMsg::IsPaused {},
+        )
+        .unwrap();
+    assert!(!is_paused);
+
+    // Pause again this time unpausing with set pausers message
+    let _res = app.execute_contract(
+        creator.clone(),
+        Addr::unchecked(oem_contract_address.clone()),
+        &OpenEditionMinterFactoryExecuteMsg::Pause {},
+        &[],
+    );
+
+    let is_paused: bool = app
+        .wrap()
+        .query_wasm_smart(
+            &oem_contract_address,
+            &OpenEditionMinterQueryMsg::IsPaused {},
+        )
+        .unwrap();
+    assert!(is_paused);
+
+    // Set pausers
+    let _res = app.execute_contract(
+        creator.clone(),
+        Addr::unchecked(oem_contract_address.clone()),
+        &OpenEditionMinterFactoryExecuteMsg::SetPausers {
+            pausers: vec![collector.clone().into_string()],
+        },
+        &[],
+    );
+
+    // Now collector is the pauser and contract is unpaused
+    let is_paused: bool = app
+        .wrap()
+        .query_wasm_smart(
+            &oem_contract_address,
+            &OpenEditionMinterQueryMsg::IsPaused {},
+        )
+        .unwrap();
+    assert!(!is_paused);
+
+    // Try pausing with creator
+    let error = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(oem_contract_address.clone()),
+            &OpenEditionMinterFactoryExecuteMsg::Pause {},
+            &[],
+        )
+        .unwrap_err();
+    let res = error.source().unwrap();
+    let error = res.downcast_ref::<OpenEditionMinterError>().unwrap();
+    assert_eq!(
+        error,
+        &OpenEditionMinterError::Pause(PauseError::Unauthorized {
+            sender: creator.clone()
+        })
+    );
 }

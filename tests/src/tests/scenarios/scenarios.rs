@@ -1093,7 +1093,7 @@ fn test_scenario_2() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MinterExecuteMsg::SetPaymentCollector {
+            &MinterExecuteMsg::UpdatePaymentCollector {
                 payment_collector: new_payment_collector.clone().to_string(),
             },
             &[],
@@ -1103,7 +1103,7 @@ fn test_scenario_2() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MinterExecuteMsg::SetAdmin {
+            &MinterExecuteMsg::UpdateAdmin {
                 admin: new_admin.clone().into_string(),
             },
             &[],

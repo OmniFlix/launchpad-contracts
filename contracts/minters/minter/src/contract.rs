@@ -174,9 +174,9 @@ pub fn execute(
         ExecuteMsg::UpdateWhitelistAddress { address } => {
             execute_update_whitelist_address(deps, env, info, address)
         }
-        ExecuteMsg::SetAdmin { admin } => execute_set_admin(deps, env, info, admin),
-        ExecuteMsg::SetPaymentCollector { payment_collector } => {
-            execute_set_payment_collector(deps, env, info, payment_collector)
+        ExecuteMsg::UpdateAdmin { admin } => execute_update_admin(deps, env, info, admin),
+        ExecuteMsg::UpdatePaymentCollector { payment_collector } => {
+            execute_update_payment_collector(deps, env, info, payment_collector)
         }
         ExecuteMsg::Pause {} => execute_pause(deps, env, info),
         ExecuteMsg::Unpause {} => execute_unpause(deps, env, info),
@@ -484,7 +484,7 @@ pub fn execute_update_royalty_ratio(
     Ok(res)
 }
 
-pub fn execute_set_admin(
+pub fn execute_update_admin(
     deps: DepsMut,
     _env: Env,
     info: MessageInfo,
@@ -500,12 +500,12 @@ pub fn execute_set_admin(
     AUTH_DETAILS.save(deps.storage, &auth_details)?;
 
     let res = Response::new()
-        .add_attribute("action", "set_admin")
+        .add_attribute("action", "update_admin")
         .add_attribute("admin", admin.to_string());
     Ok(res)
 }
 
-pub fn execute_set_payment_collector(
+pub fn execute_update_payment_collector(
     deps: DepsMut,
     _env: Env,
     info: MessageInfo,
@@ -521,7 +521,7 @@ pub fn execute_set_payment_collector(
     AUTH_DETAILS.save(deps.storage, &auth_details)?;
 
     let res = Response::new()
-        .add_attribute("action", "set_payment_collector")
+        .add_attribute("action", "update_payment_collector")
         .add_attribute("payment_collector", payment_collector.to_string());
     Ok(res)
 }

@@ -31,12 +31,13 @@ pub enum ExecuteMsg {
         preview_uri: Option<String>,
     },
     PurgeDenom {},
-    SetAdmin {
+    UpdateAdmin {
         admin: String,
     },
-    SetPaymentCollector {
+    UpdatePaymentCollector {
         payment_collector: String,
     },
+    BurnRemainingTokens {},
 }
 
 #[cw_serde]
