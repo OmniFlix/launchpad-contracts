@@ -215,3 +215,292 @@ fn query_pausers(deps: Deps, _env: Env) -> Result<Vec<Addr>, ContractError> {
     let pausers = pause_state.pausers.load(deps.storage).unwrap_or(vec![]);
     Ok(pausers)
 }
+
+#[cfg(test)]
+mod round_whitelist_factory_tests {
+    use crate::msg::RoundWhitelistFactoryParams;
+
+    use super::*;
+    use cosmwasm_std::{
+        from_json,
+        testing::{mock_dependencies, mock_env, mock_info},
+        Addr,
+    };
+    use pauser::PauseError;
+
+    #[test]
+    fn test_instantiate() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+        let info = mock_info("creator", &[]);
+        let msg = InstantiateMsg {
+            params: RoundWhitelistFactoryParams {
+                admin: Addr::unchecked("admin"),
+                fee_collector_address: Addr::unchecked("fee_collector_address"),
+                whitelist_creation_fee: Coin::new(100, "uflix"),
+                whitelist_code_id: 1,
+                product_label: "product_label".to_string(),
+            },
+        };
+        let _res = instantiate(deps.as_mut(), env, info, msg).unwrap();
+
+        // Query params
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::Params {}).unwrap();
+        let params: ParamsResponse = from_json(&res).unwrap();
+        assert_eq!(params.params.admin, Addr::unchecked("admin"));
+        assert_eq!(
+            params.params.fee_collector_address,
+            Addr::unchecked("fee_collector_address")
+        );
+        assert_eq!(
+            params.params.whitelist_creation_fee,
+            Coin::new(100, "uflix")
+        );
+        assert_eq!(params.params.whitelist_code_id, 1);
+        assert_eq!(params.params.product_label, "product_label");
+    }
+
+    #[test]
+    fn test_execute_pause_unpause() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+        let info = mock_info("creator", &[]);
+        let msg = InstantiateMsg {
+            params: RoundWhitelistFactoryParams {
+                admin: Addr::unchecked("admin"),
+                fee_collector_address: Addr::unchecked("fee_collector_address"),
+                whitelist_creation_fee: Coin::new(100, "uflix"),
+                whitelist_code_id: 1,
+                product_label: "product_label".to_string(),
+            },
+        };
+        let _res = instantiate(deps.as_mut(), env.clone(), info, msg).unwrap();
+
+        // Non pauser can not pause
+        let info = mock_info("anyone", &[]);
+        let res = execute_pause(deps.as_mut(), env.clone(), info);
+
+        assert_eq!(
+            res.err().unwrap(),
+            ContractError::Pause(PauseError::Unauthorized {
+                sender: Addr::unchecked("anyone")
+            })
+        );
+
+        // Pauser can pause
+        let info = mock_info("admin", &[]);
+        let _res = execute_pause(deps.as_mut(), env.clone(), info).unwrap();
+
+        // Query is_paused
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::IsPaused {}).unwrap();
+        let is_paused: bool = from_json(&res).unwrap();
+        assert_eq!(is_paused, true);
+
+        // Non pauser can not unpause
+        let info = mock_info("anyone", &[]);
+        let res = execute_unpause(deps.as_mut(), env.clone(), info);
+
+        assert_eq!(
+            res.err().unwrap(),
+            ContractError::Pause(PauseError::Unauthorized {
+                sender: Addr::unchecked("anyone")
+            })
+        );
+
+        // Pauser can unpause
+        let info = mock_info("admin", &[]);
+        let _res = execute_unpause(deps.as_mut(), env.clone(), info).unwrap();
+
+        // Query is_paused
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::IsPaused {}).unwrap();
+        let is_paused: bool = from_json(&res).unwrap();
+        assert_eq!(is_paused, false);
+    }
+
+    #[test]
+    fn test_set_pausers() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+        let info = mock_info("creator", &[]);
+        let msg = InstantiateMsg {
+            params: RoundWhitelistFactoryParams {
+                admin: Addr::unchecked("admin"),
+                fee_collector_address: Addr::unchecked("fee_collector_address"),
+                whitelist_creation_fee: Coin::new(100, "uflix"),
+                whitelist_code_id: 1,
+                product_label: "product_label".to_string(),
+            },
+        };
+        let _res = instantiate(deps.as_mut(), env.clone(), info, msg).unwrap();
+
+        // Non admin can not set pausers
+        let info = mock_info("anyone", &[]);
+        let res = set_pausers(deps.as_mut(), env.clone(), info, vec!["anyone".to_string()]);
+
+        assert_eq!(
+            res.err().unwrap(),
+            ContractError::Pause(PauseError::Unauthorized {
+                sender: Addr::unchecked("anyone")
+            })
+        );
+
+        // Admin can set pausers
+        let info = mock_info("admin", &[]);
+        let _res =
+            set_pausers(deps.as_mut(), env.clone(), info, vec!["anyone".to_string()]).unwrap();
+
+        // Query pausers
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::Pausers {}).unwrap();
+        let pausers: Vec<Addr> = from_json(&res).unwrap();
+        assert_eq!(pausers.len(), 1);
+        assert_eq!(pausers[0], Addr::unchecked("anyone"));
+    }
+
+    #[test]
+    fn test_update_admin() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+        let info = mock_info("creator", &[]);
+        let msg = InstantiateMsg {
+            params: RoundWhitelistFactoryParams {
+                admin: Addr::unchecked("admin"),
+                fee_collector_address: Addr::unchecked("fee_collector_address"),
+                whitelist_creation_fee: Coin::new(100, "uflix"),
+                whitelist_code_id: 1,
+                product_label: "product_label".to_string(),
+            },
+        };
+        let _res = instantiate(deps.as_mut(), env.clone(), info, msg).unwrap();
+
+        // Non admin can not update admin
+        let info = mock_info("anyone", &[]);
+        let res = update_admin(deps.as_mut(), env.clone(), info, "anyone".to_string());
+
+        assert_eq!(res.err().unwrap(), ContractError::Unauthorized {});
+
+        // Admin can update admin
+        let info = mock_info("admin", &[]);
+        let _res = update_admin(deps.as_mut(), env.clone(), info, "anyone".to_string()).unwrap();
+
+        // Query params
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::Params {}).unwrap();
+        let params: ParamsResponse = from_json(&res).unwrap();
+        assert_eq!(params.params.admin, Addr::unchecked("anyone"));
+    }
+
+    #[test]
+    fn test_update_fee_collector_address() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+        let info = mock_info("creator", &[]);
+        let msg = InstantiateMsg {
+            params: RoundWhitelistFactoryParams {
+                admin: Addr::unchecked("admin"),
+                fee_collector_address: Addr::unchecked("fee_collector_address"),
+                whitelist_creation_fee: Coin::new(100, "uflix"),
+                whitelist_code_id: 1,
+                product_label: "product_label".to_string(),
+            },
+        };
+        let _res = instantiate(deps.as_mut(), env.clone(), info, msg).unwrap();
+
+        // Non admin can not update fee_collector_address
+        let info = mock_info("anyone", &[]);
+        let res =
+            update_fee_collector_address(deps.as_mut(), env.clone(), info, "anyone".to_string());
+
+        assert_eq!(res.err().unwrap(), ContractError::Unauthorized {});
+
+        // Admin can update fee_collector_address
+        let info = mock_info("admin", &[]);
+        let _res =
+            update_fee_collector_address(deps.as_mut(), env.clone(), info, "anyone".to_string())
+                .unwrap();
+
+        // Query params
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::Params {}).unwrap();
+        let params: ParamsResponse = from_json(&res).unwrap();
+        assert_eq!(
+            params.params.fee_collector_address,
+            Addr::unchecked("anyone")
+        );
+    }
+
+    #[test]
+    fn test_update_whitelist_creation_fee() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+        let info = mock_info("creator", &[]);
+        let msg = InstantiateMsg {
+            params: RoundWhitelistFactoryParams {
+                admin: Addr::unchecked("admin"),
+                fee_collector_address: Addr::unchecked("fee_collector_address"),
+                whitelist_creation_fee: Coin::new(100, "uflix"),
+                whitelist_code_id: 1,
+                product_label: "product_label".to_string(),
+            },
+        };
+        let _res = instantiate(deps.as_mut(), env.clone(), info, msg).unwrap();
+
+        // Non admin can not update whitelist_creation_fee
+        let info = mock_info("anyone", &[]);
+        let res = update_whitelist_creation_fee(
+            deps.as_mut(),
+            env.clone(),
+            info,
+            Coin::new(200, "uflix"),
+        );
+
+        assert_eq!(res.err().unwrap(), ContractError::Unauthorized {});
+
+        // Admin can update whitelist_creation_fee
+        let info = mock_info("admin", &[]);
+        let _res = update_whitelist_creation_fee(
+            deps.as_mut(),
+            env.clone(),
+            info,
+            Coin::new(200, "uflix"),
+        )
+        .unwrap();
+
+        // Query params
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::Params {}).unwrap();
+        let params: ParamsResponse = from_json(&res).unwrap();
+        assert_eq!(
+            params.params.whitelist_creation_fee,
+            Coin::new(200, "uflix")
+        );
+    }
+
+    #[test]
+    fn test_update_whitelist_code_id() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+        let info = mock_info("creator", &[]);
+        let msg = InstantiateMsg {
+            params: RoundWhitelistFactoryParams {
+                admin: Addr::unchecked("admin"),
+                fee_collector_address: Addr::unchecked("fee_collector_address"),
+                whitelist_creation_fee: Coin::new(100, "uflix"),
+                whitelist_code_id: 1,
+                product_label: "product_label".to_string(),
+            },
+        };
+        let _res = instantiate(deps.as_mut(), env.clone(), info, msg).unwrap();
+
+        // Non admin can not update whitelist_code_id
+        let info = mock_info("anyone", &[]);
+        let res = update_whitelist_code_id(deps.as_mut(), env.clone(), info, 2);
+
+        assert_eq!(res.err().unwrap(), ContractError::Unauthorized {});
+
+        // Admin can update whitelist_code_id
+        let info = mock_info("admin", &[]);
+        let _res = update_whitelist_code_id(deps.as_mut(), env.clone(), info, 2).unwrap();
+
+        // Query params
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::Params {}).unwrap();
+        let params: ParamsResponse = from_json(&res).unwrap();
+        assert_eq!(params.params.whitelist_code_id, 2);
+    }
+}

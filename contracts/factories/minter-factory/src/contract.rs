@@ -228,12 +228,13 @@ fn query_pausers(deps: Deps, _env: Env) -> Result<Vec<Addr>, ContractError> {
 }
 
 #[cfg(test)]
-mod tests {
+mod minter_factory_tests {
     use super::*;
     use cosmwasm_std::{
         testing::{mock_dependencies, mock_env, mock_info},
         Addr,
     };
+    use pauser::PauseError;
 
     #[test]
     fn test_instantiate() {
@@ -267,6 +268,344 @@ mod tests {
                 },
                 product_label: "omniflix-nft-minter".to_string(),
             }
+        );
+    }
+    #[test]
+    fn test_update_admin() {
+        let mut deps = mock_dependencies();
+        let msg = InstantiateMsg {
+            params: crate::msg::MinterFactoryParams {
+                admin: Addr::unchecked("admin"),
+                fee_collector_address: Addr::unchecked("fee_collector_address"),
+                minter_code_id: 1,
+                minter_creation_fee: Coin {
+                    amount: Uint128::new(100),
+                    denom: "uusd".to_string(),
+                },
+                product_label: "omniflix-nft-minter".to_string(),
+            },
+        };
+        let info = mock_info("creator", &[]);
+        let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        // query params
+        let params = query_params(deps.as_ref()).unwrap();
+        assert_eq!(
+            params.params,
+            crate::msg::MinterFactoryParams {
+                admin: Addr::unchecked("admin"),
+                fee_collector_address: Addr::unchecked("fee_collector_address"),
+                minter_code_id: 1,
+                minter_creation_fee: Coin {
+                    amount: Uint128::new(100),
+                    denom: "uusd".to_string(),
+                },
+                product_label: "omniflix-nft-minter".to_string(),
+            }
+        );
+        // Non admin cannot update admin
+        let new_admin = "new_admin".to_string();
+        let info = mock_info("non_admin", &[]);
+        let res = update_params_admin(deps.as_mut(), mock_env(), info, new_admin.clone());
+        assert_eq!(res.unwrap_err(), ContractError::Unauthorized {});
+
+        // update admin
+        let new_admin = "new_admin".to_string();
+        let info = mock_info("admin", &[]);
+        let _res = update_params_admin(deps.as_mut(), mock_env(), info, new_admin.clone()).unwrap();
+        let params = query_params(deps.as_ref()).unwrap();
+        assert_eq!(params.params.admin, Addr::unchecked(new_admin));
+    }
+    #[test]
+    fn test_update_fee_collector_address() {
+        let mut deps = mock_dependencies();
+        let msg = InstantiateMsg {
+            params: crate::msg::MinterFactoryParams {
+                admin: Addr::unchecked("admin"),
+                fee_collector_address: Addr::unchecked("fee_collector_address"),
+                minter_code_id: 1,
+                minter_creation_fee: Coin {
+                    amount: Uint128::new(100),
+                    denom: "uusd".to_string(),
+                },
+                product_label: "omniflix-nft-minter".to_string(),
+            },
+        };
+        let info = mock_info("creator", &[]);
+        let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        // query params
+        let params = query_params(deps.as_ref()).unwrap();
+        assert_eq!(
+            params.params,
+            crate::msg::MinterFactoryParams {
+                admin: Addr::unchecked("admin"),
+                fee_collector_address: Addr::unchecked("fee_collector_address"),
+                minter_code_id: 1,
+                minter_creation_fee: Coin {
+                    amount: Uint128::new(100),
+                    denom: "uusd".to_string(),
+                },
+                product_label: "omniflix-nft-minter".to_string(),
+            }
+        );
+        // Non admin cannot update fee_collector_address
+        let new_fee_collector_address = "new_fee_collector_address".to_string();
+        let info = mock_info("non_admin", &[]);
+        let res = update_params_fee_collector_address(
+            deps.as_mut(),
+            mock_env(),
+            info,
+            new_fee_collector_address.clone(),
+        );
+        assert_eq!(res.unwrap_err(), ContractError::Unauthorized {});
+
+        // update fee_collector_address
+        let new_fee_collector_address = "new_fee_collector_address".to_string();
+        let info = mock_info("admin", &[]);
+        let _res = update_params_fee_collector_address(
+            deps.as_mut(),
+            mock_env(),
+            info,
+            new_fee_collector_address.clone(),
+        )
+        .unwrap();
+        let params = query_params(deps.as_ref()).unwrap();
+        assert_eq!(
+            params.params.fee_collector_address,
+            Addr::unchecked(new_fee_collector_address)
+        );
+    }
+
+    #[test]
+    fn test_update_minter_code_id() {
+        let mut deps = mock_dependencies();
+        let msg = InstantiateMsg {
+            params: crate::msg::MinterFactoryParams {
+                admin: Addr::unchecked("admin"),
+                fee_collector_address: Addr::unchecked("fee_collector_address"),
+                minter_code_id: 1,
+                minter_creation_fee: Coin {
+                    amount: Uint128::new(100),
+                    denom: "uusd".to_string(),
+                },
+                product_label: "omniflix-nft-minter".to_string(),
+            },
+        };
+        let info = mock_info("creator", &[]);
+        let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        // query params
+        let params = query_params(deps.as_ref()).unwrap();
+        assert_eq!(
+            params.params,
+            crate::msg::MinterFactoryParams {
+                admin: Addr::unchecked("admin"),
+                fee_collector_address: Addr::unchecked("fee_collector_address"),
+                minter_code_id: 1,
+                minter_creation_fee: Coin {
+                    amount: Uint128::new(100),
+                    denom: "uusd".to_string(),
+                },
+                product_label: "omniflix-nft-minter".to_string(),
+            }
+        );
+        // Non admin cannot update minter_code_id
+        let minter_code_id = 2;
+        let info = mock_info("non_admin", &[]);
+        let res = update_params_minter_code_id(deps.as_mut(), mock_env(), info, minter_code_id);
+        assert_eq!(res.unwrap_err(), ContractError::Unauthorized {});
+
+        // update minter_code_id
+        let minter_code_id = 2;
+        let info = mock_info("admin", &[]);
+        let _res =
+            update_params_minter_code_id(deps.as_mut(), mock_env(), info, minter_code_id).unwrap();
+        let params = query_params(deps.as_ref()).unwrap();
+        assert_eq!(params.params.minter_code_id, minter_code_id);
+    }
+
+    #[test]
+    fn test_update_minter_creation_fee() {
+        let mut deps = mock_dependencies();
+        let msg = InstantiateMsg {
+            params: crate::msg::MinterFactoryParams {
+                admin: Addr::unchecked("admin"),
+                fee_collector_address: Addr::unchecked("fee_collector_address"),
+                minter_code_id: 1,
+                minter_creation_fee: Coin {
+                    amount: Uint128::new(100),
+                    denom: "uusd".to_string(),
+                },
+                product_label: "omniflix-nft-minter".to_string(),
+            },
+        };
+        let info = mock_info("creator", &[]);
+        let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        // query params
+        let params = query_params(deps.as_ref()).unwrap();
+        assert_eq!(
+            params.params,
+            crate::msg::MinterFactoryParams {
+                admin: Addr::unchecked("admin"),
+                fee_collector_address: Addr::unchecked("fee_collector_address"),
+                minter_code_id: 1,
+                minter_creation_fee: Coin {
+                    amount: Uint128::new(100),
+                    denom: "uusd".to_string(),
+                },
+                product_label: "omniflix-nft-minter".to_string(),
+            }
+        );
+        // Non admin cannot update minter_creation_fee
+        let minter_creation_fee = Coin {
+            amount: Uint128::new(200),
+            denom: "uusd".to_string(),
+        };
+        let info = mock_info("non_admin", &[]);
+        let res = update_params_minter_creation_fee(
+            deps.as_mut(),
+            mock_env(),
+            info,
+            minter_creation_fee.clone(),
+        );
+        assert_eq!(res.unwrap_err(), ContractError::Unauthorized {});
+
+        // update minter_creation_fee
+        let minter_creation_fee = Coin {
+            amount: Uint128::new(200),
+            denom: "uusd".to_string(),
+        };
+        let info = mock_info("admin", &[]);
+        let _res = update_params_minter_creation_fee(
+            deps.as_mut(),
+            mock_env(),
+            info,
+            minter_creation_fee.clone(),
+        )
+        .unwrap();
+        let params = query_params(deps.as_ref()).unwrap();
+        assert_eq!(params.params.minter_creation_fee, minter_creation_fee);
+    }
+    #[test]
+    fn test_pause_unpause() {
+        let mut deps = mock_dependencies();
+        let msg = InstantiateMsg {
+            params: crate::msg::MinterFactoryParams {
+                admin: Addr::unchecked("admin"),
+                fee_collector_address: Addr::unchecked("fee_collector_address"),
+                minter_code_id: 1,
+                minter_creation_fee: Coin {
+                    amount: Uint128::new(100),
+                    denom: "uusd".to_string(),
+                },
+                product_label: "omniflix-nft-minter".to_string(),
+            },
+        };
+        let info = mock_info("creator", &[]);
+        let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        // query params
+        let params = query_params(deps.as_ref()).unwrap();
+        assert_eq!(
+            params.params,
+            crate::msg::MinterFactoryParams {
+                admin: Addr::unchecked("admin"),
+                fee_collector_address: Addr::unchecked("fee_collector_address"),
+                minter_code_id: 1,
+                minter_creation_fee: Coin {
+                    amount: Uint128::new(100),
+                    denom: "uusd".to_string(),
+                },
+                product_label: "omniflix-nft-minter".to_string(),
+            }
+        );
+        // Non admin cannot pause
+        let info = mock_info("non_admin", &[]);
+        let res = execute_pause(deps.as_mut(), mock_env(), info);
+        assert_eq!(
+            res.unwrap_err(),
+            ContractError::Pause(PauseError::Unauthorized {
+                sender: Addr::unchecked("non_admin")
+            })
+        );
+
+        // pause
+        let info = mock_info("admin", &[]);
+        let _res = execute_pause(deps.as_mut(), mock_env(), info).unwrap();
+        let is_paused = query_is_paused(deps.as_ref(), mock_env()).unwrap();
+        assert_eq!(is_paused, true);
+
+        // Non admin cannot unpause
+        let info = mock_info("non_admin", &[]);
+        let res = execute_unpause(deps.as_mut(), mock_env(), info);
+        assert_eq!(
+            res.unwrap_err(),
+            ContractError::Pause(PauseError::Unauthorized {
+                sender: Addr::unchecked("non_admin")
+            })
+        );
+
+        // unpause
+        let info = mock_info("admin", &[]);
+        let _res = execute_unpause(deps.as_mut(), mock_env(), info).unwrap();
+        let is_paused = query_is_paused(deps.as_ref(), mock_env()).unwrap();
+        assert_eq!(is_paused, false);
+    }
+
+    #[test]
+    fn test_set_pausers() {
+        let mut deps = mock_dependencies();
+        let msg = InstantiateMsg {
+            params: crate::msg::MinterFactoryParams {
+                admin: Addr::unchecked("admin"),
+                fee_collector_address: Addr::unchecked("fee_collector_address"),
+                minter_code_id: 1,
+                minter_creation_fee: Coin {
+                    amount: Uint128::new(100),
+                    denom: "uusd".to_string(),
+                },
+                product_label: "omniflix-nft-minter".to_string(),
+            },
+        };
+        let info = mock_info("creator", &[]);
+        let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        // query params
+        let params = query_params(deps.as_ref()).unwrap();
+        assert_eq!(
+            params.params,
+            crate::msg::MinterFactoryParams {
+                admin: Addr::unchecked("admin"),
+                fee_collector_address: Addr::unchecked("fee_collector_address"),
+                minter_code_id: 1,
+                minter_creation_fee: Coin {
+                    amount: Uint128::new(100),
+                    denom: "uusd".to_string(),
+                },
+                product_label: "omniflix-nft-minter".to_string(),
+            }
+        );
+        // Non admin cannot set pausers
+        let pausers = vec!["pauser1".to_string(), "pauser2".to_string()];
+        let info = mock_info("non_admin", &[]);
+        let res = set_pausers(deps.as_mut(), mock_env(), info, pausers.clone());
+        assert_eq!(
+            res.unwrap_err(),
+            ContractError::Pause(PauseError::Unauthorized {
+                sender: Addr::unchecked("non_admin")
+            })
+        );
+
+        // set pausers
+        let pausers = vec!["pauser1".to_string(), "pauser2".to_string()];
+        let info = mock_info("admin", &[]);
+        let _res = set_pausers(deps.as_mut(), mock_env(), info, pausers.clone()).unwrap();
+        let pausers = query_pausers(deps.as_ref(), mock_env()).unwrap();
+        assert_eq!(
+            pausers,
+            vec![Addr::unchecked("pauser1"), Addr::unchecked("pauser2")]
         );
     }
 }
