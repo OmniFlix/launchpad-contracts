@@ -143,12 +143,12 @@ export interface OmniflixMinterInterface extends OmniflixMinterReadOnlyInterface
     previewUri?: string;
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   purgeDenom: (fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
-  setAdmin: ({
+  updateAdmin: ({
     admin
   }: {
     admin: string;
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
-  setPaymentCollector: ({
+  updatePaymentCollector: ({
     paymentCollector
   }: {
     paymentCollector: string;
@@ -177,8 +177,8 @@ export class OmniflixMinterClient extends OmniflixMinterQueryClient implements O
     this.updateRoyaltyReceivers = this.updateRoyaltyReceivers.bind(this);
     this.updateDenom = this.updateDenom.bind(this);
     this.purgeDenom = this.purgeDenom.bind(this);
-    this.setAdmin = this.setAdmin.bind(this);
-    this.setPaymentCollector = this.setPaymentCollector.bind(this);
+    this.updateAdmin = this.updateAdmin.bind(this);
+    this.updatePaymentCollector = this.updatePaymentCollector.bind(this);
   }
 
   mint = async (fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
@@ -297,24 +297,24 @@ export class OmniflixMinterClient extends OmniflixMinterQueryClient implements O
       purge_denom: {}
     }, fee, memo, _funds);
   };
-  setAdmin = async ({
+  updateAdmin = async ({
     admin
   }: {
     admin: string;
   }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
-      set_admin: {
+      update_admin: {
         admin
       }
     }, fee, memo, _funds);
   };
-  setPaymentCollector = async ({
+  updatePaymentCollector = async ({
     paymentCollector
   }: {
     paymentCollector: string;
   }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
-      set_payment_collector: {
+      update_payment_collector: {
         payment_collector: paymentCollector
       }
     }, fee, memo, _funds);

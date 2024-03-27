@@ -6,7 +6,7 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { StdFee } from "@cosmjs/amino";
-import { Addr, Timestamp, Uint64, Uint128, InstantiateMsg, Round, Coin, ExecuteMsg, QueryMsg, TupleOfUint32AndRound, String, IsActiveResponse, IsMemberResponse, MembersResponse, MintPriceResponse, ArrayOfTupleOfUint32AndRound } from "./OmniflixRoundWhitelist.types";
+import { Addr, Timestamp, Uint64, Uint128, InstantiateMsg, Round, Coin, ExecuteMsg, QueryMsg, TupleOfUint32AndRound, String, Boolean, ArrayOfString, ArrayOfTupleOfUint32AndRound } from "./OmniflixRoundWhitelist.types";
 export interface OmniflixRoundWhitelistReadOnlyInterface {
   contractAddress: string;
   rounds: () => Promise<ArrayOfTupleOfUint32AndRound>;
@@ -15,7 +15,7 @@ export interface OmniflixRoundWhitelistReadOnlyInterface {
   }: {
     roundIndex: number;
   }) => Promise<Round>;
-  isActive: () => Promise<IsActiveResponse>;
+  isActive: () => Promise<Boolean>;
   activeRound: () => Promise<TupleOfUint32AndRound>;
   members: ({
     limit,
@@ -25,13 +25,13 @@ export interface OmniflixRoundWhitelistReadOnlyInterface {
     limit?: number;
     roundIndex: number;
     startAfter?: string;
-  }) => Promise<MembersResponse>;
-  price: () => Promise<MintPriceResponse>;
+  }) => Promise<ArrayOfString>;
+  price: () => Promise<Coin>;
   isMember: ({
     address
   }: {
     address: string;
-  }) => Promise<IsMemberResponse>;
+  }) => Promise<Boolean>;
   admin: () => Promise<String>;
 }
 export class OmniflixRoundWhitelistQueryClient implements OmniflixRoundWhitelistReadOnlyInterface {
@@ -67,7 +67,7 @@ export class OmniflixRoundWhitelistQueryClient implements OmniflixRoundWhitelist
       }
     });
   };
-  isActive = async (): Promise<IsActiveResponse> => {
+  isActive = async (): Promise<Boolean> => {
     return this.client.queryContractSmart(this.contractAddress, {
       is_active: {}
     });
@@ -85,7 +85,7 @@ export class OmniflixRoundWhitelistQueryClient implements OmniflixRoundWhitelist
     limit?: number;
     roundIndex: number;
     startAfter?: string;
-  }): Promise<MembersResponse> => {
+  }): Promise<ArrayOfString> => {
     return this.client.queryContractSmart(this.contractAddress, {
       members: {
         limit,
@@ -94,7 +94,7 @@ export class OmniflixRoundWhitelistQueryClient implements OmniflixRoundWhitelist
       }
     });
   };
-  price = async (): Promise<MintPriceResponse> => {
+  price = async (): Promise<Coin> => {
     return this.client.queryContractSmart(this.contractAddress, {
       price: {}
     });
@@ -103,7 +103,7 @@ export class OmniflixRoundWhitelistQueryClient implements OmniflixRoundWhitelist
     address
   }: {
     address: string;
-  }): Promise<IsMemberResponse> => {
+  }): Promise<Boolean> => {
     return this.client.queryContractSmart(this.contractAddress, {
       is_member: {
         address

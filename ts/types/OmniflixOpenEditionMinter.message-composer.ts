@@ -54,16 +54,17 @@ export interface OmniflixOpenEditionMinterMsg {
     previewUri?: string;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   purgeDenom: (_funds?: Coin[]) => MsgExecuteContractEncodeObject;
-  setAdmin: ({
+  updateAdmin: ({
     admin
   }: {
     admin: string;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
-  setPaymentCollector: ({
+  updatePaymentCollector: ({
     paymentCollector
   }: {
     paymentCollector: string;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
+  burnRemainingTokens: (_funds?: Coin[]) => MsgExecuteContractEncodeObject;
 }
 export class OmniflixOpenEditionMinterMsgComposer implements OmniflixOpenEditionMinterMsg {
   sender: string;
@@ -83,8 +84,9 @@ export class OmniflixOpenEditionMinterMsgComposer implements OmniflixOpenEdition
     this.updateRoyaltyReceivers = this.updateRoyaltyReceivers.bind(this);
     this.updateDenom = this.updateDenom.bind(this);
     this.purgeDenom = this.purgeDenom.bind(this);
-    this.setAdmin = this.setAdmin.bind(this);
-    this.setPaymentCollector = this.setPaymentCollector.bind(this);
+    this.updateAdmin = this.updateAdmin.bind(this);
+    this.updatePaymentCollector = this.updatePaymentCollector.bind(this);
+    this.burnRemainingTokens = this.burnRemainingTokens.bind(this);
   }
 
   mint = (_funds?: Coin[]): MsgExecuteContractEncodeObject => {
@@ -278,7 +280,7 @@ export class OmniflixOpenEditionMinterMsgComposer implements OmniflixOpenEdition
       })
     };
   };
-  setAdmin = ({
+  updateAdmin = ({
     admin
   }: {
     admin: string;
@@ -289,7 +291,7 @@ export class OmniflixOpenEditionMinterMsgComposer implements OmniflixOpenEdition
         sender: this.sender,
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
-          set_admin: {
+          update_admin: {
             admin
           }
         })),
@@ -297,7 +299,7 @@ export class OmniflixOpenEditionMinterMsgComposer implements OmniflixOpenEdition
       })
     };
   };
-  setPaymentCollector = ({
+  updatePaymentCollector = ({
     paymentCollector
   }: {
     paymentCollector: string;
@@ -308,9 +310,22 @@ export class OmniflixOpenEditionMinterMsgComposer implements OmniflixOpenEdition
         sender: this.sender,
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
-          set_payment_collector: {
+          update_payment_collector: {
             payment_collector: paymentCollector
           }
+        })),
+        funds: _funds
+      })
+    };
+  };
+  burnRemainingTokens = (_funds?: Coin[]): MsgExecuteContractEncodeObject => {
+    return {
+      typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+      value: MsgExecuteContract.fromPartial({
+        sender: this.sender,
+        contract: this.contractAddress,
+        msg: toUtf8(JSON.stringify({
+          burn_remaining_tokens: {}
         })),
         funds: _funds
       })

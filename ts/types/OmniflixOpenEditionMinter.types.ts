@@ -95,13 +95,15 @@ export type ExecuteMsg = {
 } | {
   purge_denom: {};
 } | {
-  set_admin: {
+  update_admin: {
     admin: string;
   };
 } | {
-  set_payment_collector: {
+  update_payment_collector: {
     payment_collector: string;
   };
+} | {
+  burn_remaining_tokens: {};
 };
 export type QueryMsg = {
   collection: {};

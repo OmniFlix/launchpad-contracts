@@ -74,16 +74,6 @@ export type QueryMsg = {
 };
 export type TupleOfUint32AndRound = [number, Round];
 export type String = string;
-export interface IsActiveResponse {
-  is_active: boolean;
-}
-export interface IsMemberResponse {
-  is_member: boolean;
-}
-export interface MembersResponse {
-  members: string[];
-}
-export interface MintPriceResponse {
-  mint_price: Coin;
-}
+export type Boolean = boolean;
+export type ArrayOfString = string[];
 export type ArrayOfTupleOfUint32AndRound = [number, Round][];

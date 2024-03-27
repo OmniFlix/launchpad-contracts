@@ -58,12 +58,12 @@ export interface OmniflixMinterMsg {
     previewUri?: string;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   purgeDenom: (_funds?: Coin[]) => MsgExecuteContractEncodeObject;
-  setAdmin: ({
+  updateAdmin: ({
     admin
   }: {
     admin: string;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
-  setPaymentCollector: ({
+  updatePaymentCollector: ({
     paymentCollector
   }: {
     paymentCollector: string;
@@ -89,8 +89,8 @@ export class OmniflixMinterMsgComposer implements OmniflixMinterMsg {
     this.updateRoyaltyReceivers = this.updateRoyaltyReceivers.bind(this);
     this.updateDenom = this.updateDenom.bind(this);
     this.purgeDenom = this.purgeDenom.bind(this);
-    this.setAdmin = this.setAdmin.bind(this);
-    this.setPaymentCollector = this.setPaymentCollector.bind(this);
+    this.updateAdmin = this.updateAdmin.bind(this);
+    this.updatePaymentCollector = this.updatePaymentCollector.bind(this);
   }
 
   mint = (_funds?: Coin[]): MsgExecuteContractEncodeObject => {
@@ -313,7 +313,7 @@ export class OmniflixMinterMsgComposer implements OmniflixMinterMsg {
       })
     };
   };
-  setAdmin = ({
+  updateAdmin = ({
     admin
   }: {
     admin: string;
@@ -324,7 +324,7 @@ export class OmniflixMinterMsgComposer implements OmniflixMinterMsg {
         sender: this.sender,
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
-          set_admin: {
+          update_admin: {
             admin
           }
         })),
@@ -332,7 +332,7 @@ export class OmniflixMinterMsgComposer implements OmniflixMinterMsg {
       })
     };
   };
-  setPaymentCollector = ({
+  updatePaymentCollector = ({
     paymentCollector
   }: {
     paymentCollector: string;
@@ -343,7 +343,7 @@ export class OmniflixMinterMsgComposer implements OmniflixMinterMsg {
         sender: this.sender,
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
-          set_payment_collector: {
+          update_payment_collector: {
             payment_collector: paymentCollector
           }
         })),
