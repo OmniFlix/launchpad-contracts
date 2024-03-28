@@ -4,7 +4,9 @@ use cosmwasm_std::{
     CheckedFromRatioError, Coin, ConversionOverflowError, StdError, Timestamp, Uint128,
 };
 use cw_utils::PaymentError;
-use minter_types::types::{CollectionDetailsError, ConfigurationError, TokenDetailsError};
+use minter_types::types::{
+    CollectionDetailsError, ConfigurationError, MigrationNftError, TokenDetailsError,
+};
 use pauser::PauseError;
 use serde_json::Error as SerdeError;
 use thiserror::Error;
@@ -103,6 +105,18 @@ pub enum ContractError {
 
     #[error("Migration data not found")]
     MigrationDataNotFound {},
+
+    #[error("Migration data too large")]
+    MigrationDataTooLarge {},
+
+    #[error("Migration NFT error")]
+    MigrationNftError(#[from] MigrationNftError),
+
+    #[error("Duplicate user address")]
+    DuplicateUserAddress {},
+
+    #[error("Migration minted count is invalid")]
+    InvalidMigrationMintedCount {},
 }
 
 impl From<ContractError> for StdError {

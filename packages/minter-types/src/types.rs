@@ -1,6 +1,7 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, Coin, Decimal, Timestamp};
+use cosmwasm_std::{Addr, Coin, Decimal, Deps, Timestamp};
 use omniflix_std::types::omniflix::onft::v1beta1::WeightedAddress;
+use serde::de;
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq)]
@@ -32,11 +33,6 @@ pub enum ConfigurationError {
     InvalidWhitelistAddress {},
     #[error("Invalid number of tokens")]
     InvalidNumberOfTokens {},
-}
-#[derive(Error, Debug, PartialEq)]
-pub enum MigrationError {
-    #[error("Invalid token id")]
-    InvalidTokenId {},
 }
 
 #[derive(Error, Debug, PartialEq)]
@@ -251,25 +247,30 @@ pub struct MigrationNftData {
 }
 
 impl MigrationNftData {
-    pub fn check_integrity(&self) -> Result<(), TokenDetailsError> {
+    pub fn check_integrity(&self) -> Result<(), MigrationNftError> {
         if self.royalty_share < Decimal::zero() || self.royalty_share > Decimal::one() {
-            return Err(TokenDetailsError::InvalidRoyaltyRatio {});
+            return Err(MigrationNftError::InvalidRoyaltyRatio {});
         }
         if self.media_uri.chars().count() > 256 {
-            return Err(TokenDetailsError::BaseTokenUriTooLong {});
+            return Err(MigrationNftError::BaseTokenUriTooLong {});
         }
         if let Some(preview_uri) = &self.preview_uri {
             if preview_uri.chars().count() > 256 {
-                return Err(TokenDetailsError::PreviewUriTooLong {});
+                return Err(MigrationNftError::PreviewUriTooLong {});
             }
         }
         if let Some(description) = &self.description {
             if description.chars().count() > 4096 {
-                return Err(TokenDetailsError::TokenDescriptionTooLong {});
+                return Err(MigrationNftError::TokenDescriptionTooLong {});
             }
         }
         if self.token_name.chars().count() > 256 {
-            return Err(TokenDetailsError::TokenNameTooLong {});
+            return Err(MigrationNftError::TokenNameTooLong {});
+        }
+        if let Some(data) = &self.data {
+            if data.chars().count() > 4096 {
+                return Err(MigrationNftError::DataTooLong {});
+            }
         }
         Ok(())
     }
@@ -289,6 +290,25 @@ pub struct NftData {
 
 #[cw_serde]
 pub struct MigrationData {
-    pub tokens: Vec<Token>,
-    pub users: Vec<(Addr, UserDetails)>,
+    pub mintable_tokens: Vec<Token>,
+    pub users_data: Vec<(Addr, UserDetails)>,
+    pub minted_count: u32,
+}
+
+#[derive(Error, Debug, PartialEq)]
+pub enum MigrationNftError {
+    #[error("Invalid royalty ratio")]
+    InvalidRoyaltyRatio {},
+    #[error("Base token uri too long")]
+    BaseTokenUriTooLong {},
+    #[error("Preview uri too long")]
+    PreviewUriTooLong {},
+    #[error("Token description too long")]
+    TokenDescriptionTooLong {},
+    #[error("Token name too long")]
+    TokenNameTooLong {},
+    #[error("Data too long")]
+    DataTooLong {},
+    #[error("Invalid token migration data")]
+    InvalidTokenMigrationData {},
 }
