@@ -198,3 +198,8 @@ pub struct NftData {
     pub creator_token_data: String,
     pub multi_mint_data: Option<MultiMintData>,
 }
+
+#[cw_serde]
+pub struct MigrationData {
+    pub tokens: Vec<Token>,
+}
