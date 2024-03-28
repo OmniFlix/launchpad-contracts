@@ -41,7 +41,7 @@ use omniflix_std::types::omniflix::onft::v1beta1::{MsgPurgeDenom, WeightedAddres
 const CONTRACT_NAME: &str = "crates.io:omniflix-minter";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
-pub fn instantiate(
+pub fn default_instantiate(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,

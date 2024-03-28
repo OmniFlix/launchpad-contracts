@@ -33,6 +33,31 @@ pub enum ConfigurationError {
     #[error("Invalid number of tokens")]
     InvalidNumberOfTokens {},
 }
+#[derive(Error, Debug, PartialEq)]
+pub enum MigrationError {
+    #[error("Invalid token id")]
+    InvalidTokenId {},
+}
+
+#[derive(Error, Debug, PartialEq)]
+pub enum CollectionDetailsError {
+    #[error("Invalid collection name")]
+    InvalidCollectionName {},
+    #[error("Invalid symbol")]
+    InvalidSymbol {},
+    #[error("Invalid description")]
+    InvalidDescription {},
+    #[error("Invalid preview uri")]
+    InvalidPreviewUri {},
+    #[error("Invalid schema")]
+    InvalidSchema {},
+    #[error("Invalid uri")]
+    InvalidUri {},
+    #[error("Invalid uri hash")]
+    InvalidUriHash {},
+    #[error("Invalid data")]
+    InvalidData {},
+}
 
 #[cw_serde]
 pub struct TokenDetails {
@@ -52,6 +77,20 @@ pub struct TokenDetails {
     pub preview_uri: Option<String>,
 }
 impl TokenDetails {
+    pub fn default() -> Self {
+        TokenDetails {
+            token_name: "".to_string(),
+            data: None,
+            description: None,
+            transferable: false,
+            extensible: false,
+            nsfw: false,
+            royalty_ratio: Decimal::zero(),
+            base_token_uri: "".to_string(),
+            preview_uri: None,
+        }
+    }
+
     pub fn check_integrity(&self) -> Result<(), TokenDetailsError> {
         if self.royalty_ratio < Decimal::zero() || self.royalty_ratio > Decimal::one() {
             return Err(TokenDetailsError::InvalidRoyaltyRatio {});
@@ -95,6 +134,55 @@ pub struct CollectionDetails {
     pub id: String,
     // FE: Collection:"Baby Tardigrades" each token name "Baby Tardigrade" #token_id
     pub royalty_receivers: Option<Vec<WeightedAddress>>,
+}
+
+// TODO : Validate values bellow
+impl CollectionDetails {
+    pub fn check_integrity(&self) -> Result<(), CollectionDetailsError> {
+        if self.collection_name.chars().count() > 256 {
+            return Err(CollectionDetailsError::InvalidCollectionName {});
+        }
+        if self.symbol.chars().count() > 256 {
+            return Err(CollectionDetailsError::InvalidSymbol {});
+        }
+
+        if let Some(description) = &self.description {
+            if description.chars().count() > 4096 {
+                return Err(CollectionDetailsError::InvalidDescription {});
+            }
+        }
+
+        if let Some(preview_uri) = &self.preview_uri {
+            if preview_uri.chars().count() > 256 {
+                return Err(CollectionDetailsError::InvalidPreviewUri {});
+            }
+        }
+
+        if let Some(schema) = &self.schema {
+            if schema.chars().count() > 256 {
+                return Err(CollectionDetailsError::InvalidSchema {});
+            }
+        }
+
+        if let Some(uri) = &self.uri {
+            if uri.chars().count() > 256 {
+                return Err(CollectionDetailsError::InvalidUri {});
+            }
+        }
+
+        if let Some(uri_hash) = &self.uri_hash {
+            if uri_hash.chars().count() > 256 {
+                return Err(CollectionDetailsError::InvalidUriHash {});
+            }
+        }
+
+        if let Some(data) = &self.data {
+            if data.chars().count() > 4096 {
+                return Err(CollectionDetailsError::InvalidData {});
+            }
+        }
+        Ok(())
+    }
 }
 
 #[cw_serde]
@@ -202,4 +290,5 @@ pub struct NftData {
 #[cw_serde]
 pub struct MigrationData {
     pub tokens: Vec<Token>,
+    pub users: Vec<(Addr, UserDetails)>,
 }
