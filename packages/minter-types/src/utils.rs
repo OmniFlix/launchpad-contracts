@@ -1,7 +1,10 @@
 use crate::types::{CollectionDetails, MultiMintData, NftData, TokenDetails};
-use cosmwasm_std::{Addr, Coin, Decimal, QuerierWrapper, StdError, Uint128};
-use omniflix_std::types::omniflix::onft::v1beta1::{
-    Metadata, MsgCreateDenom, MsgMintOnft, MsgUpdateDenom, OnftQuerier, WeightedAddress,
+use cosmwasm_std::{Addr, Coin, CosmosMsg, Decimal, QuerierWrapper, StdError, Uint128};
+use omniflix_std::types::{
+    cosmos::authz::v1beta1::MsgExec,
+    omniflix::onft::v1beta1::{
+        Metadata, MsgCreateDenom, MsgMintOnft, MsgUpdateDenom, OnftQuerier, WeightedAddress,
+    },
 };
 use std::str::FromStr;
 
@@ -11,7 +14,8 @@ pub fn generate_minter_mint_message(
     token_id: String,
     minter_address: Addr,
     recipient: Addr,
-) -> Result<MsgMintOnft, serde_json::Error> {
+    is_authz: bool,
+) -> Result<CosmosMsg, serde_json::Error> {
     let data = NftData {
         creator_token_data: token_details.data.clone().unwrap_or("".to_string()),
         multi_mint_data: None,
@@ -31,19 +35,41 @@ pub fn generate_minter_mint_message(
         ),
         uri_hash: collection.uri_hash.clone().unwrap_or("".to_string()),
     };
-
-    Ok(MsgMintOnft {
-        data: json_data,
-        id: token_id,
-        metadata: Some(metadata),
-        denom_id: collection.id.clone(),
-        transferable: token_details.transferable,
-        sender: minter_address.into_string(),
-        extensible: token_details.extensible,
-        nsfw: token_details.nsfw,
-        recipient: recipient.clone().into_string(),
-        royalty_share: token_details.royalty_ratio.atomics().to_string(),
-    })
+    match is_authz {
+        false => Ok(MsgMintOnft {
+            data: json_data,
+            id: token_id,
+            metadata: Some(metadata),
+            denom_id: collection.id.clone(),
+            transferable: token_details.transferable,
+            sender: minter_address.into_string(),
+            extensible: token_details.extensible,
+            nsfw: token_details.nsfw,
+            recipient: recipient.clone().into_string(),
+            royalty_share: token_details.royalty_ratio.atomics().to_string(),
+        }
+        .into()),
+        true => {
+            let mint_msg = MsgMintOnft {
+                data: json_data,
+                id: token_id,
+                metadata: Some(metadata),
+                denom_id: collection.id.clone(),
+                transferable: token_details.transferable,
+                sender: minter_address.into_string(),
+                extensible: token_details.extensible,
+                nsfw: token_details.nsfw,
+                recipient: recipient.clone().into_string(),
+                royalty_share: token_details.royalty_ratio.atomics().to_string(),
+            }
+            .to_any();
+            let authz_exec_msg = MsgExec {
+                grantee: recipient.into_string(),
+                msgs: vec![mint_msg],
+            };
+            Ok(authz_exec_msg.into())
+        }
+    }
 }
 
 pub fn generate_oem_mint_message(

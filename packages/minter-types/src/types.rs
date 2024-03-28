@@ -1,7 +1,6 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Coin, Decimal, Timestamp};
 use omniflix_std::types::omniflix::onft::v1beta1::WeightedAddress;
-use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq)]
@@ -147,16 +146,29 @@ pub struct UserDetails {
 #[cw_serde]
 pub struct Token {
     pub token_id: String,
+    pub migration_nft_data: Option<MigrationNftData>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[cw_serde]
+pub struct MigrationNftData {
+    pub token_name: String,
+    pub description: Option<String>,
+    pub media_uri: String,
+    pub preview_uri: Option<String>,
+    pub data: Option<String>,
+    pub transferable: bool,
+    pub extensible: bool,
+    pub royalty_share: Decimal,
+    pub nsfw: bool,
+}
+
+#[cw_serde]
 pub struct MultiMintData {
     pub token_name: String,
     pub drop_id: String,
     pub drop_token_id: String,
 }
-
-#[derive(Debug, Serialize, Deserialize)]
+#[cw_serde]
 pub struct NftData {
     pub creator_token_data: String,
     pub multi_mint_data: Option<MultiMintData>,
