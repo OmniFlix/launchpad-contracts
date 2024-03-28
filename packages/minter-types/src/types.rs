@@ -162,6 +162,31 @@ pub struct MigrationNftData {
     pub nsfw: bool,
 }
 
+impl MigrationNftData {
+    pub fn check_integrity(&self) -> Result<(), TokenDetailsError> {
+        if self.royalty_share < Decimal::zero() || self.royalty_share > Decimal::one() {
+            return Err(TokenDetailsError::InvalidRoyaltyRatio {});
+        }
+        if self.media_uri.chars().count() > 256 {
+            return Err(TokenDetailsError::BaseTokenUriTooLong {});
+        }
+        if let Some(preview_uri) = &self.preview_uri {
+            if preview_uri.chars().count() > 256 {
+                return Err(TokenDetailsError::PreviewUriTooLong {});
+            }
+        }
+        if let Some(description) = &self.description {
+            if description.chars().count() > 4096 {
+                return Err(TokenDetailsError::TokenDescriptionTooLong {});
+            }
+        }
+        if self.token_name.chars().count() > 256 {
+            return Err(TokenDetailsError::TokenNameTooLong {});
+        }
+        Ok(())
+    }
+}
+
 #[cw_serde]
 pub struct MultiMintData {
     pub token_name: String,
