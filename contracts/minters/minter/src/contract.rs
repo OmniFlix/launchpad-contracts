@@ -10,13 +10,15 @@ use cosmwasm_std::{
     to_json_binary, Addr, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo, Order,
     Response, StdResult, Uint128, WasmMsg,
 };
-use cw_utils::{may_pay, maybe_addr, must_pay, nonpayable};
+use cw_utils::{may_pay, nonpayable};
+use minter_types::collection_details::CollectionDetails;
+use minter_types::config::Config;
+use minter_types::token_details::{Token, TokenDetails};
 use minter_types::utils::{
-    check_collection_creation_fee, generate_create_denom_msg, generate_minter_mint_message,
-    generate_update_denom_msg, update_collection_details,
+    generate_minter_mint_message, generate_update_denom_msg, update_collection_details,
 };
-use omniflix_minter_factory::msg::QueryMsg::Params as QueryFactoryParams;
-use omniflix_minter_factory::msg::{CreateMinterMsg, ParamsResponse};
+
+use omniflix_minter_factory::msg::CreateMinterMsg;
 use omniflix_round_whitelist::msg::ExecuteMsg::PrivateMint;
 use whitelist_types::{
     check_if_address_is_member, check_if_whitelist_is_active, check_whitelist_price,
@@ -27,13 +29,9 @@ use crate::state::{
     AUTH_DETAILS, COLLECTION, CONFIG, MINTABLE_TOKENS, TOKEN_DETAILS, TOTAL_TOKENS_REMAINING,
     USER_MINTING_DETAILS,
 };
-use crate::utils::{
-    collect_mintable_tokens, generate_tokens, randomize_token_list, return_random_token,
-};
+use crate::utils::{collect_mintable_tokens, randomize_token_list, return_random_token};
 use minter_types::msg::QueryMsg as BaseMinterQueryMsg;
-use minter_types::types::{
-    AuthDetails, CollectionDetails, Config, Token, TokenDetails, UserDetails,
-};
+use minter_types::types::{AuthDetails, UserDetails};
 use pauser::PauseState;
 
 use cw2::set_contract_version;
@@ -52,8 +50,8 @@ pub fn handle_instantiation(
 ) -> Result<Response, ContractError> {
     // Set contract version
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
-    match msg.migration_data {
-        Some(migration_data) => instantiate_with_migration(deps, env, info, migration_data),
+    match msg.clone().migration_data {
+        Some(_migration_data) => instantiate_with_migration(deps, env, info, msg),
         None => default_instantiate(deps, env, info, msg),
     }
 }
@@ -224,7 +222,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
         Ok(total_tokens)
     })?;
 
-    let token_id = random_token.1.token_id;
+    let token_id = random_token.1.clone().token_id;
 
     // Generate mint message
     let mint_msg: CosmosMsg = generate_minter_mint_message(
@@ -233,6 +231,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
         token_id.clone(),
         env.contract.address,
         info.sender,
+        random_token.1.clone(),
     )?
     .into();
 
@@ -323,7 +322,7 @@ pub fn execute_mint_admin(
     // Save user details
     USER_MINTING_DETAILS.save(deps.storage, recipient.clone(), &user_details)?;
 
-    let token_id = token.1.token_id;
+    let token_id = token.1.clone().token_id;
 
     // Generate mint message
     let mint_msg: CosmosMsg = generate_minter_mint_message(
@@ -332,6 +331,7 @@ pub fn execute_mint_admin(
         token_id.clone(),
         env.contract.address,
         recipient.clone(),
+        token.1.clone(),
     )?
     .into();
 

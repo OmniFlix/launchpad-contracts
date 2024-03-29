@@ -2,7 +2,8 @@ use cosmwasm_std::Addr;
 use cosmwasm_std::{coin, to_json_binary, BlockInfo, QueryRequest, Timestamp, Uint128, WasmQuery};
 use cw_multi_test::Executor;
 
-use minter_types::types::{Token, UserDetails};
+use minter_types::token_details::Token;
+use minter_types::types::UserDetails;
 
 use minter_types::msg::QueryMsg;
 

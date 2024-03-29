@@ -5,10 +5,11 @@ use cosmwasm_std::{
     MessageInfo, Response, StdResult, WasmMsg,
 };
 use cw_utils::{may_pay, maybe_addr, must_pay, nonpayable};
+use minter_types::collection_details::CollectionDetails;
+use minter_types::config::Config;
 use minter_types::msg::QueryMsg as BaseMinterQueryMsg;
-use minter_types::types::{
-    AuthDetails, CollectionDetails, Config, Token, TokenDetails, UserDetails,
-};
+use minter_types::token_details::{Token, TokenDetails};
+use minter_types::types::{AuthDetails, UserDetails};
 use minter_types::utils::{
     check_collection_creation_fee, generate_create_denom_msg, generate_oem_mint_message,
     generate_update_denom_msg, update_collection_details,
@@ -219,6 +220,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     // Update user's minted tokens list
     user_details.minted_tokens.push(Token {
         token_id: token_id.to_string(),
+        migration_nft_data: None,
     });
 
     let mut mint_price = config.mint_price;
@@ -388,6 +390,7 @@ pub fn execute_mint_admin(
     // Update user's minted tokens list
     user_details.minted_tokens.push(Token {
         token_id: token_id.to_string(),
+        migration_nft_data: None,
     });
 
     // Save updated user details

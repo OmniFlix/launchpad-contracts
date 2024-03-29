@@ -2,7 +2,11 @@
 use cosmwasm_std::{coin, Addr, BlockInfo, Coin, StdError, Timestamp};
 
 use cw_multi_test::Executor;
-use minter_types::types::{AuthDetails, Config, TokenDetails, TokenDetailsError};
+use minter_types::types::AuthDetails;
+
+use minter_types::config::Config;
+use minter_types::token_details::{TokenDetails, TokenDetailsError};
+
 use omniflix_open_edition_minter_factory::msg::ExecuteMsg as OpenEditionMinterFactoryExecuteMsg;
 use whitelist_types::CreateWhitelistMsg;
 

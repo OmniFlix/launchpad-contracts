@@ -2,9 +2,13 @@
 use cosmwasm_std::{coin, Addr, BlockInfo, Timestamp};
 use cosmwasm_std::{Decimal, StdError};
 use cw_multi_test::Executor;
+use minter_types::collection_details::CollectionDetails;
+use minter_types::config::{Config, ConfigurationError};
 use minter_types::msg::QueryMsg as CommonMinterQueryMsg;
-use minter_types::types::{CollectionDetails, Config, ConfigurationError, UserDetails};
-use minter_types::types::{TokenDetails, TokenDetailsError};
+use minter_types::token_details::{TokenDetails, TokenDetailsError};
+
+use minter_types::types::UserDetails;
+
 use omniflix_multi_mint_open_edition_minter::error::ContractError as MultiMintOpenEditionMinterContractError;
 use omniflix_multi_mint_open_edition_minter::msg::ExecuteMsg as MultiMintOpenEditionMinterExecuteMsg;
 use omniflix_multi_mint_open_edition_minter::msg::QueryMsgExtension as MultiMintOpenEditionMinterQueryMsgExtension;
@@ -70,6 +74,7 @@ fn remove_drop() {
     let multi_minter_inst_msg = MultiMinterCreateMsg {
         collection_details,
         init,
+        migration_data: None,
         token_details: None,
     };
 
@@ -425,6 +430,7 @@ fn remove_first_drop() {
 
     let multi_minter_inst_msg = MultiMinterCreateMsg {
         collection_details,
+        migration_data: None,
         init,
         token_details: None,
     };
@@ -603,6 +609,7 @@ fn add_drop() {
     };
 
     let multi_minter_inst_msg = MultiMinterCreateMsg {
+        migration_data: None,
         collection_details,
         init,
         token_details: None,
@@ -981,6 +988,7 @@ fn update_mint_price() {
     let multi_minter_inst_msg = MultiMinterCreateMsg {
         collection_details,
         init,
+        migration_data: None,
         token_details: None,
     };
 
@@ -1166,6 +1174,7 @@ fn update_royalty_ratio() {
     let multi_minter_inst_msg = MultiMinterCreateMsg {
         collection_details,
         init,
+        migration_data: None,
         token_details: None,
     };
 

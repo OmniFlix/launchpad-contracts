@@ -1,7 +1,7 @@
 use cosmwasm_std::{coins, Addr, BlockInfo, Timestamp};
 use cw_multi_test::ContractWrapper;
 use omniflix_minter::contract::{
-    execute as minter_execute, instantiate as minter_instantiate, query as minter_query,
+    execute as minter_execute, handle_instantiation as minter_instantiate, query as minter_query,
 };
 use omniflix_minter_factory::contract::{
     execute as factory_execute, instantiate as factory_instantiate, query as factory_query,

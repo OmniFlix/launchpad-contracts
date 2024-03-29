@@ -3,10 +3,10 @@ use cosmwasm_std::{coin, to_json_binary, Decimal, QueryRequest, Timestamp, Uint1
 use cosmwasm_std::{BlockInfo, Empty};
 use cw_multi_test::Executor;
 use factory_types::CustomPaymentError;
-use minter_types::types::{ConfigurationError, Token, TokenDetails, TokenDetailsError};
-
 use minter_types::msg::QueryMsg;
-use minter_types::types::Config as MinterConfig;
+
+use minter_types::config::{Config as MinterConfig, ConfigurationError};
+use minter_types::token_details::{Token, TokenDetails, TokenDetailsError};
 
 use omniflix_minter_factory::msg::ExecuteMsg as FactoryExecuteMsg;
 use whitelist_types::CreateWhitelistMsg;

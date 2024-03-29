@@ -1,41 +1,21 @@
-use std::env;
-use std::str::FromStr;
-
-use crate::msg::{ExecuteMsg, MinterExtensionQueryMsg};
-#[cfg(not(feature = "library"))]
-use cosmwasm_std::entry_point;
-use cosmwasm_std::{
-    to_json_binary, Addr, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo, Order,
-    Response, StdResult, Uint128, WasmMsg,
-};
-use cw_utils::{may_pay, maybe_addr, must_pay, nonpayable};
-use minter_types::utils::{
-    check_collection_creation_fee, generate_create_denom_msg, generate_minter_mint_message,
-    generate_update_denom_msg, update_collection_details,
-};
+use cosmwasm_std::{Coin, CosmosMsg, DepsMut, Env, MessageInfo, Response};
+use cw_utils::{maybe_addr, must_pay};
+use minter_types::config::Config;
+use minter_types::utils::{check_collection_creation_fee, generate_create_denom_msg};
 use omniflix_minter_factory::msg::QueryMsg::Params as QueryFactoryParams;
 use omniflix_minter_factory::msg::{CreateMinterMsg, ParamsResponse};
-use omniflix_round_whitelist::msg::ExecuteMsg::PrivateMint;
-use whitelist_types::{
-    check_if_address_is_member, check_if_whitelist_is_active, check_whitelist_price,
-};
+use std::env;
+use whitelist_types::check_if_whitelist_is_active;
 
 use crate::error::ContractError;
 use crate::state::{
     AUTH_DETAILS, COLLECTION, CONFIG, MINTABLE_TOKENS, TOKEN_DETAILS, TOTAL_TOKENS_REMAINING,
-    USER_MINTING_DETAILS,
 };
-use crate::utils::{
-    collect_mintable_tokens, generate_tokens, randomize_token_list, return_random_token,
-};
-use minter_types::msg::QueryMsg as BaseMinterQueryMsg;
-use minter_types::types::{
-    AuthDetails, CollectionDetails, Config, Token, TokenDetails, UserDetails,
-};
+use crate::utils::{generate_tokens, randomize_token_list};
+use minter_types::types::AuthDetails;
 use pauser::PauseState;
 
 use cw2::set_contract_version;
-use omniflix_std::types::omniflix::onft::v1beta1::{MsgPurgeDenom, WeightedAddress};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:omniflix-minter";

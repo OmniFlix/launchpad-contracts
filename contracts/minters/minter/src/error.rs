@@ -4,8 +4,10 @@ use cosmwasm_std::{
     CheckedFromRatioError, Coin, ConversionOverflowError, StdError, Timestamp, Uint128,
 };
 use cw_utils::PaymentError;
-use minter_types::types::{
-    CollectionDetailsError, ConfigurationError, MigrationNftError, TokenDetailsError,
+use minter_types::{
+    collection_details::CollectionDetailsError,
+    config::ConfigurationError,
+    token_details::{MigrationNftError, TokenDetailsError},
 };
 use pauser::PauseError;
 use serde_json::Error as SerdeError;
@@ -27,6 +29,9 @@ pub enum ContractError {
 
     #[error(transparent)]
     CollectionDetailsError(#[from] CollectionDetailsError),
+
+    #[error("Migration NFT error")]
+    MigrationNftError(#[from] MigrationNftError),
 
     #[error("Unauthorized")]
     Unauthorized {},
@@ -108,9 +113,6 @@ pub enum ContractError {
 
     #[error("Migration data too large")]
     MigrationDataTooLarge {},
-
-    #[error("Migration NFT error")]
-    MigrationNftError(#[from] MigrationNftError),
 
     #[error("Duplicate user address")]
     DuplicateUserAddress {},

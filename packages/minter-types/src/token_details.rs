@@ -1,0 +1,169 @@
+use cosmwasm_schema::cw_serde;
+use cosmwasm_std::{Addr, Decimal};
+use thiserror::Error;
+
+use crate::types::UserDetails;
+
+#[derive(Error, Debug, PartialEq)]
+pub enum TokenDetailsError {
+    #[error("Invalid royalty ratio")]
+    InvalidRoyaltyRatio {},
+    #[error("Base token uri too long")]
+    BaseTokenUriTooLong {},
+    #[error("Preview uri too long")]
+    PreviewUriTooLong {},
+    #[error("Token description too long")]
+    TokenDescriptionTooLong {},
+    #[error("Token name too long")]
+    TokenNameTooLong {},
+    #[error("Data too long")]
+    DataTooLong {},
+}
+
+#[cw_serde]
+pub struct TokenDetails {
+    // Name of each individual token
+    // FE: Collection:{collection_name: "Baby Tardigrades", description: "Collection of Baby Tardigrades"},
+    // Each Token{token_name: "Baby Tardigrade",description: "Baby Tardigrade from Baby Tardigrades collection"}
+    pub token_name: String,
+    pub data: Option<String>,
+    pub description: Option<String>,
+    pub transferable: bool,
+    pub extensible: bool,
+    pub nsfw: bool,
+    pub royalty_ratio: Decimal,
+    // Base token uri. It will be used as the base_token_uri+token_id. Its expected to be a json file of token details.
+    pub base_token_uri: String,
+    // Preview_uri is used for the preview of the token. If provided, it will be used as the preview_uri+token_id
+    pub preview_uri: Option<String>,
+}
+impl TokenDetails {
+    pub fn default() -> Self {
+        TokenDetails {
+            token_name: "".to_string(),
+            data: None,
+            description: None,
+            transferable: false,
+            extensible: false,
+            nsfw: false,
+            royalty_ratio: Decimal::zero(),
+            base_token_uri: "".to_string(),
+            preview_uri: None,
+        }
+    }
+
+    pub fn check_integrity(&self) -> Result<(), TokenDetailsError> {
+        if self.royalty_ratio < Decimal::zero() || self.royalty_ratio > Decimal::one() {
+            return Err(TokenDetailsError::InvalidRoyaltyRatio {});
+        }
+        if self.base_token_uri.chars().count() > 256 {
+            return Err(TokenDetailsError::BaseTokenUriTooLong {});
+        }
+        if let Some(preview_uri) = &self.preview_uri {
+            if preview_uri.chars().count() > 256 {
+                return Err(TokenDetailsError::PreviewUriTooLong {});
+            }
+        }
+        if let Some(description) = &self.description {
+            if description.chars().count() > 4096 {
+                return Err(TokenDetailsError::TokenDescriptionTooLong {});
+            }
+        }
+        if self.token_name.chars().count() > 256 {
+            return Err(TokenDetailsError::TokenNameTooLong {});
+        }
+
+        if let Some(data) = &self.data {
+            if data.chars().count() > 4096 {
+                return Err(TokenDetailsError::DataTooLong {});
+            }
+        }
+        Ok(())
+    }
+}
+
+#[cw_serde]
+pub struct Token {
+    pub token_id: String,
+    pub migration_nft_data: Option<MigrationNftData>,
+}
+
+#[cw_serde]
+pub struct MigrationNftData {
+    pub token_name: String,
+    pub description: Option<String>,
+    pub media_uri: String,
+    pub preview_uri: Option<String>,
+    pub data: Option<String>,
+    pub transferable: bool,
+    pub extensible: bool,
+    pub royalty_share: Decimal,
+    pub nsfw: bool,
+}
+
+impl MigrationNftData {
+    pub fn check_integrity(&self) -> Result<(), MigrationNftError> {
+        if self.royalty_share < Decimal::zero() || self.royalty_share > Decimal::one() {
+            return Err(MigrationNftError::InvalidRoyaltyRatio {});
+        }
+        if self.media_uri.chars().count() > 256 {
+            return Err(MigrationNftError::BaseTokenUriTooLong {});
+        }
+        if let Some(preview_uri) = &self.preview_uri {
+            if preview_uri.chars().count() > 256 {
+                return Err(MigrationNftError::PreviewUriTooLong {});
+            }
+        }
+        if let Some(description) = &self.description {
+            if description.chars().count() > 4096 {
+                return Err(MigrationNftError::TokenDescriptionTooLong {});
+            }
+        }
+        if self.token_name.chars().count() > 256 {
+            return Err(MigrationNftError::TokenNameTooLong {});
+        }
+        if let Some(data) = &self.data {
+            if data.chars().count() > 4096 {
+                return Err(MigrationNftError::DataTooLong {});
+            }
+        }
+        Ok(())
+    }
+}
+
+#[cw_serde]
+pub struct MultiMintData {
+    pub token_name: String,
+    pub drop_id: String,
+    pub drop_token_id: String,
+}
+#[cw_serde]
+pub struct NftData {
+    pub creator_token_data: String,
+    pub multi_mint_data: Option<MultiMintData>,
+}
+
+#[cw_serde]
+pub struct MigrationData {
+    pub mintable_tokens: Vec<Token>,
+    pub users_data: Vec<(Addr, UserDetails)>,
+    pub minted_count: u32,
+}
+
+#[derive(Error, Debug, PartialEq)]
+pub enum MigrationNftError {
+    #[error("Invalid royalty ratio")]
+    InvalidRoyaltyRatio {},
+    #[error("Base token uri too long")]
+    BaseTokenUriTooLong {},
+    #[error("Preview uri too long")]
+    PreviewUriTooLong {},
+    #[error("Token description too long")]
+    TokenDescriptionTooLong {},
+    #[error("Token name too long")]
+    TokenNameTooLong {},
+    #[error("Data too long")]
+    DataTooLong {},
+    #[error("Invalid token migration data")]
+    InvalidTokenMigrationData {},
+}

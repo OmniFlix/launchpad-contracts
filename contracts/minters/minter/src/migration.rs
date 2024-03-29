@@ -1,43 +1,19 @@
-use std::env;
-use std::str::FromStr;
-
-use crate::msg::{ExecuteMsg, MinterExtensionQueryMsg};
 #[cfg(not(feature = "library"))]
-use cosmwasm_std::entry_point;
-use cosmwasm_std::{
-    to_json_binary, Addr, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo, Order,
-    Response, StdResult, Uint128, WasmMsg,
-};
-use cw_utils::{may_pay, maybe_addr, must_pay, nonpayable};
-use minter_types::utils::{
-    check_collection_creation_fee, generate_create_denom_msg, generate_minter_mint_message,
-    generate_update_denom_msg, update_collection_details,
-};
+use cosmwasm_std::{Deps, DepsMut, Env, MessageInfo, Response};
+use cw_utils::maybe_addr;
+use minter_types::config::Config;
+use minter_types::token_details::{MigrationData, MigrationNftError, Token, TokenDetails};
 use omniflix_minter_factory::msg::QueryMsg::Params as QueryFactoryParams;
 use omniflix_minter_factory::msg::{CreateMinterMsg, ParamsResponse};
-use omniflix_round_whitelist::msg::ExecuteMsg::PrivateMint;
-use omniflix_std::types::cosmos::auth;
-use whitelist_types::{
-    check_if_address_is_member, check_if_whitelist_is_active, check_whitelist_price,
-};
 
 use crate::error::ContractError;
 use crate::state::{
     AUTH_DETAILS, COLLECTION, CONFIG, MINTABLE_TOKENS, TOKEN_DETAILS, TOTAL_TOKENS_REMAINING,
     USER_MINTING_DETAILS,
 };
-use crate::utils::{
-    collect_mintable_tokens, generate_tokens, randomize_token_list, return_random_token,
-};
-use minter_types::msg::QueryMsg as BaseMinterQueryMsg;
-use minter_types::types::{
-    AuthDetails, CollectionDetails, Config, MigrationData, MigrationNftError, Token, TokenDetails,
-    UserDetails,
-};
-use pauser::PauseState;
+use crate::utils::randomize_token_list;
+use minter_types::types::AuthDetails;
 
-use cw2::set_contract_version;
-use omniflix_std::types::omniflix::onft::v1beta1::{MsgPurgeDenom, WeightedAddress};
 // TODO RENAME THIS
 pub fn instantiate_with_migration(
     deps: DepsMut,
@@ -59,13 +35,22 @@ pub fn instantiate_with_migration(
     let migration_data = msg.migration_data.unwrap();
     // Validate the migration data
     validate_migration_data(migration_data.clone(), deps.as_ref())?;
-    let mintable_tokens = migration_data.mintable_tokens;
-    let minted_count = migration_data.minted_count;
-
     let init = msg.init.clone();
+
+    let mintable_tokens = migration_data.mintable_tokens;
+    let remaining_tokens_count = mintable_tokens.len() as u32;
+    let minted_count = migration_data.minted_count;
+    // Check if the total minted tokens are valid
+    if remaining_tokens_count + minted_count != init.num_tokens {
+        return Err(ContractError::InvalidMigrationMintedCount {});
+    }
+    let user_data = migration_data.users_data;
+    // Check if collection details are valid
     let collection_details = msg.collection_details.clone();
     collection_details.check_integrity()?;
 
+    // Create a empty token details
+    // Wont be used for minting
     let token_details = TokenDetails::default();
 
     let config = Config {
@@ -85,12 +70,38 @@ pub fn instantiate_with_migration(
         }
         None => admin.clone(),
     };
-    for i in 0..mintable_tokens.len() {
-        let token = mintable_tokens[i].clone();
-        MINTABLE_TOKENS.save(deps.storage, i as u32, &token)?;
-    }
+    // Create tokens with index
+    let tokens = mintable_tokens
+        .iter()
+        .enumerate()
+        .map(|(index, token)| (index as u32, token.clone()))
+        .collect::<Vec<(u32, Token)>>();
+    // Save the tokens
+    let randomized_tokens =
+        randomize_token_list(tokens.clone(), mintable_tokens.len() as u32, env.clone())?;
+    randomized_tokens.iter().for_each(|(index, token)| {
+        MINTABLE_TOKENS.save(deps.storage, *index, &token).unwrap();
+    });
+    TOTAL_TOKENS_REMAINING.save(deps.storage, &remaining_tokens_count)?;
+    CONFIG.save(deps.storage, &config)?;
+    TOKEN_DETAILS.save(deps.storage, &token_details)?;
+    COLLECTION.save(deps.storage, &collection_details)?;
+    AUTH_DETAILS.save(
+        deps.storage,
+        &AuthDetails {
+            admin,
+            payment_collector,
+        },
+    )?;
 
-    Ok(Response::default())
+    // Save user minting details
+    user_data.iter().for_each(|(address, user_data)| {
+        USER_MINTING_DETAILS
+            .save(deps.storage, address.clone(), &user_data)
+            .unwrap();
+    });
+    let res = Response::new().add_attribute("action", "instantiate_with_migration");
+    Ok(res)
 }
 
 fn validate_migration_data(migration_data: MigrationData, deps: Deps) -> Result<(), ContractError> {
@@ -99,16 +110,16 @@ fn validate_migration_data(migration_data: MigrationData, deps: Deps) -> Result<
         return Err(ContractError::MigrationDataTooLarge {});
     }
     let mut user_addresses = vec![];
-    let tokens = migration_data.mintable_tokens;
+    let mintable_tokens = migration_data.mintable_tokens;
     let minted_count = migration_data.minted_count;
     let mut minted_tokens_sum = 0;
 
     // Check user data
     for user_data in migration_data.users_data {
         // Check if the user address is valid
-        let _ = deps.api.addr_validate(&user_data.0.into_string())?;
+        let _ = deps.api.addr_validate(&user_data.0.clone().into_string())?;
         // Check if any duplicate addresses are present
-        if user_addresses.contains(&user_data.0) {
+        if user_addresses.contains(&user_data.0.clone()) {
             return Err(ContractError::DuplicateUserAddress {});
         }
         user_addresses.push(user_data.0.clone());
@@ -133,7 +144,7 @@ fn validate_migration_data(migration_data: MigrationData, deps: Deps) -> Result<
         return Err(ContractError::InvalidMigrationMintedCount {});
     }
     // Check tokens
-    for token in tokens {
+    for token in mintable_tokens {
         // Check if the token id is valid
         if token.migration_nft_data.is_none() {
             return Err(ContractError::MigrationNftError(

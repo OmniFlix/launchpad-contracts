@@ -1,8 +1,8 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Addr, Coin, Deps, Timestamp};
 use cosmwasm_std::{Empty, StdError};
+use minter_types::config::Config as MinterConfig;
 use minter_types::msg::QueryMsg as MinterQueryMsg;
-use minter_types::types::Config as MinterConfig;
 
 #[cw_serde]
 pub struct CreateWhitelistMsg {

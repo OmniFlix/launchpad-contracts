@@ -4,7 +4,9 @@ use cosmwasm_std::{coin, BlockInfo, Decimal, Timestamp};
 use cosmwasm_std::{Addr, StdError};
 use cw_multi_test::Executor;
 
-use minter_types::types::{AuthDetails, Config, Token, TokenDetails, TokenDetailsError};
+use minter_types::config::Config;
+use minter_types::token_details::{Token, TokenDetails, TokenDetailsError};
+use minter_types::types::AuthDetails;
 
 use minter_types::msg::QueryMsg;
 

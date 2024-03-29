@@ -1,6 +1,6 @@
 use cosmwasm_std::{Coin, StdError, Timestamp, Uint128};
 use cw_utils::PaymentError;
-use minter_types::types::{ConfigurationError, TokenDetailsError};
+use minter_types::{config::ConfigurationError, token_details::TokenDetailsError};
 use pauser::PauseError;
 use serde_json::Error as SerdeError;
 use thiserror::Error;

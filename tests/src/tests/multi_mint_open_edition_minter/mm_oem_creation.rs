@@ -1,8 +1,8 @@
 #![cfg(test)]
 use cosmwasm_std::coin;
 use cw_multi_test::Executor;
+use minter_types::collection_details::CollectionDetails;
 use minter_types::msg::QueryMsg as CommonMinterQueryMsg;
-use minter_types::types::CollectionDetails;
 use omniflix_multi_mint_open_edition_minter::drop::Drop;
 use omniflix_multi_mint_open_edition_minter::msg::QueryMsgExtension as MultiMintOpenEditionMinterQueryMsgExtension;
 use omniflix_open_edition_minter_factory::error::ContractError as OpenEditionMinterFactoryError;
@@ -65,6 +65,7 @@ fn multi_mint_oem_creation() {
 
     let multi_minter_inst_msg = MultiMinterCreateMsg {
         collection_details: collection_details.clone(),
+        migration_data: None,
         init,
         token_details: None,
     };

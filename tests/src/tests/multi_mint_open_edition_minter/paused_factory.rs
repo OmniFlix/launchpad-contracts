@@ -1,7 +1,7 @@
 #![cfg(test)]
 use cosmwasm_std::coin;
 use cw_multi_test::Executor;
-use minter_types::types::CollectionDetails;
+use minter_types::collection_details::CollectionDetails;
 use omniflix_open_edition_minter_factory::error::ContractError as OpenEditionMinterFactoryError;
 
 use omniflix_open_edition_minter_factory::msg::{
@@ -68,6 +68,7 @@ fn paused_mm_oem_factory() {
 
     let multi_minter_inst_msg = MultiMinterCreateMsg {
         collection_details: collection_details.clone(),
+        migration_data: None,
         init,
         token_details: None,
     };

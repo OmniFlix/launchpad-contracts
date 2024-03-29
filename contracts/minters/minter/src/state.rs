@@ -3,8 +3,11 @@ use std::u32;
 use cosmwasm_std::Addr;
 use cw_storage_plus::{Item, Map};
 
-use minter_types::types::{
-    AuthDetails, CollectionDetails, Config, Token, TokenDetails, UserDetails,
+use minter_types::{
+    collection_details::CollectionDetails,
+    config::Config,
+    token_details::{Token, TokenDetails},
+    types::{AuthDetails, UserDetails},
 };
 
 pub const CONFIG: Item<Config> = Item::new("config");

@@ -2,9 +2,11 @@
 use cosmwasm_std::{coin, Addr, BlockInfo, Timestamp};
 use cosmwasm_std::{Decimal, Uint128};
 use cw_multi_test::Executor;
+use minter_types::collection_details::CollectionDetails;
+use minter_types::config::Config;
 use minter_types::msg::QueryMsg as CommonMinterQueryMsg;
-use minter_types::types::TokenDetails;
-use minter_types::types::{CollectionDetails, Config, UserDetails};
+use minter_types::token_details::TokenDetails;
+use minter_types::types::UserDetails;
 use omniflix_multi_mint_open_edition_minter::error::ContractError as MultiMintOpenEditionMinterContractError;
 use omniflix_multi_mint_open_edition_minter::msg::ExecuteMsg as MultiMintOpenEditionMinterExecuteMsg;
 use omniflix_multi_mint_open_edition_minter::msg::QueryMsgExtension as MultiMintOpenEditionMinterQueryMsgExtension;
@@ -70,6 +72,7 @@ fn multi_mint_oem_public_minting() {
     let multi_minter_inst_msg = MultiMinterCreateMsg {
         collection_details,
         init,
+        migration_data: None,
         token_details: None,
     };
 
@@ -466,6 +469,7 @@ fn multi_mint_oem_admin_mint() {
 
     let multi_minter_inst_msg = MultiMinterCreateMsg {
         collection_details,
+        migration_data: None,
         init,
         token_details: None,
     };

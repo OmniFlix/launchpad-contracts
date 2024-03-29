@@ -1,4 +1,7 @@
-use crate::types::{CollectionDetails, MultiMintData, NftData, TokenDetails};
+use crate::{
+    collection_details::CollectionDetails,
+    token_details::{MultiMintData, NftData, Token, TokenDetails},
+};
 use cosmwasm_std::{Addr, Coin, CosmosMsg, Decimal, QuerierWrapper, StdError, Uint128};
 use omniflix_std::types::{
     cosmos::authz::v1beta1::MsgExec,
@@ -14,7 +17,7 @@ pub fn generate_minter_mint_message(
     token_id: String,
     minter_address: Addr,
     recipient: Addr,
-    is_authz: bool,
+    token: Token,
 ) -> Result<CosmosMsg, serde_json::Error> {
     let data = NftData {
         creator_token_data: token_details.data.clone().unwrap_or("".to_string()),
@@ -35,22 +38,38 @@ pub fn generate_minter_mint_message(
         ),
         uri_hash: collection.uri_hash.clone().unwrap_or("".to_string()),
     };
-    match is_authz {
-        false => Ok(MsgMintOnft {
-            data: json_data,
-            id: token_id,
-            metadata: Some(metadata),
-            denom_id: collection.id.clone(),
-            transferable: token_details.transferable,
-            sender: minter_address.into_string(),
-            extensible: token_details.extensible,
-            nsfw: token_details.nsfw,
-            recipient: recipient.clone().into_string(),
-            royalty_share: token_details.royalty_ratio.atomics().to_string(),
-        }
-        .into()),
-        true => {
+    match token.migration_nft_data {
+        Some(migration_nft_data) => {
             let mint_msg = MsgMintOnft {
+                data: json_data,
+                id: token_id,
+                metadata: Some(Metadata {
+                    description: migration_nft_data.description.unwrap_or("".to_string()),
+                    name: migration_nft_data.token_name.clone(),
+                    media_uri: migration_nft_data.media_uri.clone(),
+                    preview_uri: migration_nft_data
+                        .preview_uri
+                        .unwrap_or(migration_nft_data.media_uri.clone()),
+                    uri_hash: "".to_string(),
+                }),
+                denom_id: collection.id.clone(),
+                transferable: migration_nft_data.transferable,
+                sender: minter_address.clone().into_string(),
+                extensible: migration_nft_data.extensible,
+                nsfw: migration_nft_data.nsfw,
+                recipient: recipient.clone().into_string(),
+                royalty_share: migration_nft_data.royalty_share.atomics().to_string(),
+            }
+            .to_any();
+
+            let authz_exec_msg = MsgExec {
+                grantee: minter_address.into_string(),
+                msgs: vec![mint_msg],
+            };
+            Ok(authz_exec_msg.into())
+        }
+        None => {
+            let mint_msg: CosmosMsg = MsgMintOnft {
                 data: json_data,
                 id: token_id,
                 metadata: Some(metadata),
@@ -62,12 +81,8 @@ pub fn generate_minter_mint_message(
                 recipient: recipient.clone().into_string(),
                 royalty_share: token_details.royalty_ratio.atomics().to_string(),
             }
-            .to_any();
-            let authz_exec_msg = MsgExec {
-                grantee: recipient.into_string(),
-                msgs: vec![mint_msg],
-            };
-            Ok(authz_exec_msg.into())
+            .into();
+            Ok(mint_msg)
         }
     }
 }
