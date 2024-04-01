@@ -143,13 +143,6 @@ pub struct NftData {
     pub multi_mint_data: Option<MultiMintData>,
 }
 
-#[cw_serde]
-pub struct MigrationData {
-    pub mintable_tokens: Vec<Token>,
-    pub users_data: Vec<(Addr, UserDetails)>,
-    pub minted_count: u32,
-}
-
 #[derive(Error, Debug, PartialEq)]
 pub enum MigrationNftError {
     #[error("Invalid royalty ratio")]

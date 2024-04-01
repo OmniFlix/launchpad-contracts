@@ -42,7 +42,6 @@ pub fn return_open_edition_minter_inst_msg() -> OpenEditionMinterCreateMsg {
     OpenEditionMinterCreateMsg {
         collection_details,
         init,
-        migration_data: None,
         token_details: Some(token_details),
     }
 }

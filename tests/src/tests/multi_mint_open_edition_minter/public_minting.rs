@@ -72,7 +72,6 @@ fn multi_mint_oem_public_minting() {
     let multi_minter_inst_msg = MultiMinterCreateMsg {
         collection_details,
         init,
-        migration_data: None,
         token_details: None,
     };
 
@@ -469,7 +468,6 @@ fn multi_mint_oem_admin_mint() {
 
     let multi_minter_inst_msg = MultiMinterCreateMsg {
         collection_details,
-        migration_data: None,
         init,
         token_details: None,
     };

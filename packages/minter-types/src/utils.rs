@@ -18,6 +18,7 @@ pub fn generate_minter_mint_message(
     minter_address: Addr,
     recipient: Addr,
     token: Token,
+    admin: Addr,
 ) -> Result<CosmosMsg, serde_json::Error> {
     let data = NftData {
         creator_token_data: token_details.data.clone().unwrap_or("".to_string()),
@@ -42,7 +43,9 @@ pub fn generate_minter_mint_message(
         Some(migration_nft_data) => {
             let mint_msg = MsgMintOnft {
                 data: json_data,
-                id: token_id,
+                // For migrated tokens we use empty string as the token_id
+                // Module will generate a new token_id for this token
+                id: " ".to_string(),
                 metadata: Some(Metadata {
                     description: migration_nft_data.description.unwrap_or("".to_string()),
                     name: migration_nft_data.token_name.clone(),
@@ -54,7 +57,8 @@ pub fn generate_minter_mint_message(
                 }),
                 denom_id: collection.id.clone(),
                 transferable: migration_nft_data.transferable,
-                sender: minter_address.clone().into_string(),
+                // Sender is now the admin of the minter
+                sender: admin.into_string(),
                 extensible: migration_nft_data.extensible,
                 nsfw: migration_nft_data.nsfw,
                 recipient: recipient.clone().into_string(),

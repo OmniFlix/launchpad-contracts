@@ -1,7 +1,7 @@
 use crate::{
     collection_details::CollectionDetails,
     config::Config,
-    token_details::{MigrationData, TokenDetails},
+    token_details::TokenDetails,
     types::{AuthDetails, UserDetails},
 };
 use cosmwasm_schema::{cw_serde, QueryResponses};
@@ -11,7 +11,6 @@ use cosmwasm_std::Addr;
 pub struct MinterInstantiateMsg<T> {
     pub collection_details: CollectionDetails,
     pub token_details: Option<TokenDetails>,
-    pub migration_data: Option<MigrationData>,
     pub init: T,
 }
 

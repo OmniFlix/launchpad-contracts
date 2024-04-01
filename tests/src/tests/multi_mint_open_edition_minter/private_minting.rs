@@ -92,7 +92,6 @@ fn multi_mint_oem_private_minting() {
 
     let multi_minter_inst_msg = MultiMinterCreateMsg {
         collection_details,
-        migration_data: None,
         init,
         token_details: None,
     };

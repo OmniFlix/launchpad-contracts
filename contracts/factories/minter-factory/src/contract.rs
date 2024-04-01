@@ -1,5 +1,8 @@
 use crate::error::ContractError;
-use crate::msg::{CreateMinterMsg, ExecuteMsg, InstantiateMsg, ParamsResponse, QueryMsg};
+use crate::msg::{
+    CreateMinterMsg, CreateMinterMsgWithMigration, ExecuteMsg, InstantiateMsg, ParamsResponse,
+    QueryMsg,
+};
 use crate::state::PARAMS;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
@@ -43,6 +46,9 @@ pub fn execute(
 ) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::CreateMinter { msg } => create_minter(deps, env, info, msg),
+        ExecuteMsg::CreateMinterWithMigration { msg } => {
+            create_minter_with_migration(deps, env, info, msg)
+        }
         ExecuteMsg::UpdateAdmin { admin } => update_params_admin(deps, env, info, admin),
         ExecuteMsg::UpdateFeeCollectorAddress {
             fee_collector_address,
@@ -94,6 +100,42 @@ fn create_minter(
     let res = Response::new()
         .add_messages(msgs)
         .add_attribute("action", "create_minter");
+    Ok(res)
+}
+fn create_minter_with_migration(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    msg: CreateMinterMsgWithMigration,
+) -> Result<Response, ContractError> {
+    let params = PARAMS.load(deps.storage)?;
+    let pause_state = PauseState::new()?;
+    pause_state.error_if_paused(deps.as_ref().storage)?;
+
+    // Only collect minter_creation_fee
+    check_payment(&info.funds, &[params.minter_creation_fee.clone()])?;
+
+    let mut msgs = Vec::<CosmosMsg>::new();
+
+    msgs.push(CosmosMsg::Wasm(WasmMsg::Instantiate {
+        admin: Some(msg.auth_details.admin.to_string()),
+        code_id: params.minter_code_id,
+        msg: to_json_binary(&msg)?,
+        funds: vec![],
+        label: params.product_label,
+    }));
+
+    if params.minter_creation_fee.amount > Uint128::new(0) {
+        msgs.push(CosmosMsg::Bank(BankMsg::Send {
+            amount: vec![params.minter_creation_fee.clone()],
+            to_address: params.fee_collector_address.to_string(),
+        }));
+    }
+
+    let res = Response::new()
+        .add_messages(msgs)
+        .add_attribute("action", "create_minter_with_migration");
+
     Ok(res)
 }
 

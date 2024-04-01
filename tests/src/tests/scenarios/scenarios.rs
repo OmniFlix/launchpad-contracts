@@ -217,7 +217,6 @@ fn test_scenario_1() {
             royalty_ratio: Decimal::percent(10),
             data: None,
         }),
-        migration_data: None,
         init: MinterInitExtention {
             admin: creator.to_string(),
             mint_price: coin(5_000_000, "uflix"),
@@ -679,7 +678,6 @@ fn test_scenario_2() {
 
     let multi_minter_inst_msg = MultiMinterCreateMsg {
         collection_details,
-        migration_data: None,
         init,
         token_details: None,
     };

@@ -74,7 +74,6 @@ fn remove_drop() {
     let multi_minter_inst_msg = MultiMinterCreateMsg {
         collection_details,
         init,
-        migration_data: None,
         token_details: None,
     };
 
@@ -430,7 +429,6 @@ fn remove_first_drop() {
 
     let multi_minter_inst_msg = MultiMinterCreateMsg {
         collection_details,
-        migration_data: None,
         init,
         token_details: None,
     };
@@ -609,7 +607,6 @@ fn add_drop() {
     };
 
     let multi_minter_inst_msg = MultiMinterCreateMsg {
-        migration_data: None,
         collection_details,
         init,
         token_details: None,
@@ -988,7 +985,6 @@ fn update_mint_price() {
     let multi_minter_inst_msg = MultiMinterCreateMsg {
         collection_details,
         init,
-        migration_data: None,
         token_details: None,
     };
 
@@ -1174,7 +1170,6 @@ fn update_royalty_ratio() {
     let multi_minter_inst_msg = MultiMinterCreateMsg {
         collection_details,
         init,
-        migration_data: None,
         token_details: None,
     };
 

@@ -70,7 +70,6 @@ fn paused_mm_oem() {
 
     let multi_minter_inst_msg = MultiMinterCreateMsg {
         collection_details,
-        migration_data: None,
         init,
         token_details: None,
     };

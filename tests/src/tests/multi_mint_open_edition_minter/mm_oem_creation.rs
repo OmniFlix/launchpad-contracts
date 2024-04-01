@@ -65,7 +65,6 @@ fn multi_mint_oem_creation() {
 
     let multi_minter_inst_msg = MultiMinterCreateMsg {
         collection_details: collection_details.clone(),
-        migration_data: None,
         init,
         token_details: None,
     };

@@ -18,7 +18,7 @@ use minter_types::utils::{
     generate_minter_mint_message, generate_update_denom_msg, update_collection_details,
 };
 
-use omniflix_minter_factory::msg::CreateMinterMsg;
+use omniflix_minter_factory::msg::CreateMinterMsgs;
 use omniflix_round_whitelist::msg::ExecuteMsg::PrivateMint;
 use whitelist_types::{
     check_if_address_is_member, check_if_whitelist_is_active, check_whitelist_price,
@@ -46,13 +46,15 @@ pub fn handle_instantiation(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    msg: CreateMinterMsg,
+    msg: CreateMinterMsgs,
 ) -> Result<Response, ContractError> {
     // Set contract version
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
-    match msg.clone().migration_data {
-        Some(_migration_data) => instantiate_with_migration(deps, env, info, msg),
-        None => default_instantiate(deps, env, info, msg),
+    match msg {
+        CreateMinterMsgs::CreateMinter { msg } => default_instantiate(deps, env, info, msg),
+        CreateMinterMsgs::CreateMinterWithMigration { msg } => {
+            instantiate_with_migration(deps, env, info, msg)
+        }
     }
 }
 
@@ -232,6 +234,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
         env.contract.address,
         info.sender,
         random_token.1.clone(),
+        auth_details.admin,
     )?
     .into();
 
@@ -332,6 +335,7 @@ pub fn execute_mint_admin(
         env.contract.address,
         recipient.clone(),
         token.1.clone(),
+        auth_details.admin,
     )?
     .into();
 

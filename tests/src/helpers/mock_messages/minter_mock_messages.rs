@@ -30,7 +30,6 @@ pub fn return_minter_instantiate_msg() -> CreateMinterMsg {
     CreateMinterMsg {
         collection_details,
         token_details: Some(token_details),
-        migration_data: None,
         init: MinterInitExtention {
             admin: "creator".to_string(),
             mint_price: Coin::new(1000000, "uflix"),
