@@ -42,7 +42,7 @@ const CONTRACT_NAME: &str = "crates.io:omniflix-minter";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn handle_instantiation(
+pub fn instantiate(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,

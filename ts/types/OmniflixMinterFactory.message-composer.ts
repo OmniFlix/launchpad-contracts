@@ -7,7 +7,7 @@
 import { MsgExecuteContractEncodeObject } from "@cosmjs/cosmwasm-stargate";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { toUtf8 } from "@cosmjs/encoding";
-import { Addr, Uint128, InstantiateMsg, MinterFactoryParams, Coin, ExecuteMsg, Timestamp, Uint64, Decimal, MinterInstantiateMsgForMinterInitExtention, CollectionDetails, WeightedAddress, MinterInitExtention, TokenDetails, QueryMsg, Boolean, ParamsResponse, ArrayOfAddr } from "./OmniflixMinterFactory.types";
+import { Addr, Uint128, InstantiateMsg, MinterFactoryParams, Coin, ExecuteMsg, Timestamp, Uint64, Decimal, MinterInstantiateMsgForMinterInitExtention, CollectionDetails, WeightedAddress, MinterInitExtention, TokenDetails, CreateMinterMsgWithMigration, AuthDetails, Config, MigrationData, Token, MigrationNftData, UserDetails, QueryMsg, Boolean, ParamsResponse, ArrayOfAddr } from "./OmniflixMinterFactory.types";
 export interface OmniflixMinterFactoryMsg {
   contractAddress: string;
   sender: string;
@@ -15,6 +15,11 @@ export interface OmniflixMinterFactoryMsg {
     msg
   }: {
     msg: MinterInstantiateMsgForMinterInitExtention;
+  }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
+  createMinterWithMigration: ({
+    msg
+  }: {
+    msg: CreateMinterMsgWithMigration;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   updateAdmin: ({
     admin
@@ -52,6 +57,7 @@ export class OmniflixMinterFactoryMsgComposer implements OmniflixMinterFactoryMs
     this.sender = sender;
     this.contractAddress = contractAddress;
     this.createMinter = this.createMinter.bind(this);
+    this.createMinterWithMigration = this.createMinterWithMigration.bind(this);
     this.updateAdmin = this.updateAdmin.bind(this);
     this.updateFeeCollectorAddress = this.updateFeeCollectorAddress.bind(this);
     this.updateMinterCreationFee = this.updateMinterCreationFee.bind(this);
@@ -73,6 +79,25 @@ export class OmniflixMinterFactoryMsgComposer implements OmniflixMinterFactoryMs
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
           create_minter: {
+            msg
+          }
+        })),
+        funds: _funds
+      })
+    };
+  };
+  createMinterWithMigration = ({
+    msg
+  }: {
+    msg: CreateMinterMsgWithMigration;
+  }, _funds?: Coin[]): MsgExecuteContractEncodeObject => {
+    return {
+      typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+      value: MsgExecuteContract.fromPartial({
+        sender: this.sender,
+        contract: this.contractAddress,
+        msg: toUtf8(JSON.stringify({
+          create_minter_with_migration: {
             msg
           }
         })),

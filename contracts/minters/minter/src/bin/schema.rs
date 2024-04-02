@@ -4,11 +4,11 @@ use omniflix_minter::msg::{ExecuteMsg, MinterExtensionQueryMsg};
 
 use minter_types::msg::QueryMsg;
 
-use omniflix_minter_factory::msg::CreateMinterMsg;
+use omniflix_minter_factory::msg::{CreateMinterMsg, CreateMinterMsgs};
 
 fn main() {
     write_api! {
-        instantiate: CreateMinterMsg,
+        instantiate: CreateMinterMsgs,
         execute: ExecuteMsg,
         query: QueryMsg<MinterExtensionQueryMsg>,
     }

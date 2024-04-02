@@ -26,6 +26,10 @@ export type ExecuteMsg = {
     msg: MinterInstantiateMsgForMinterInitExtention;
   };
 } | {
+  create_minter_with_migration: {
+    msg: CreateMinterMsgWithMigration;
+  };
+} | {
   update_admin: {
     admin: string;
   };
@@ -95,6 +99,49 @@ export interface TokenDetails {
   royalty_ratio: Decimal;
   token_name: string;
   transferable: boolean;
+}
+export interface CreateMinterMsgWithMigration {
+  auth_details: AuthDetails;
+  collection_details: CollectionDetails;
+  config: Config;
+  migration_data: MigrationData;
+}
+export interface AuthDetails {
+  admin: Addr;
+  payment_collector: Addr;
+}
+export interface Config {
+  end_time?: Timestamp | null;
+  mint_price: Coin;
+  num_tokens?: number | null;
+  per_address_limit?: number | null;
+  start_time: Timestamp;
+  whitelist_address?: Addr | null;
+}
+export interface MigrationData {
+  mintable_tokens: Token[];
+  minted_count: number;
+  users_data: [Addr, UserDetails][];
+}
+export interface Token {
+  migration_nft_data?: MigrationNftData | null;
+  token_id: string;
+}
+export interface MigrationNftData {
+  data?: string | null;
+  description?: string | null;
+  extensible: boolean;
+  media_uri: string;
+  nsfw: boolean;
+  preview_uri?: string | null;
+  royalty_share: Decimal;
+  token_name: string;
+  transferable: boolean;
+}
+export interface UserDetails {
+  minted_tokens: Token[];
+  public_mint_count: number;
+  total_minted_count: number;
 }
 export type QueryMsg = {
   params: {};

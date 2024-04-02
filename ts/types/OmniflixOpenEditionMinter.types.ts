@@ -151,5 +151,17 @@ export interface UserDetails {
   total_minted_count: number;
 }
 export interface Token {
+  migration_nft_data?: MigrationNftData | null;
   token_id: string;
+}
+export interface MigrationNftData {
+  data?: string | null;
+  description?: string | null;
+  extensible: boolean;
+  media_uri: string;
+  nsfw: boolean;
+  preview_uri?: string | null;
+  royalty_share: Decimal;
+  token_name: string;
+  transferable: boolean;
 }

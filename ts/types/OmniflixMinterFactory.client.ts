@@ -6,7 +6,7 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { StdFee } from "@cosmjs/amino";
-import { Addr, Uint128, InstantiateMsg, MinterFactoryParams, Coin, ExecuteMsg, Timestamp, Uint64, Decimal, MinterInstantiateMsgForMinterInitExtention, CollectionDetails, WeightedAddress, MinterInitExtention, TokenDetails, QueryMsg, Boolean, ParamsResponse, ArrayOfAddr } from "./OmniflixMinterFactory.types";
+import { Addr, Uint128, InstantiateMsg, MinterFactoryParams, Coin, ExecuteMsg, Timestamp, Uint64, Decimal, MinterInstantiateMsgForMinterInitExtention, CollectionDetails, WeightedAddress, MinterInitExtention, TokenDetails, CreateMinterMsgWithMigration, AuthDetails, Config, MigrationData, Token, MigrationNftData, UserDetails, QueryMsg, Boolean, ParamsResponse, ArrayOfAddr } from "./OmniflixMinterFactory.types";
 export interface OmniflixMinterFactoryReadOnlyInterface {
   contractAddress: string;
   params: () => Promise<ParamsResponse>;
@@ -49,6 +49,11 @@ export interface OmniflixMinterFactoryInterface extends OmniflixMinterFactoryRea
   }: {
     msg: MinterInstantiateMsgForMinterInitExtention;
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
+  createMinterWithMigration: ({
+    msg
+  }: {
+    msg: CreateMinterMsgWithMigration;
+  }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   updateAdmin: ({
     admin
   }: {
@@ -88,6 +93,7 @@ export class OmniflixMinterFactoryClient extends OmniflixMinterFactoryQueryClien
     this.sender = sender;
     this.contractAddress = contractAddress;
     this.createMinter = this.createMinter.bind(this);
+    this.createMinterWithMigration = this.createMinterWithMigration.bind(this);
     this.updateAdmin = this.updateAdmin.bind(this);
     this.updateFeeCollectorAddress = this.updateFeeCollectorAddress.bind(this);
     this.updateMinterCreationFee = this.updateMinterCreationFee.bind(this);
@@ -104,6 +110,17 @@ export class OmniflixMinterFactoryClient extends OmniflixMinterFactoryQueryClien
   }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       create_minter: {
+        msg
+      }
+    }, fee, memo, _funds);
+  };
+  createMinterWithMigration = async ({
+    msg
+  }: {
+    msg: CreateMinterMsgWithMigration;
+  }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
+    return await this.client.execute(this.sender, this.contractAddress, {
+      create_minter_with_migration: {
         msg
       }
     }, fee, memo, _funds);
