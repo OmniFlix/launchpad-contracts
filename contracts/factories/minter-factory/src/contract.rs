@@ -1,7 +1,7 @@
 use crate::error::ContractError;
 use crate::msg::{
-    CreateMinterMsg, CreateMinterMsgWithMigration, ExecuteMsg, InstantiateMsg, ParamsResponse,
-    QueryMsg,
+    CreateMinterMsg, CreateMinterMsgWithMigration, CreateMinterMsgs, ExecuteMsg, InstantiateMsg,
+    ParamsResponse, QueryMsg,
 };
 use crate::state::PARAMS;
 #[cfg(not(feature = "library"))]
@@ -44,6 +44,7 @@ pub fn execute(
     info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
+    println!("Instantiating contract");
     match msg {
         ExecuteMsg::CreateMinter { msg } => create_minter(deps, env, info, msg),
         ExecuteMsg::CreateMinterWithMigration { msg } => {
@@ -71,6 +72,7 @@ fn create_minter(
     info: MessageInfo,
     msg: CreateMinterMsg,
 ) -> Result<Response, ContractError> {
+    println!("Instantiating contract3");
     let params = PARAMS.load(deps.storage)?;
     let collection_creation_fee: Coin = check_collection_creation_fee(deps.as_ref().querier)?;
     let pause_state = PauseState::new()?;
@@ -84,10 +86,11 @@ fn create_minter(
         ],
     )?;
     let mut msgs = Vec::<CosmosMsg>::new();
+    let create_minter_msg = CreateMinterMsgs::CreateMinter { msg: msg.clone() };
     msgs.push(CosmosMsg::Wasm(WasmMsg::Instantiate {
         admin: Some(msg.init.admin.to_string()),
         code_id: params.minter_code_id,
-        msg: to_json_binary(&msg)?,
+        msg: to_json_binary(&create_minter_msg)?,
         funds: vec![collection_creation_fee.clone()],
         label: params.product_label,
     }));
@@ -116,11 +119,12 @@ fn create_minter_with_migration(
     check_payment(&info.funds, &[params.minter_creation_fee.clone()])?;
 
     let mut msgs = Vec::<CosmosMsg>::new();
+    let create_minter_msg = CreateMinterMsgs::CreateMinterWithMigration { msg: msg.clone() };
 
     msgs.push(CosmosMsg::Wasm(WasmMsg::Instantiate {
         admin: Some(msg.auth_details.admin.to_string()),
         code_id: params.minter_code_id,
-        msg: to_json_binary(&msg)?,
+        msg: to_json_binary(&create_minter_msg)?,
         funds: vec![],
         label: params.product_label,
     }));

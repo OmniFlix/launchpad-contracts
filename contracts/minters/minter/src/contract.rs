@@ -50,6 +50,7 @@ pub fn handle_instantiation(
 ) -> Result<Response, ContractError> {
     // Set contract version
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+    println!("Instantiating contract1");
     match msg {
         CreateMinterMsgs::CreateMinter { msg } => default_instantiate(deps, env, info, msg),
         CreateMinterMsgs::CreateMinterWithMigration { msg } => {
