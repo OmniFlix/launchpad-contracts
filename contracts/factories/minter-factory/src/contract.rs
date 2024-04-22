@@ -72,7 +72,6 @@ fn create_minter(
     info: MessageInfo,
     msg: CreateMinterMsg,
 ) -> Result<Response, ContractError> {
-    println!("Instantiating contract3");
     let params = PARAMS.load(deps.storage)?;
     let collection_creation_fee: Coin = check_collection_creation_fee(deps.as_ref().querier)?;
     let pause_state = PauseState::new()?;

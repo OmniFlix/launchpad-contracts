@@ -27,7 +27,6 @@ pub fn default_instantiate(
     info: MessageInfo,
     msg: CreateMinterMsg,
 ) -> Result<Response, ContractError> {
-    println!("Instantiating contract343");
     // Set contract version
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 

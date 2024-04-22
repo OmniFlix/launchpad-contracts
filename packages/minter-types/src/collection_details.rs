@@ -12,7 +12,6 @@ pub struct CollectionDetails {
     pub data: Option<String>,
     pub symbol: String,
     pub id: String,
-    // FE: Collection:"Baby Tardigrades" each token name "Baby Tardigrade" #token_id
     pub royalty_receivers: Option<Vec<WeightedAddress>>,
 }
 
