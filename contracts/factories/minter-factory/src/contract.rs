@@ -44,7 +44,6 @@ pub fn execute(
     info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
-    println!("Instantiating contract");
     match msg {
         ExecuteMsg::CreateMinter { msg } => create_minter(deps, env, info, msg),
         ExecuteMsg::CreateMinterWithMigration { msg } => {
@@ -113,6 +112,10 @@ fn create_minter_with_migration(
     let params = PARAMS.load(deps.storage)?;
     let pause_state = PauseState::new()?;
     pause_state.error_if_paused(deps.as_ref().storage)?;
+
+    if info.sender != params.admin {
+        return Err(ContractError::Unauthorized {});
+    }
 
     // Only collect minter_creation_fee
     check_payment(&info.funds, &[params.minter_creation_fee.clone()])?;
