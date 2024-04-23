@@ -1,13 +1,10 @@
 use crate::{
     collection_details::CollectionDetails,
-    token_details::{MultiMintData, NftData, Token, TokenDetails},
+    token_details::{MultiMintData, NftData, TokenDetails},
 };
 use cosmwasm_std::{Addr, Coin, CosmosMsg, Decimal, QuerierWrapper, StdError, Uint128};
-use omniflix_std::types::{
-    cosmos::authz::v1beta1::MsgExec,
-    omniflix::onft::v1beta1::{
-        Metadata, MsgCreateDenom, MsgMintOnft, MsgUpdateDenom, OnftQuerier, WeightedAddress,
-    },
+use omniflix_std::types::omniflix::onft::v1beta1::{
+    Metadata, MsgCreateDenom, MsgMintOnft, MsgUpdateDenom, OnftQuerier, WeightedAddress,
 };
 use std::str::FromStr;
 
@@ -23,6 +20,7 @@ pub fn generate_minter_mint_message(
         multi_mint_data: None,
     };
     let json_data = serde_json::to_string(&data)?;
+
     let metadata = Metadata {
         name: format!("{} #{}", token_details.token_name.clone(), token_id),
         description: token_details.description.clone().unwrap_or("".to_string()),

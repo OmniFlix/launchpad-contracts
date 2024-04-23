@@ -1,14 +1,8 @@
 #[cfg(not(feature = "library"))]
-use cosmwasm_std::{Deps, DepsMut, Env, MessageInfo, Response};
-use cw_utils::maybe_addr;
-use minter_types::collection_details;
-use minter_types::config::Config;
-use minter_types::token_details::{MigrationNftError, Token, TokenDetails};
+use cosmwasm_std::{DepsMut, Env, MessageInfo, Response};
+use minter_types::token_details::Token;
 use omniflix_minter_factory::msg::QueryMsg::Params as QueryFactoryParams;
-use omniflix_minter_factory::msg::{
-    CreateMinterMsg, CreateMinterMsgWithMigration, MigrationData, ParamsResponse,
-};
-use serde::de;
+use omniflix_minter_factory::msg::{CreateMinterMsgWithMigration, ParamsResponse};
 
 use crate::error::ContractError;
 use crate::state::{

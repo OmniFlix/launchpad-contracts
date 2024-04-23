@@ -1,8 +1,6 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, Decimal};
+use cosmwasm_std::Decimal;
 use thiserror::Error;
-
-use crate::types::UserDetails;
 
 #[derive(Error, Debug, PartialEq)]
 pub enum TokenDetailsError {
@@ -88,49 +86,6 @@ pub struct Token {
 }
 
 #[cw_serde]
-pub struct MigrationNftData {
-    pub token_name: String,
-    pub description: Option<String>,
-    pub media_uri: String,
-    pub preview_uri: Option<String>,
-    pub data: Option<String>,
-    pub transferable: bool,
-    pub extensible: bool,
-    pub royalty_share: Decimal,
-    pub nsfw: bool,
-}
-
-impl MigrationNftData {
-    pub fn check_integrity(&self) -> Result<(), MigrationNftError> {
-        if self.royalty_share < Decimal::zero() || self.royalty_share > Decimal::one() {
-            return Err(MigrationNftError::InvalidRoyaltyRatio {});
-        }
-        if self.media_uri.chars().count() > 256 {
-            return Err(MigrationNftError::BaseTokenUriTooLong {});
-        }
-        if let Some(preview_uri) = &self.preview_uri {
-            if preview_uri.chars().count() > 256 {
-                return Err(MigrationNftError::PreviewUriTooLong {});
-            }
-        }
-        if let Some(description) = &self.description {
-            if description.chars().count() > 4096 {
-                return Err(MigrationNftError::TokenDescriptionTooLong {});
-            }
-        }
-        if self.token_name.chars().count() > 256 {
-            return Err(MigrationNftError::TokenNameTooLong {});
-        }
-        if let Some(data) = &self.data {
-            if data.chars().count() > 4096 {
-                return Err(MigrationNftError::DataTooLong {});
-            }
-        }
-        Ok(())
-    }
-}
-
-#[cw_serde]
 pub struct MultiMintData {
     pub token_name: String,
     pub drop_id: String,
@@ -140,22 +95,4 @@ pub struct MultiMintData {
 pub struct NftData {
     pub creator_token_data: String,
     pub multi_mint_data: Option<MultiMintData>,
-}
-
-#[derive(Error, Debug, PartialEq)]
-pub enum MigrationNftError {
-    #[error("Invalid royalty ratio")]
-    InvalidRoyaltyRatio {},
-    #[error("Base token uri too long")]
-    BaseTokenUriTooLong {},
-    #[error("Preview uri too long")]
-    PreviewUriTooLong {},
-    #[error("Token description too long")]
-    TokenDescriptionTooLong {},
-    #[error("Token name too long")]
-    TokenNameTooLong {},
-    #[error("Data too long")]
-    DataTooLong {},
-    #[error("Invalid token migration data")]
-    InvalidTokenMigrationData {},
 }

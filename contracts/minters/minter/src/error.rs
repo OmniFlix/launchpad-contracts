@@ -5,9 +5,8 @@ use cosmwasm_std::{
 };
 use cw_utils::PaymentError;
 use minter_types::{
-    collection_details::CollectionDetailsError,
-    config::ConfigurationError,
-    token_details::{MigrationNftError, TokenDetailsError},
+    collection_details::CollectionDetailsError, config::ConfigurationError,
+    token_details::TokenDetailsError,
 };
 use pauser::PauseError;
 use serde_json::Error as SerdeError;
@@ -29,9 +28,6 @@ pub enum ContractError {
 
     #[error(transparent)]
     CollectionDetailsError(#[from] CollectionDetailsError),
-
-    #[error("Migration NFT error")]
-    MigrationNftError(#[from] MigrationNftError),
 
     #[error("Unauthorized")]
     Unauthorized {},
