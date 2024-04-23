@@ -259,7 +259,6 @@ pub fn execute_mint(
     // Add the minted token to user details
     user_details.minted_tokens.push(Token {
         token_id: token_id.to_string(),
-        migration_nft_data: None,
     });
 
     // Save the user details
@@ -374,7 +373,6 @@ pub fn execute_mint_admin(
     user_details.total_minted_count += 1;
     user_details.minted_tokens.push(Token {
         token_id: token_id.to_string(),
-        migration_nft_data: None,
     });
 
     // Save the user details

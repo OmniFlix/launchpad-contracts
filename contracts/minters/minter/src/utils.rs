@@ -86,7 +86,6 @@ pub fn generate_tokens(num_of_tokens: u32) -> Vec<(u32, Token)> {
                 x,
                 Token {
                     token_id: x.to_string(),
-                    migration_nft_data: None,
                 },
             )
         })
@@ -117,7 +116,6 @@ mod tests {
                     x,
                     Token {
                         token_id: x.to_string(),
-                        migration_nft_data: None,
                     },
                 )
             })
@@ -142,7 +140,6 @@ mod tests {
                     x,
                     Token {
                         token_id: x.to_string(),
-                        migration_nft_data: None,
                     },
                 )
             })

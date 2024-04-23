@@ -233,8 +233,6 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
         token_id.clone(),
         env.contract.address,
         info.sender,
-        random_token.1.clone(),
-        auth_details.admin,
     )?
     .into();
 
@@ -334,8 +332,6 @@ pub fn execute_mint_admin(
         token_id.clone(),
         env.contract.address,
         recipient.clone(),
-        token.1.clone(),
-        auth_details.admin,
     )?
     .into();
 

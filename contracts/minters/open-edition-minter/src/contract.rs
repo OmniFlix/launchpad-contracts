@@ -220,7 +220,6 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     // Update user's minted tokens list
     user_details.minted_tokens.push(Token {
         token_id: token_id.to_string(),
-        migration_nft_data: None,
     });
 
     let mut mint_price = config.mint_price;
@@ -390,7 +389,6 @@ pub fn execute_mint_admin(
     // Update user's minted tokens list
     user_details.minted_tokens.push(Token {
         token_id: token_id.to_string(),
-        migration_nft_data: None,
     });
 
     // Save updated user details

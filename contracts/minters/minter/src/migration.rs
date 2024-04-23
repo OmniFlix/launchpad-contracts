@@ -40,8 +40,6 @@ pub fn instantiate_with_migration(
     let mintable_tokens = migration_data.mintable_tokens;
     let remaining_tokens_count = mintable_tokens.len() as u32;
     let minted_count = migration_data.minted_count;
-    let auth_details = msg.auth_details.clone();
-    let config = msg.config.clone();
 
     // Check if the total minted tokens are valid
     if remaining_tokens_count + minted_count != config.num_tokens.unwrap() {
@@ -51,7 +49,6 @@ pub fn instantiate_with_migration(
     let user_data = migration_data.users_data;
 
     // Check if collection details are valid
-    let collection_details = msg.collection_details.clone();
     collection_details.check_integrity()?;
 
     // Collect admin and payment collector
@@ -73,7 +70,7 @@ pub fn instantiate_with_migration(
     randomized_tokens.iter().for_each(|(index, token)| {
         MINTABLE_TOKENS.save(deps.storage, *index, &token).unwrap();
     });
-
+    TOKEN_DETAILS.save(deps.storage, &token_details)?;
     TOTAL_TOKENS_REMAINING.save(deps.storage, &remaining_tokens_count)?;
     CONFIG.save(deps.storage, &config)?;
     COLLECTION.save(deps.storage, &collection_details)?;

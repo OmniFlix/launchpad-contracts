@@ -17,8 +17,6 @@ pub fn generate_minter_mint_message(
     token_id: String,
     minter_address: Addr,
     recipient: Addr,
-    token: Token,
-    admin: Addr,
 ) -> Result<CosmosMsg, serde_json::Error> {
     let data = NftData {
         creator_token_data: token_details.data.clone().unwrap_or("".to_string()),
@@ -39,56 +37,20 @@ pub fn generate_minter_mint_message(
         ),
         uri_hash: collection.uri_hash.clone().unwrap_or("".to_string()),
     };
-    match token.migration_nft_data {
-        Some(migration_nft_data) => {
-            let mint_msg = MsgMintOnft {
-                data: json_data,
-                // For migrated tokens we use empty string as the token_id
-                // Module will generate a new token_id for this token
-                id: " ".to_string(),
-                metadata: Some(Metadata {
-                    description: migration_nft_data.description.unwrap_or("".to_string()),
-                    name: migration_nft_data.token_name.clone(),
-                    media_uri: migration_nft_data.media_uri.clone(),
-                    preview_uri: migration_nft_data
-                        .preview_uri
-                        .unwrap_or(migration_nft_data.media_uri.clone()),
-                    uri_hash: "".to_string(),
-                }),
-                denom_id: collection.id.clone(),
-                transferable: migration_nft_data.transferable,
-                // Sender is now the admin of the minter
-                sender: admin.into_string(),
-                extensible: migration_nft_data.extensible,
-                nsfw: migration_nft_data.nsfw,
-                recipient: recipient.clone().into_string(),
-                royalty_share: migration_nft_data.royalty_share.atomics().to_string(),
-            }
-            .to_any();
-
-            let authz_exec_msg = MsgExec {
-                grantee: minter_address.into_string(),
-                msgs: vec![mint_msg],
-            };
-            Ok(authz_exec_msg.into())
-        }
-        None => {
-            let mint_msg: CosmosMsg = MsgMintOnft {
-                data: json_data,
-                id: token_id,
-                metadata: Some(metadata),
-                denom_id: collection.id.clone(),
-                transferable: token_details.transferable,
-                sender: minter_address.into_string(),
-                extensible: token_details.extensible,
-                nsfw: token_details.nsfw,
-                recipient: recipient.clone().into_string(),
-                royalty_share: token_details.royalty_ratio.atomics().to_string(),
-            }
-            .into();
-            Ok(mint_msg)
-        }
+    let mint_msg: CosmosMsg = MsgMintOnft {
+        data: json_data,
+        id: token_id,
+        metadata: Some(metadata),
+        denom_id: collection.id.clone(),
+        transferable: token_details.transferable,
+        sender: minter_address.into_string(),
+        extensible: token_details.extensible,
+        nsfw: token_details.nsfw,
+        recipient: recipient.clone().into_string(),
+        royalty_share: token_details.royalty_ratio.atomics().to_string(),
     }
+    .into();
+    Ok(mint_msg)
 }
 
 pub fn generate_oem_mint_message(

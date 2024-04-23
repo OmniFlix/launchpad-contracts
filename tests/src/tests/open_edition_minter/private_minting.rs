@@ -216,7 +216,6 @@ fn private_minting() {
         user_minting_details.minted_tokens,
         [Token {
             token_id: "1".to_string(),
-            migration_nft_data: None,
         }]
     );
     assert_eq!(user_minting_details.total_minted_count, 1);
