@@ -258,7 +258,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
         .add_messages(messages)
         .add_attribute("action", "mint")
         .add_attribute("token_id", token_id.to_string())
-        .add_attribute("collection_id", collection.id).add_attribute()
+        .add_attribute("collection_id", collection.id);
 
     Ok(res)
 }

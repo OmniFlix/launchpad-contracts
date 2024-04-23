@@ -85,7 +85,6 @@ impl TokenDetails {
 #[cw_serde]
 pub struct Token {
     pub token_id: String,
-    pub migration_nft_data: Option<MigrationNftData>,
 }
 
 #[cw_serde]

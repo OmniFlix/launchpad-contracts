@@ -4,7 +4,7 @@ use minter_types::{
     collection_details::CollectionDetails,
     config::Config,
     msg::MinterInstantiateMsg,
-    token_details::Token,
+    token_details::{Token, TokenDetails},
     types::{AuthDetails, UserDetails},
 };
 #[cw_serde]
@@ -34,6 +34,7 @@ pub struct CreateMinterMsgWithMigration {
     pub config: Config,
     pub collection_details: CollectionDetails,
     pub auth_details: AuthDetails,
+    pub token_details: TokenDetails,
 }
 
 #[cw_serde]
