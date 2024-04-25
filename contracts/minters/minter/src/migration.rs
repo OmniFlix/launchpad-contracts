@@ -7,7 +7,6 @@ use omniflix_minter_factory::msg::{CreateMinterMsgWithMigration, ParamsResponse}
 use crate::error::ContractError;
 use crate::state::{
     AUTH_DETAILS, COLLECTION, CONFIG, MINTABLE_TOKENS, TOKEN_DETAILS, TOTAL_TOKENS_REMAINING,
-    USER_MINTING_DETAILS,
 };
 use crate::utils::randomize_token_list;
 use minter_types::types::AuthDetails;

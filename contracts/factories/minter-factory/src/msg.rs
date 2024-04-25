@@ -5,7 +5,7 @@ use minter_types::{
     config::Config,
     msg::MinterInstantiateMsg,
     token_details::{Token, TokenDetails},
-    types::{AuthDetails, UserDetails},
+    types::AuthDetails,
 };
 #[cw_serde]
 pub struct InstantiateMsg {
