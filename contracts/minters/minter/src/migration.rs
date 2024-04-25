@@ -40,8 +40,6 @@ pub fn instantiate_with_migration(
         return Err(ContractError::InvalidMigrationMintedCount {});
     }
 
-    let user_data = migration_data.users_data;
-
     // Check if collection details are valid
     collection_details.check_integrity()?;
 
@@ -51,7 +49,7 @@ pub fn instantiate_with_migration(
         .api
         .addr_validate(&auth_details.payment_collector.into_string())?;
 
-    // Create tokens with index
+    // Enumerate the tokens
     let tokens = mintable_tokens
         .iter()
         .enumerate()
@@ -75,13 +73,6 @@ pub fn instantiate_with_migration(
             payment_collector,
         },
     )?;
-
-    // Save user minting details
-    user_data.iter().for_each(|(address, user_data)| {
-        USER_MINTING_DETAILS
-            .save(deps.storage, address.clone(), &user_data)
-            .unwrap();
-    });
     let res = Response::new().add_attribute("action", "instantiate_with_migration");
 
     Ok(res)

@@ -40,7 +40,6 @@ pub struct CreateMinterMsgWithMigration {
 #[cw_serde]
 pub struct MigrationData {
     pub mintable_tokens: Vec<Token>,
-    pub users_data: Vec<(Addr, UserDetails)>,
     pub minted_count: u32,
 }
 
