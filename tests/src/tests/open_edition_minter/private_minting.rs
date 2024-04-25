@@ -5,7 +5,8 @@ use cosmwasm_std::{
 
 use cw_multi_test::Executor;
 use cw_utils::PaymentError;
-use minter_types::types::{Token, UserDetails};
+use minter_types::token_details::Token;
+use minter_types::types::UserDetails;
 use omniflix_open_edition_minter_factory::msg::ExecuteMsg as OpenEditionMinterFactoryExecuteMsg;
 use whitelist_types::CreateWhitelistMsg;
 
@@ -214,7 +215,7 @@ fn private_minting() {
     assert_eq!(
         user_minting_details.minted_tokens,
         [Token {
-            token_id: "1".to_string()
+            token_id: "1".to_string(),
         }]
     );
     assert_eq!(user_minting_details.total_minted_count, 1);

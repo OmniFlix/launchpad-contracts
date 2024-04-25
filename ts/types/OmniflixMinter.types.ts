@@ -4,11 +4,21 @@
 * and run the @cosmwasm/ts-codegen generate command to regenerate this file.
 */
 
+export type InstantiateMsg = {
+  create_minter: {
+    msg: MinterInstantiateMsgForMinterInitExtention;
+  };
+} | {
+  create_minter_with_migration: {
+    msg: CreateMinterMsgWithMigration;
+  };
+};
 export type Timestamp = Uint64;
 export type Uint64 = string;
 export type Uint128 = string;
 export type Decimal = string;
-export interface InstantiateMsg {
+export type Addr = string;
+export interface MinterInstantiateMsgForMinterInitExtention {
   collection_details: CollectionDetails;
   init: MinterInitExtention;
   token_details?: TokenDetails | null;
@@ -55,6 +65,49 @@ export interface TokenDetails {
   royalty_ratio: Decimal;
   token_name: string;
   transferable: boolean;
+}
+export interface CreateMinterMsgWithMigration {
+  auth_details: AuthDetails;
+  collection_details: CollectionDetails;
+  config: Config;
+  migration_data: MigrationData;
+}
+export interface AuthDetails {
+  admin: Addr;
+  payment_collector: Addr;
+}
+export interface Config {
+  end_time?: Timestamp | null;
+  mint_price: Coin;
+  num_tokens?: number | null;
+  per_address_limit?: number | null;
+  start_time: Timestamp;
+  whitelist_address?: Addr | null;
+}
+export interface MigrationData {
+  mintable_tokens: Token[];
+  minted_count: number;
+  users_data: [Addr, UserDetails][];
+}
+export interface Token {
+  migration_nft_data?: MigrationNftData | null;
+  token_id: string;
+}
+export interface MigrationNftData {
+  data?: string | null;
+  description?: string | null;
+  extensible: boolean;
+  media_uri: string;
+  nsfw: boolean;
+  preview_uri?: string | null;
+  royalty_share: Decimal;
+  token_name: string;
+  transferable: boolean;
+}
+export interface UserDetails {
+  minted_tokens: Token[];
+  public_mint_count: number;
+  total_minted_count: number;
 }
 export type ExecuteMsg = {
   mint: {};
@@ -134,27 +187,6 @@ export type MinterExtensionQueryMsg = {
 } | {
   total_tokens_remaining: {};
 };
-export type Addr = string;
-export interface AuthDetails {
-  admin: Addr;
-  payment_collector: Addr;
-}
-export interface Config {
-  end_time?: Timestamp | null;
-  mint_price: Coin;
-  num_tokens?: number | null;
-  per_address_limit?: number | null;
-  start_time: Timestamp;
-  whitelist_address?: Addr | null;
-}
 export type Uint32 = number;
 export type Boolean = boolean;
 export type ArrayOfAddr = Addr[];
-export interface UserDetails {
-  minted_tokens: Token[];
-  public_mint_count: number;
-  total_minted_count: number;
-}
-export interface Token {
-  token_id: string;
-}

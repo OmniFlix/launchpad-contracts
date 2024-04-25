@@ -4,7 +4,9 @@ use cosmwasm_std::{coin, BlockInfo, Decimal, Timestamp};
 use cosmwasm_std::{Addr, StdError};
 use cw_multi_test::Executor;
 
-use minter_types::types::{AuthDetails, Config, Token, TokenDetails, TokenDetailsError};
+use minter_types::config::Config;
+use minter_types::token_details::{Token, TokenDetails, TokenDetailsError};
+use minter_types::types::AuthDetails;
 
 use minter_types::msg::QueryMsg;
 
@@ -47,6 +49,7 @@ fn update_whitelist() {
             None,
         )
         .unwrap();
+    println!("Factory address: {:?}", factory_addr);
     let round_whitelist_factory_inst_msg =
         return_round_whitelist_factory_inst_message(round_whitelist_code_id);
     let round_whitelist_factory_addr = app
@@ -256,7 +259,7 @@ fn burn_remaining_tokens() {
             None,
         )
         .unwrap();
-
+    println!("Factory address: {:?}", factory_addr);
     let minter_inst_msg = return_minter_instantiate_msg();
     let create_minter_msg = FactoryExecuteMsg::CreateMinter {
         msg: minter_inst_msg.clone(),

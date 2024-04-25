@@ -1,5 +1,5 @@
 use cosmwasm_std::{Coin, Decimal, Timestamp};
-use minter_types::types::{CollectionDetails, TokenDetails};
+use minter_types::{collection_details::CollectionDetails, token_details::TokenDetails};
 use omniflix_minter_factory::msg::{CreateMinterMsg, MinterInitExtention};
 
 pub fn return_minter_instantiate_msg() -> CreateMinterMsg {

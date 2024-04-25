@@ -2,9 +2,10 @@
 use cosmwasm_std::{coin, coins, Addr, BlockInfo, Timestamp, Uint128};
 use cosmwasm_std::{Decimal, StdError};
 use cw_multi_test::Executor;
+use minter_types::collection_details::CollectionDetails;
+use minter_types::config::Config;
 use minter_types::msg::QueryMsg as CommonMinterQueryMsg;
-use minter_types::types::TokenDetails;
-use minter_types::types::{CollectionDetails, Config};
+use minter_types::token_details::TokenDetails;
 use omniflix_minter::msg::ExecuteMsg as MinterExecuteMsg;
 use omniflix_minter_factory::msg::CreateMinterMsg;
 use omniflix_minter_factory::msg::ExecuteMsg as FactoryExecuteMsg;

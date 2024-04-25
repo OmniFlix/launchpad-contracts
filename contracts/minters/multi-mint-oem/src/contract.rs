@@ -5,10 +5,11 @@ use cosmwasm_std::{
     Response, StdResult, WasmMsg,
 };
 use cw_utils::{may_pay, maybe_addr, must_pay, nonpayable};
+use minter_types::collection_details::CollectionDetails;
+use minter_types::config::Config;
 use minter_types::msg::QueryMsg as BaseMinterQueryMsg;
-use minter_types::types::{
-    AuthDetails, CollectionDetails, Config, Token, TokenDetails, UserDetails,
-};
+use minter_types::token_details::{Token, TokenDetails};
+use minter_types::types::{AuthDetails, UserDetails};
 use minter_types::utils::{
     check_collection_creation_fee, generate_create_denom_msg, generate_multi_minter_mint_message,
     generate_update_denom_msg, update_collection_details,

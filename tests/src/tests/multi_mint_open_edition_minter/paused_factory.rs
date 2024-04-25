@@ -1,7 +1,7 @@
 #![cfg(test)]
 use cosmwasm_std::coin;
 use cw_multi_test::Executor;
-use minter_types::types::CollectionDetails;
+use minter_types::collection_details::CollectionDetails;
 use omniflix_open_edition_minter_factory::error::ContractError as OpenEditionMinterFactoryError;
 
 use omniflix_open_edition_minter_factory::msg::{

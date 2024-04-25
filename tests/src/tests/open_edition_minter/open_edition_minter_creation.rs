@@ -3,7 +3,10 @@ use cosmwasm_std::{coin, Coin, Decimal, Timestamp, Uint128};
 
 use cw_multi_test::Executor;
 use factory_types::CustomPaymentError;
-use minter_types::types::{CollectionDetails, Config, ConfigurationError, TokenDetailsError};
+use minter_types::collection_details::CollectionDetails;
+use minter_types::config::{Config, ConfigurationError};
+use minter_types::token_details::TokenDetailsError;
+
 use omniflix_open_edition_minter_factory::msg::ExecuteMsg as OpenEditionMinterFactoryExecuteMsg;
 
 use crate::helpers::utils::get_contract_address_from_res;

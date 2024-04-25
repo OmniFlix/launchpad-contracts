@@ -1,5 +1,8 @@
-use crate::types::{CollectionDetails, MultiMintData, NftData, TokenDetails};
-use cosmwasm_std::{Addr, Coin, Decimal, QuerierWrapper, StdError, Uint128};
+use crate::{
+    collection_details::CollectionDetails,
+    token_details::{MultiMintData, NftData, TokenDetails},
+};
+use cosmwasm_std::{Addr, Coin, CosmosMsg, Decimal, QuerierWrapper, StdError, Uint128};
 use omniflix_std::types::omniflix::onft::v1beta1::{
     Metadata, MsgCreateDenom, MsgMintOnft, MsgUpdateDenom, OnftQuerier, WeightedAddress,
 };
@@ -11,12 +14,13 @@ pub fn generate_minter_mint_message(
     token_id: String,
     minter_address: Addr,
     recipient: Addr,
-) -> Result<MsgMintOnft, serde_json::Error> {
+) -> Result<CosmosMsg, serde_json::Error> {
     let data = NftData {
         creator_token_data: token_details.data.clone().unwrap_or("".to_string()),
         multi_mint_data: None,
     };
     let json_data = serde_json::to_string(&data)?;
+
     let metadata = Metadata {
         name: format!("{} #{}", token_details.token_name.clone(), token_id),
         description: token_details.description.clone().unwrap_or("".to_string()),
@@ -31,8 +35,7 @@ pub fn generate_minter_mint_message(
         ),
         uri_hash: collection.uri_hash.clone().unwrap_or("".to_string()),
     };
-
-    Ok(MsgMintOnft {
+    let mint_msg: CosmosMsg = MsgMintOnft {
         data: json_data,
         id: token_id,
         metadata: Some(metadata),
@@ -43,7 +46,9 @@ pub fn generate_minter_mint_message(
         nsfw: token_details.nsfw,
         recipient: recipient.clone().into_string(),
         royalty_share: token_details.royalty_ratio.atomics().to_string(),
-    })
+    }
+    .into();
+    Ok(mint_msg)
 }
 
 pub fn generate_oem_mint_message(

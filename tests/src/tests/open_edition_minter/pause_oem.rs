@@ -2,7 +2,7 @@
 use cosmwasm_std::{coin, Addr, BlockInfo};
 
 use cw_multi_test::Executor;
-use minter_types::types::Config;
+use minter_types::config::Config;
 use omniflix_open_edition_minter_factory::msg::ExecuteMsg as OpenEditionMinterFactoryExecuteMsg;
 use pauser::PauseError;
 

@@ -4,7 +4,10 @@ use cosmwasm_std::{
     CheckedFromRatioError, Coin, ConversionOverflowError, StdError, Timestamp, Uint128,
 };
 use cw_utils::PaymentError;
-use minter_types::types::{ConfigurationError, TokenDetailsError};
+use minter_types::{
+    collection_details::CollectionDetailsError, config::ConfigurationError,
+    token_details::TokenDetailsError,
+};
 use pauser::PauseError;
 use serde_json::Error as SerdeError;
 use thiserror::Error;
@@ -22,6 +25,9 @@ pub enum ContractError {
 
     #[error(transparent)]
     ConfigurationError(#[from] ConfigurationError),
+
+    #[error(transparent)]
+    CollectionDetailsError(#[from] CollectionDetailsError),
 
     #[error("Unauthorized")]
     Unauthorized {},
@@ -97,6 +103,18 @@ pub enum ContractError {
 
     #[error("Invalid token details")]
     InvalidTokenDetails {},
+
+    #[error("Migration data not found")]
+    MigrationDataNotFound {},
+
+    #[error("Migration data too large")]
+    MigrationDataTooLarge {},
+
+    #[error("Duplicate user address")]
+    DuplicateUserAddress {},
+
+    #[error("Migration minted count is invalid")]
+    InvalidMigrationMintedCount {},
 }
 
 impl From<ContractError> for StdError {
