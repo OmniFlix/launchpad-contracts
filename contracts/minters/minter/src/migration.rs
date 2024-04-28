@@ -3,6 +3,7 @@ use cosmwasm_std::{DepsMut, Env, MessageInfo, Response};
 use minter_types::token_details::Token;
 use omniflix_minter_factory::msg::QueryMsg::Params as QueryFactoryParams;
 use omniflix_minter_factory::msg::{CreateMinterMsgWithMigration, ParamsResponse};
+use pauser::PauseState;
 
 use crate::error::ContractError;
 use crate::state::{
@@ -68,10 +69,14 @@ pub fn instantiate_with_migration(
     AUTH_DETAILS.save(
         deps.storage,
         &AuthDetails {
-            admin,
+            admin: admin.clone(),
             payment_collector,
         },
     )?;
+    // Initialize pause state and set admin as pauser
+    let pause_state = PauseState::new()?;
+    pause_state.set_pausers(deps.storage, info.sender.clone(), vec![admin])?;
+
     let res = Response::new().add_attribute("action", "instantiate_with_migration");
 
     Ok(res)
