@@ -100,24 +100,19 @@ pub fn instantiate(
             return Err(ContractError::WhitelistAlreadyActive {});
         }
     }
-
-    // Extract admin and payment collector
-    let admin = deps.api.addr_validate(&init.admin)?;
-    let payment_collector =
-        maybe_addr(deps.api, init.payment_collector.clone())?.unwrap_or(info.sender.clone());
-
-    // Save configuration and authorization details
-    let auth_details = AuthDetails {
-        admin: admin.clone(),
-        payment_collector: payment_collector.clone(),
-    };
+    let auth_details = msg.auth_details.clone();
+    auth_details.validate(&deps.as_ref())?;
     CONFIG.save(deps.storage, &config)?;
     MINTED_COUNT.save(deps.storage, &0)?;
     AUTH_DETAILS.save(deps.storage, &auth_details)?;
 
     // Initialize pause state and set admin as pauser
     let pause_state = PauseState::new()?;
-    pause_state.set_pausers(deps.storage, info.sender.clone(), vec![admin.clone()])?;
+    pause_state.set_pausers(
+        deps.storage,
+        info.sender.clone(),
+        vec![auth_details.admin.clone()],
+    )?;
 
     // Save collection and token details
     COLLECTION.save(deps.storage, &collection_details)?;
@@ -132,7 +127,7 @@ pub fn instantiate(
         &collection_details,
         env.contract.address.clone(),
         creation_fee,
-        payment_collector,
+        auth_details.payment_collector.clone(),
     )?
     .into();
 

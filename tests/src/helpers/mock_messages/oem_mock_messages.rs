@@ -1,5 +1,7 @@
-use cosmwasm_std::{Coin, Decimal, Timestamp};
-use minter_types::{collection_details::CollectionDetails, token_details::TokenDetails};
+use cosmwasm_std::{Addr, Coin, Decimal, Timestamp};
+use minter_types::{
+    collection_details::CollectionDetails, token_details::TokenDetails, types::AuthDetails,
+};
 use omniflix_open_edition_minter_factory::msg::{
     OpenEditionMinterCreateMsg, OpenEditionMinterInitExtention,
 };
@@ -18,12 +20,10 @@ pub fn return_open_edition_minter_inst_msg() -> OpenEditionMinterCreateMsg {
         royalty_receivers: None,
     };
     let init = OpenEditionMinterInitExtention {
-        admin: "creator".to_string(),
         mint_price: Coin::new(1000000, "uflix"),
         start_time: Timestamp::from_nanos(1_000_000_000),
         end_time: Some(Timestamp::from_nanos(2_000_000_000)),
         per_address_limit: Some(1),
-        payment_collector: Some("creator".to_string()),
         whitelist_address: None,
         num_tokens: Some(1000),
     };
@@ -43,5 +43,9 @@ pub fn return_open_edition_minter_inst_msg() -> OpenEditionMinterCreateMsg {
         collection_details,
         init,
         token_details: Some(token_details),
+        auth_details: AuthDetails {
+            admin: Addr::unchecked("creator".to_string()),
+            payment_collector: Addr::unchecked("creator".to_string()),
+        },
     }
 }

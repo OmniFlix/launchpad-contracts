@@ -1,14 +1,14 @@
 #![cfg(test)]
-use cosmwasm_std::coin;
+use cosmwasm_std::{coin, Addr};
 use cw_multi_test::Executor;
 use minter_types::collection_details::CollectionDetails;
 use minter_types::msg::QueryMsg as CommonMinterQueryMsg;
+use minter_types::types::AuthDetails;
 use omniflix_multi_mint_open_edition_minter::drop::Drop;
 use omniflix_multi_mint_open_edition_minter::msg::QueryMsgExtension as MultiMintOpenEditionMinterQueryMsgExtension;
 use omniflix_open_edition_minter_factory::error::ContractError as OpenEditionMinterFactoryError;
 use omniflix_open_edition_minter_factory::msg::{
     ExecuteMsg as OpenEditionMinterFactoryExecuteMsg, MultiMinterCreateMsg,
-    MultiMinterInitExtention,
 };
 
 type MultiMintOpenEditionMinterQueryMsg =
@@ -58,15 +58,15 @@ fn multi_mint_oem_creation() {
         data: Some("data".to_string()),
         royalty_receivers: None,
     };
-    let init = MultiMinterInitExtention {
-        admin: creator.to_string(),
-        payment_collector: Some(creator.to_string()),
-    };
 
     let multi_minter_inst_msg = MultiMinterCreateMsg {
         collection_details: collection_details.clone(),
-        init,
         token_details: None,
+        auth_details: AuthDetails {
+            admin: Addr::unchecked("creator".to_string()),
+            payment_collector: Addr::unchecked("creator".to_string()),
+        },
+        init: Default::default(),
     };
     // Send no funds
     let res = app

@@ -1,12 +1,13 @@
 #![cfg(test)]
-use cosmwasm_std::coin;
+use cosmwasm_std::{coin, Addr};
 use cw_multi_test::Executor;
 use minter_types::collection_details::CollectionDetails;
+use minter_types::types::AuthDetails;
 use omniflix_open_edition_minter_factory::error::ContractError as OpenEditionMinterFactoryError;
 
 use omniflix_open_edition_minter_factory::msg::{
     ExecuteMsg as OpenEditionMinterFactoryExecuteMsg, MultiMinterCreateMsg,
-    MultiMinterInitExtention, QueryMsg as OpenEditionMinterFactoryQueryMsg,
+    QueryMsg as OpenEditionMinterFactoryQueryMsg,
 };
 use pauser::PauseError;
 
@@ -61,15 +62,15 @@ fn paused_mm_oem_factory() {
         data: Some("data".to_string()),
         royalty_receivers: None,
     };
-    let init = MultiMinterInitExtention {
-        admin: creator.to_string(),
-        payment_collector: Some(creator.to_string()),
-    };
 
     let multi_minter_inst_msg = MultiMinterCreateMsg {
         collection_details: collection_details.clone(),
-        init,
         token_details: None,
+        auth_details: AuthDetails {
+            admin: Addr::unchecked("creator".to_string()),
+            payment_collector: Addr::unchecked("creator".to_string()),
+        },
+        init: Default::default(),
     };
 
     let _res = app

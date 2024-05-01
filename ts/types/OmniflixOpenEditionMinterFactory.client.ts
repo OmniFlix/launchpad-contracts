@@ -6,7 +6,7 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { StdFee } from "@cosmjs/amino";
-import { Addr, Uint128, InstantiateMsg, OpenEditionMinterFactoryParams, MultiMinterParams, Coin, ExecuteMsg, Timestamp, Uint64, Decimal, MinterInstantiateMsgForOpenEditionMinterInitExtention, CollectionDetails, WeightedAddress, OpenEditionMinterInitExtention, TokenDetails, MinterInstantiateMsgForMultiMinterInitExtention, MultiMinterInitExtention, QueryMsg, Boolean, ParamsResponse, ArrayOfAddr } from "./OmniflixOpenEditionMinterFactory.types";
+import { Addr, Uint128, InstantiateMsg, OpenEditionMinterFactoryParams, MultiMinterParams, Coin, ExecuteMsg, Timestamp, Uint64, Decimal, MinterInstantiateMsgForOpenEditionMinterInitExtention, AuthDetails, CollectionDetails, WeightedAddress, OpenEditionMinterInitExtention, TokenDetails, MinterInstantiateMsgForEmpty, Empty, QueryMsg, Boolean, ParamsResponse, ArrayOfAddr } from "./OmniflixOpenEditionMinterFactory.types";
 export interface OmniflixOpenEditionMinterFactoryReadOnlyInterface {
   contractAddress: string;
   params: () => Promise<ParamsResponse>;
@@ -52,7 +52,7 @@ export interface OmniflixOpenEditionMinterFactoryInterface extends OmniflixOpenE
   createMultiMintOpenEditionMinter: ({
     msg
   }: {
-    msg: MinterInstantiateMsgForMultiMinterInitExtention;
+    msg: MinterInstantiateMsgForEmpty;
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   updateAdmin: ({
     admin
@@ -129,7 +129,7 @@ export class OmniflixOpenEditionMinterFactoryClient extends OmniflixOpenEditionM
   createMultiMintOpenEditionMinter = async ({
     msg
   }: {
-    msg: MinterInstantiateMsgForMultiMinterInitExtention;
+    msg: MinterInstantiateMsgForEmpty;
   }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       create_multi_mint_open_edition_minter: {

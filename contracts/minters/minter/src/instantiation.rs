@@ -12,7 +12,6 @@ use crate::state::{
     AUTH_DETAILS, COLLECTION, CONFIG, MINTABLE_TOKENS, TOKEN_DETAILS, TOTAL_TOKENS_REMAINING,
 };
 use crate::utils::{generate_tokens, randomize_token_list};
-use minter_types::types::AuthDetails;
 use pauser::PauseState;
 
 use cw2::set_contract_version;
@@ -83,20 +82,13 @@ pub fn default_instantiate(
         });
     }
 
-    // Extract admin and payment collector
-    let admin = deps.api.addr_validate(&init.admin)?;
-    let payment_collector =
-        maybe_addr(deps.api, msg.init.payment_collector.clone())?.unwrap_or(admin.clone());
+    // Validate authorization details
+    let auth_details = msg.auth_details.clone();
+    auth_details.validate(&deps.as_ref())?;
 
     // Save configuration and authorization details
     CONFIG.save(deps.storage, &config)?;
-    AUTH_DETAILS.save(
-        deps.storage,
-        &AuthDetails {
-            admin: admin.clone(),
-            payment_collector: payment_collector.clone(),
-        },
-    )?;
+    AUTH_DETAILS.save(deps.storage, &auth_details)?;
     COLLECTION.save(deps.storage, &collection_details)?;
     TOKEN_DETAILS.save(deps.storage, &token_details)?;
 
@@ -112,14 +104,18 @@ pub fn default_instantiate(
 
     // Initialize pause state and set admin as pauser
     let pause_state = PauseState::new()?;
-    pause_state.set_pausers(deps.storage, info.sender.clone(), vec![admin.clone()])?;
+    pause_state.set_pausers(
+        deps.storage,
+        info.sender.clone(),
+        vec![auth_details.admin.clone()],
+    )?;
 
     // Generate create denom message
     let collection_creation_msg: CosmosMsg = generate_create_denom_msg(
         &collection_details,
         env.contract.address,
         collection_creation_fee,
-        payment_collector,
+        auth_details.payment_collector,
     )?
     .into();
     let res = Response::new()

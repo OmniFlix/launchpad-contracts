@@ -7,13 +7,12 @@ use minter_types::collection_details::CollectionDetails;
 use minter_types::config::Config;
 use minter_types::msg::QueryMsg as CommonMinterQueryMsg;
 use minter_types::token_details::TokenDetails;
-use minter_types::types::UserDetails;
+use minter_types::types::{AuthDetails, UserDetails};
 use omniflix_multi_mint_open_edition_minter::error::ContractError as MultiMintOpenEditionMinterContractError;
 use omniflix_multi_mint_open_edition_minter::msg::ExecuteMsg as MultiMintOpenEditionMinterExecuteMsg;
 use omniflix_multi_mint_open_edition_minter::msg::QueryMsgExtension as MultiMintOpenEditionMinterQueryMsgExtension;
 use omniflix_open_edition_minter_factory::msg::{
     ExecuteMsg as OpenEditionMinterFactoryExecuteMsg, MultiMinterCreateMsg,
-    MultiMinterInitExtention,
 };
 
 use omniflix_round_whitelist::error::ContractError as RoundWhitelistError;
@@ -85,15 +84,15 @@ fn multi_mint_oem_private_minting() {
         data: Some("data".to_string()),
         royalty_receivers: None,
     };
-    let init = MultiMinterInitExtention {
-        admin: creator.to_string(),
-        payment_collector: Some(creator.to_string()),
-    };
 
     let multi_minter_inst_msg = MultiMinterCreateMsg {
         collection_details,
-        init,
         token_details: None,
+        auth_details: AuthDetails {
+            admin: Addr::unchecked("creator".to_string()),
+            payment_collector: Addr::unchecked("creator".to_string()),
+        },
+        init: Default::default(),
     };
     // Create a mm oem minter
     let res = app

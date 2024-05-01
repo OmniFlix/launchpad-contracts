@@ -58,9 +58,14 @@ export type Timestamp = Uint64;
 export type Uint64 = string;
 export type Decimal = string;
 export interface MinterInstantiateMsgForMinterInitExtention {
+  auth_details: AuthDetails;
   collection_details: CollectionDetails;
   init: MinterInitExtention;
   token_details?: TokenDetails | null;
+}
+export interface AuthDetails {
+  admin: Addr;
+  payment_collector: Addr;
 }
 export interface CollectionDetails {
   collection_name: string;
@@ -80,11 +85,9 @@ export interface WeightedAddress {
   [k: string]: unknown;
 }
 export interface MinterInitExtention {
-  admin: string;
   end_time?: Timestamp | null;
   mint_price: Coin;
   num_tokens: number;
-  payment_collector?: string | null;
   per_address_limit?: number | null;
   start_time: Timestamp;
   whitelist_address?: string | null;
@@ -105,10 +108,7 @@ export interface CreateMinterMsgWithMigration {
   collection_details: CollectionDetails;
   config: Config;
   migration_data: MigrationData;
-}
-export interface AuthDetails {
-  admin: Addr;
-  payment_collector: Addr;
+  token_details: TokenDetails;
 }
 export interface Config {
   end_time?: Timestamp | null;
@@ -121,27 +121,9 @@ export interface Config {
 export interface MigrationData {
   mintable_tokens: Token[];
   minted_count: number;
-  users_data: [Addr, UserDetails][];
 }
 export interface Token {
-  migration_nft_data?: MigrationNftData | null;
   token_id: string;
-}
-export interface MigrationNftData {
-  data?: string | null;
-  description?: string | null;
-  extensible: boolean;
-  media_uri: string;
-  nsfw: boolean;
-  preview_uri?: string | null;
-  royalty_share: Decimal;
-  token_name: string;
-  transferable: boolean;
-}
-export interface UserDetails {
-  minted_tokens: Token[];
-  public_mint_count: number;
-  total_minted_count: number;
 }
 export type QueryMsg = {
   params: {};

@@ -14,16 +14,11 @@ pub struct InstantiateMsg {
 
 #[cw_serde]
 pub struct MinterInitExtention {
-    pub admin: String,
     pub mint_price: Coin,
     // Public minting start time
     pub start_time: Timestamp,
     pub end_time: Option<Timestamp>,
     pub per_address_limit: Option<u32>,
-    // We expect user to send a string between 0 and 1
-    // FE "0.1"
-    pub payment_collector: Option<String>,
-    // Whitelist address if any
     pub whitelist_address: Option<String>,
     pub num_tokens: u32,
 }

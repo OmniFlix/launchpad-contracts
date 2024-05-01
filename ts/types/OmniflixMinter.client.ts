@@ -6,7 +6,7 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { StdFee } from "@cosmjs/amino";
-import { InstantiateMsg, Timestamp, Uint64, Uint128, Decimal, Addr, MinterInstantiateMsgForMinterInitExtention, CollectionDetails, WeightedAddress, MinterInitExtention, Coin, TokenDetails, CreateMinterMsgWithMigration, AuthDetails, Config, MigrationData, Token, MigrationNftData, UserDetails, ExecuteMsg, QueryMsg, MinterExtensionQueryMsg, Uint32, Boolean, ArrayOfAddr } from "./OmniflixMinter.types";
+import { InstantiateMsg, Addr, Timestamp, Uint64, Uint128, Decimal, MinterInstantiateMsgForMinterInitExtention, AuthDetails, CollectionDetails, WeightedAddress, MinterInitExtention, Coin, TokenDetails, CreateMinterMsgWithMigration, Config, MigrationData, Token, ExecuteMsg, QueryMsg, MinterExtensionQueryMsg, Uint32, Boolean, ArrayOfAddr, UserDetails } from "./OmniflixMinter.types";
 export interface OmniflixMinterReadOnlyInterface {
   contractAddress: string;
   collection: () => Promise<CollectionDetails>;

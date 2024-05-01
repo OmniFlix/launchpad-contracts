@@ -94,10 +94,14 @@ fn create_oem(
             params.open_edition_minter_creation_fee.clone(),
         ],
     )?;
-    let mut msgs = Vec::<CosmosMsg>::new();
 
+    // Validate auth details
+    let auth_details = msg.auth_details.clone();
+    auth_details.validate(&deps.as_ref())?;
+
+    let mut msgs = Vec::<CosmosMsg>::new();
     msgs.push(CosmosMsg::Wasm(WasmMsg::Instantiate {
-        admin: Some(msg.init.admin.to_string()),
+        admin: Some(msg.auth_details.admin.to_string()),
         code_id: params.open_edition_minter_code_id,
         msg: to_json_binary(&msg)?,
         funds: vec![collection_creation_fee.clone()],
@@ -139,8 +143,12 @@ fn create_multi_mint_oem(
     )?;
     let mut msgs = Vec::<CosmosMsg>::new();
 
+    // Validate auth details
+    let auth_details = msg.auth_details.clone();
+    auth_details.validate(&deps.as_ref())?;
+
     msgs.push(CosmosMsg::Wasm(WasmMsg::Instantiate {
-        admin: Some(msg.init.admin.to_string()),
+        admin: Some(auth_details.admin.to_string()),
         code_id: multi_minter_params.multi_minter_code_id,
         msg: to_json_binary(&msg)?,
         funds: vec![collection_creation_fee.clone()],

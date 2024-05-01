@@ -4,7 +4,7 @@ use cosmwasm_std::{
     to_json_binary, Addr, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo,
     Response, StdResult, WasmMsg,
 };
-use cw_utils::{may_pay, maybe_addr, must_pay, nonpayable};
+use cw_utils::{may_pay, must_pay, nonpayable};
 use minter_types::collection_details::CollectionDetails;
 use minter_types::config::Config;
 use minter_types::msg::QueryMsg as BaseMinterQueryMsg;
@@ -70,22 +70,19 @@ pub fn instantiate(
             sent: info.funds.clone(),
         });
     };
-
-    // Validate and extract admin and payment collector
-    let admin = deps.api.addr_validate(&msg.init.admin)?;
-    let payment_collector =
-        maybe_addr(deps.api, msg.init.payment_collector.clone())?.unwrap_or(admin.clone());
+    let auth_details = msg.auth_details.clone();
+    auth_details.validate(&deps.as_ref())?;
 
     // Set the pause state with the sender as the initial pauser
     let pause_state = PauseState::new()?;
-    pause_state.set_pausers(deps.storage, info.sender.clone(), vec![admin.clone()])?;
+    pause_state.set_pausers(
+        deps.storage,
+        info.sender.clone(),
+        vec![auth_details.admin.clone()],
+    )?;
 
     // Save collection and authorization details
     let collection_details = msg.collection_details.clone();
-    let auth_details = AuthDetails {
-        admin: admin.clone(),
-        payment_collector: payment_collector.clone(),
-    };
     COLLECTION.save(deps.storage, &collection_details)?;
     ACTIVE_DROP_ID.save(deps.storage, &0)?;
     LAST_MINTED_TOKEN_ID.save(deps.storage, &0)?;
@@ -100,7 +97,7 @@ pub fn instantiate(
         &collection_details,
         env.contract.address,
         nft_creation_fee,
-        payment_collector,
+        auth_details.payment_collector,
     )?
     .into();
 

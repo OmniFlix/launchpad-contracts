@@ -33,7 +33,7 @@ export type ExecuteMsg = {
   };
 } | {
   create_multi_mint_open_edition_minter: {
-    msg: MinterInstantiateMsgForMultiMinterInitExtention;
+    msg: MinterInstantiateMsgForEmpty;
   };
 } | {
   update_admin: {
@@ -72,9 +72,14 @@ export type Timestamp = Uint64;
 export type Uint64 = string;
 export type Decimal = string;
 export interface MinterInstantiateMsgForOpenEditionMinterInitExtention {
+  auth_details: AuthDetails;
   collection_details: CollectionDetails;
   init: OpenEditionMinterInitExtention;
   token_details?: TokenDetails | null;
+}
+export interface AuthDetails {
+  admin: Addr;
+  payment_collector: Addr;
 }
 export interface CollectionDetails {
   collection_name: string;
@@ -94,11 +99,9 @@ export interface WeightedAddress {
   [k: string]: unknown;
 }
 export interface OpenEditionMinterInitExtention {
-  admin: string;
   end_time?: Timestamp | null;
   mint_price: Coin;
   num_tokens?: number | null;
-  payment_collector?: string | null;
   per_address_limit?: number | null;
   start_time: Timestamp;
   whitelist_address?: string | null;
@@ -114,14 +117,14 @@ export interface TokenDetails {
   token_name: string;
   transferable: boolean;
 }
-export interface MinterInstantiateMsgForMultiMinterInitExtention {
+export interface MinterInstantiateMsgForEmpty {
+  auth_details: AuthDetails;
   collection_details: CollectionDetails;
-  init: MultiMinterInitExtention;
+  init: Empty;
   token_details?: TokenDetails | null;
 }
-export interface MultiMinterInitExtention {
-  admin: string;
-  payment_collector?: string | null;
+export interface Empty {
+  [k: string]: unknown;
 }
 export type QueryMsg = {
   params: {};

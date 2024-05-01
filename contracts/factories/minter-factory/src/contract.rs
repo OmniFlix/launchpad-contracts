@@ -83,10 +83,15 @@ fn create_minter(
             params.minter_creation_fee.clone(),
         ],
     )?;
-    let mut msgs = Vec::<CosmosMsg>::new();
+    // Unwrap the CreateMinterMsg
     let create_minter_msg = CreateMinterMsgs::CreateMinter { msg: msg.clone() };
+    // Validate the AuthDetails
+    let auth_details = msg.auth_details.clone();
+    auth_details.validate(&deps.as_ref())?;
+
+    let mut msgs = Vec::<CosmosMsg>::new();
     msgs.push(CosmosMsg::Wasm(WasmMsg::Instantiate {
-        admin: Some(msg.init.admin.to_string()),
+        admin: Some(auth_details.admin.to_string()),
         code_id: params.minter_code_id,
         msg: to_json_binary(&create_minter_msg)?,
         funds: vec![collection_creation_fee.clone()],
@@ -123,8 +128,12 @@ fn create_minter_with_migration(
     let mut msgs = Vec::<CosmosMsg>::new();
     let create_minter_msg = CreateMinterMsgs::CreateMinterWithMigration { msg: msg.clone() };
 
+    // Validate the AuthDetails
+    let auth_details = msg.auth_details.clone();
+    auth_details.validate(&deps.as_ref())?;
+
     msgs.push(CosmosMsg::Wasm(WasmMsg::Instantiate {
-        admin: Some(msg.auth_details.admin.to_string()),
+        admin: Some(auth_details.admin.to_string()),
         code_id: params.minter_code_id,
         msg: to_json_binary(&create_minter_msg)?,
         funds: vec![],

@@ -11,6 +11,7 @@ use cosmwasm_std::Addr;
 pub struct MinterInstantiateMsg<T> {
     pub collection_details: CollectionDetails,
     pub token_details: Option<TokenDetails>,
+    pub auth_details: AuthDetails,
     pub init: T,
 }
 
