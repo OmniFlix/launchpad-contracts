@@ -107,7 +107,9 @@ fn minter_creation() {
 
     // Send 0 num tokens
     let mut minter_inst_msg = return_minter_instantiate_msg();
-    minter_inst_msg.init.num_tokens = 0;
+    let mut init = minter_inst_msg.init.unwrap();
+    init.num_tokens = 0;
+    minter_inst_msg.init = Some(init);
     let create_minter_msg = FactoryExecuteMsg::CreateMinter {
         msg: minter_inst_msg,
     };
@@ -153,7 +155,9 @@ fn minter_creation() {
 
     // Incorrect start time
     let mut minter_inst_msg = return_minter_instantiate_msg();
-    minter_inst_msg.init.start_time = Timestamp::from_nanos(1_000 - 1);
+    let mut init = minter_inst_msg.init.unwrap();
+    init.start_time = Timestamp::from_nanos(1_000 - 1);
+    minter_inst_msg.init = Some(init);
     let create_minter_msg = FactoryExecuteMsg::CreateMinter {
         msg: minter_inst_msg,
     };
@@ -174,7 +178,9 @@ fn minter_creation() {
 
     // Incorrect end time
     let mut minter_inst_msg = return_minter_instantiate_msg();
-    minter_inst_msg.init.end_time = Some(minter_inst_msg.init.start_time.minus_nanos(1));
+    let mut init = minter_inst_msg.init.unwrap();
+    init.end_time = Some(init.start_time.minus_nanos(1));
+    minter_inst_msg.init = Some(init);
     let create_minter_msg = FactoryExecuteMsg::CreateMinter {
         msg: minter_inst_msg,
     };
@@ -354,7 +360,9 @@ fn test_minter_creation_with_whitelist() {
 
     // Try creating a minter with already active whitelist
     let mut minter_inst_msg = return_minter_instantiate_msg();
-    minter_inst_msg.init.whitelist_address = Some(whitelist_address.clone());
+    let mut init = minter_inst_msg.init.unwrap();
+    init.whitelist_address = Some(whitelist_address.clone());
+    minter_inst_msg.init = Some(init);
     let create_minter_msg = FactoryExecuteMsg::CreateMinter {
         msg: minter_inst_msg,
     };
@@ -387,7 +395,9 @@ fn test_minter_creation_with_whitelist() {
 
     // Create a minter with inactive whitelist
     let mut minter_inst_msg = return_minter_instantiate_msg();
-    minter_inst_msg.init.whitelist_address = Some(whitelist_address.clone());
+    let mut init = minter_inst_msg.init.unwrap();
+    init.whitelist_address = Some(whitelist_address.clone());
+    minter_inst_msg.init = Some(init);
     let create_minter_msg = FactoryExecuteMsg::CreateMinter {
         msg: minter_inst_msg,
     };

@@ -85,8 +85,10 @@ fn minter_private_minting() {
     let round_whitelist_address = get_contract_address_from_res(res.clone());
 
     let mut minter_inst_msg = return_minter_instantiate_msg();
-    minter_inst_msg.init.whitelist_address = Some(round_whitelist_address.clone());
-    minter_inst_msg.init.per_address_limit = Some(2);
+    let mut init = minter_inst_msg.init.unwrap();
+    init.whitelist_address = Some(round_whitelist_address.clone());
+    init.per_address_limit = Some(1);
+    minter_inst_msg.init = Some(init);
 
     let create_minter_msg = FactoryExecuteMsg::CreateMinter {
         msg: minter_inst_msg,

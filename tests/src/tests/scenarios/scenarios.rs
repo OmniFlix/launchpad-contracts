@@ -217,25 +217,27 @@ fn test_scenario_1() {
             royalty_ratio: Decimal::percent(10),
             data: None,
         }),
-        init: MinterInitExtention {
+        init: Some(MinterInitExtention {
             mint_price: coin(5_000_000, "uflix"),
             start_time: Timestamp::from_nanos(1_000_000_000),
             end_time: Some(Timestamp::from_nanos(2_000_000_000)),
             per_address_limit: Some(1),
             whitelist_address: Some(round_whitelist_addr.clone()),
             num_tokens: 100,
-        },
+        }),
         auth_details: AuthDetails {
             admin: Addr::unchecked("creator".to_string()),
             payment_collector: Addr::unchecked("creator".to_string()),
         },
     };
     let mut minter_2_inst_msg = minter_1_inst_message.clone();
-    minter_2_inst_msg.init.mint_price = coin(10_000_000, "uflix");
-    minter_2_inst_msg.init.start_time = Timestamp::from_nanos(2_000_000_000);
-    minter_2_inst_msg.init.end_time = Some(Timestamp::from_nanos(3_000_000_000));
-    minter_2_inst_msg.init.per_address_limit = Some(100);
-    minter_2_inst_msg.init.num_tokens = 100;
+    let mut init = minter_2_inst_msg.init.clone().unwrap();
+    init.mint_price = coin(10_000_000, "uflix");
+    init.start_time = Timestamp::from_nanos(2_000_000_000);
+    init.end_time = Some(Timestamp::from_nanos(3_000_000_000));
+    init.per_address_limit = Some(100);
+    init.num_tokens = 100;
+    minter_2_inst_msg.init = Some(init);
     minter_2_inst_msg.collection_details.id = "test2".to_string();
     minter_2_inst_msg.collection_details.collection_name = "Test_collection_2".to_string();
 

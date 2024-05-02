@@ -12,7 +12,7 @@ pub struct MinterInstantiateMsg<T> {
     pub collection_details: CollectionDetails,
     pub token_details: Option<TokenDetails>,
     pub auth_details: AuthDetails,
-    pub init: T,
+    pub init: Option<T>,
 }
 
 #[cw_serde]

@@ -53,9 +53,23 @@ fn oem_public_minting() {
     let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateOpenEditionMinter {
         msg: open_edition_minter_instantiate_msg.clone(),
     };
-    let public_minting_start_time = open_edition_minter_instantiate_msg.init.start_time;
-    let public_minting_end_time = open_edition_minter_instantiate_msg.init.end_time.unwrap();
-    let public_minting_price = open_edition_minter_instantiate_msg.init.mint_price.clone();
+    let public_minting_start_time = open_edition_minter_instantiate_msg
+        .init
+        .clone()
+        .unwrap()
+        .start_time;
+    let public_minting_end_time = open_edition_minter_instantiate_msg
+        .init
+        .clone()
+        .unwrap()
+        .end_time
+        .unwrap();
+    let public_minting_price = open_edition_minter_instantiate_msg
+        .init
+        .clone()
+        .unwrap()
+        .mint_price
+        .clone();
 
     let res = app
         .execute_contract(

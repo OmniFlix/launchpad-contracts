@@ -44,8 +44,8 @@ fn pause_minter() {
     let create_minter_msg = FactoryExecuteMsg::CreateMinter {
         msg: minter_inst_msg.clone(),
     };
-    let public_minting_price = minter_inst_msg.init.mint_price;
-    let public_start_time = minter_inst_msg.init.start_time;
+    let public_minting_price = minter_inst_msg.init.clone().unwrap().mint_price;
+    let public_start_time = minter_inst_msg.init.clone().unwrap().start_time;
 
     let res = app
         .execute_contract(

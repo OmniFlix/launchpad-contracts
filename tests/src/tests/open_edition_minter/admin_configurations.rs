@@ -96,7 +96,9 @@ fn update_whitelist() {
 
     // Create a minter
     let mut open_edition_minter_instantiate_msg = return_open_edition_minter_inst_msg();
-    open_edition_minter_instantiate_msg.init.whitelist_address = Some(whitelist_address.clone());
+    let mut init = open_edition_minter_instantiate_msg.init.clone().unwrap();
+    init.whitelist_address = Some(whitelist_address.clone());
+    open_edition_minter_instantiate_msg.init = Some(init);
     let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateOpenEditionMinter {
         msg: open_edition_minter_instantiate_msg.clone(),
     };
@@ -281,8 +283,17 @@ fn burn_remaining_tokens() {
     let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateOpenEditionMinter {
         msg: open_edition_minter_instantiate_msg.clone(),
     };
-    let public_minting_start_time = open_edition_minter_instantiate_msg.init.start_time;
-    let public_minting_price = open_edition_minter_instantiate_msg.init.mint_price.clone();
+    let public_minting_start_time = open_edition_minter_instantiate_msg
+        .init
+        .clone()
+        .unwrap()
+        .start_time;
+    let public_minting_price = open_edition_minter_instantiate_msg
+        .init
+        .clone()
+        .unwrap()
+        .mint_price
+        .clone();
 
     let res = app
         .execute_contract(

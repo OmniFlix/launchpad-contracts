@@ -98,7 +98,9 @@ fn private_minting() {
 
     // Create a minter
     let mut open_edition_minter_instantiate_msg = return_open_edition_minter_inst_msg();
-    open_edition_minter_instantiate_msg.init.whitelist_address = Some(whitelist_address.clone());
+    let mut init = open_edition_minter_instantiate_msg.init.unwrap();
+    init.whitelist_address = Some(whitelist_address.clone());
+    open_edition_minter_instantiate_msg.init = Some(init);
 
     // Set block time to rounds start time and create a oem
     // Should fail because the whitelist is active
@@ -133,7 +135,9 @@ fn private_minting() {
 
     // Create a minter
     let mut open_edition_minter_instantiate_msg = return_open_edition_minter_inst_msg();
-    open_edition_minter_instantiate_msg.init.whitelist_address = Some(whitelist_address.clone());
+    let mut init = open_edition_minter_instantiate_msg.init.unwrap();
+    init.whitelist_address = Some(whitelist_address.clone());
+    open_edition_minter_instantiate_msg.init = Some(init);
     let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateOpenEditionMinter {
         msg: open_edition_minter_instantiate_msg.clone(),
     };
@@ -296,13 +300,21 @@ fn private_minting() {
 
     // Now this whitelist has been used to its limit
     // Wait for public minting time
-    let public_minting_time = &open_edition_minter_instantiate_msg.clone().init.start_time;
+    let public_minting_time = &open_edition_minter_instantiate_msg
+        .clone()
+        .init
+        .unwrap()
+        .start_time;
     app.set_block(BlockInfo {
         chain_id: "test_1".to_string(),
         height: 1_000,
         time: *public_minting_time,
     });
-    let public_mint_price = &open_edition_minter_instantiate_msg.clone().init.mint_price;
+    let public_mint_price = &open_edition_minter_instantiate_msg
+        .clone()
+        .init
+        .unwrap()
+        .mint_price;
 
     // Mint for collector
     let mint_msg = OpenEditionMinterExecuteMsg::Mint {};

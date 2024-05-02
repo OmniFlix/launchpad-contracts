@@ -64,7 +64,7 @@ pub fn instantiate(
 
     // Extract other necessary information
     let collection_details = msg.collection_details.clone();
-    let init = msg.init.clone();
+    let init = msg.init.unwrap();
 
     // Initialize configuration
     let config = Config {

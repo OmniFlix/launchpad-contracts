@@ -41,7 +41,7 @@ pub fn return_open_edition_minter_inst_msg() -> OpenEditionMinterCreateMsg {
 
     OpenEditionMinterCreateMsg {
         collection_details,
-        init,
+        init: Some(init),
         token_details: Some(token_details),
         auth_details: AuthDetails {
             admin: Addr::unchecked("creator".to_string()),

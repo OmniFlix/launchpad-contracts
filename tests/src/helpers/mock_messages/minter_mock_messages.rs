@@ -32,14 +32,14 @@ pub fn return_minter_instantiate_msg() -> CreateMinterMsg {
     CreateMinterMsg {
         collection_details,
         token_details: Some(token_details),
-        init: MinterInitExtention {
+        init: Some(MinterInitExtention {
             mint_price: Coin::new(1000000, "uflix"),
             start_time: Timestamp::from_nanos(1_000_000_000),
             end_time: Some(Timestamp::from_nanos(2_000_000_000)),
             per_address_limit: Some(1),
             whitelist_address: None,
             num_tokens: 1000,
-        },
+        }),
         auth_details: AuthDetails {
             admin: Addr::unchecked("creator".to_string()),
             payment_collector: Addr::unchecked("creator".to_string()),

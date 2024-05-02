@@ -38,7 +38,7 @@ pub fn default_instantiate(
     let collection_creation_fee: Coin = check_collection_creation_fee(deps.as_ref().querier)?;
 
     // Clone message init for further use
-    let init = msg.init.clone();
+    let init = msg.init.unwrap();
 
     // Validate token details
     let token_details = msg

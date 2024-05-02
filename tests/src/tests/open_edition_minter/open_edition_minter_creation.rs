@@ -143,7 +143,9 @@ fn open_edition_minter_creation() {
 
     // Send zero token limit
     let mut open_edition_minter_instantiate_msg = return_open_edition_minter_inst_msg();
-    open_edition_minter_instantiate_msg.init.num_tokens = Some(0);
+    let mut init = open_edition_minter_instantiate_msg.init.unwrap();
+    init.num_tokens = Some(0);
+    open_edition_minter_instantiate_msg.init = Some(init);
     let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateOpenEditionMinter {
         msg: open_edition_minter_instantiate_msg,
     };
@@ -166,7 +168,9 @@ fn open_edition_minter_creation() {
 
     // Send zero per address limit
     let mut open_edition_minter_instantiate_msg = return_open_edition_minter_inst_msg();
-    open_edition_minter_instantiate_msg.init.per_address_limit = Some(0);
+    let mut init = open_edition_minter_instantiate_msg.init.unwrap();
+    init.per_address_limit = Some(0);
+    open_edition_minter_instantiate_msg.init = Some(init);
     let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateOpenEditionMinter {
         msg: open_edition_minter_instantiate_msg,
     };
@@ -242,7 +246,9 @@ fn open_edition_minter_creation() {
 
     // Send 0 mint price this should not fail because mint price can be set to zero on open edition minter
     let mut open_edition_minter_instantiate_msg = return_open_edition_minter_inst_msg();
-    open_edition_minter_instantiate_msg.init.mint_price.amount = Uint128::zero();
+    let mut init = open_edition_minter_instantiate_msg.init.unwrap();
+    init.mint_price.amount = Uint128::zero();
+    open_edition_minter_instantiate_msg.init = Some(init);
     let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateOpenEditionMinter {
         msg: open_edition_minter_instantiate_msg,
     };
@@ -257,7 +263,9 @@ fn open_edition_minter_creation() {
 
     // Send incorrect start time
     let mut open_edition_minter_instantiate_msg = return_open_edition_minter_inst_msg();
-    open_edition_minter_instantiate_msg.init.start_time = Timestamp::from_nanos(0);
+    let mut init = open_edition_minter_instantiate_msg.init.unwrap();
+    init.start_time = Timestamp::from_nanos(0);
+    open_edition_minter_instantiate_msg.init = Some(init);
     let create_minter_msg = OpenEditionMinterFactoryExecuteMsg::CreateOpenEditionMinter {
         msg: open_edition_minter_instantiate_msg,
     };

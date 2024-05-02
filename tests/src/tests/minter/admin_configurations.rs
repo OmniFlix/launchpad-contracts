@@ -86,7 +86,10 @@ fn update_whitelist() {
     let round_whitelist_address = get_contract_address_from_res(res.clone());
 
     let mut minter_inst_msg = return_minter_instantiate_msg();
-    minter_inst_msg.init.whitelist_address = Some(round_whitelist_address.clone());
+    // Unwrap init
+    let mut init = minter_inst_msg.init.unwrap().clone();
+    init.whitelist_address = Some(round_whitelist_address.clone());
+    minter_inst_msg.init = Some(init);
 
     let create_minter_msg = FactoryExecuteMsg::CreateMinter {
         msg: minter_inst_msg,
@@ -264,8 +267,8 @@ fn burn_remaining_tokens() {
     let create_minter_msg = FactoryExecuteMsg::CreateMinter {
         msg: minter_inst_msg.clone(),
     };
-    let public_minting_price = minter_inst_msg.init.mint_price;
-    let public_start_time = minter_inst_msg.init.start_time;
+    let public_minting_price = minter_inst_msg.init.clone().unwrap().mint_price;
+    let public_start_time = minter_inst_msg.init.clone().unwrap().start_time;
 
     let res = app
         .execute_contract(
