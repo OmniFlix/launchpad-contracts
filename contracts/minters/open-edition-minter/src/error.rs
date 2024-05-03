@@ -43,9 +43,6 @@ pub enum ContractError {
         current_time: Timestamp,
     },
 
-    #[error("Minting has already started")]
-    MintingAlreadyStarted {},
-
     #[error("Incorrect payment amount")]
     IncorrectPaymentAmount { expected: Uint128, sent: Uint128 },
 
@@ -58,24 +55,6 @@ pub enum ContractError {
     #[error("Token id is not mintable")]
     TokenIdNotMintable {},
 
-    #[error("Per address limit cannot be zero")]
-    PerAddressLimitZero {},
-
-    #[error("Invalid number of tokens")]
-    InvalidNumTokens {},
-
-    #[error("Invalid royalty ratio")]
-    InvalidRoyaltyRatio {},
-
-    #[error("Invalid mint price")]
-    InvalidMintPrice {},
-
-    #[error("Invalid start time")]
-    InvalidStartTime {},
-
-    #[error("Invalid end time")]
-    InvalidEndTime {},
-
     #[error("Address is not whitelisted")]
     AddressNotWhitelisted {},
 
@@ -84,9 +63,6 @@ pub enum ContractError {
 
     #[error("Whitelist is already active")]
     WhitelistAlreadyActive {},
-
-    #[error("Round start time is invalid")]
-    RoundStartTimeInvalid {},
 
     #[error("Public minting ended")]
     PublicMintingEnded {},
