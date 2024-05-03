@@ -38,6 +38,9 @@ pub fn default_instantiate(
     let collection_creation_fee: Coin = check_collection_creation_fee(deps.as_ref().querier)?;
 
     // Clone message init for further use
+    if msg.init.is_none() {
+        return Err(ContractError::InitMissing {});
+    }
     let init = msg.init.unwrap();
 
     // Validate token details

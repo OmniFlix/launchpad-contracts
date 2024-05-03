@@ -64,7 +64,10 @@ pub fn instantiate(
 
     // Extract other necessary information
     let collection_details = msg.collection_details.clone();
-    let init = msg.init.unwrap();
+    if msg.init.is_none() {
+        return Err(ContractError::InitMissing {});
+    }
+    let init = msg.init.clone().unwrap();
 
     // Initialize configuration
     let config = Config {

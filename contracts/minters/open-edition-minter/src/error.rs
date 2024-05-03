@@ -99,6 +99,9 @@ pub enum ContractError {
 
     #[error("Invalid token details")]
     InvalidTokenDetails {},
+
+    #[error("Init is missing")]
+    InitMissing {},
 }
 impl From<ContractError> for StdError {
     fn from(err: ContractError) -> StdError {

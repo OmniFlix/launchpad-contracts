@@ -115,6 +115,9 @@ pub enum ContractError {
 
     #[error("Migration minted count is invalid")]
     InvalidMigrationMintedCount {},
+
+    #[error("Init is missing")]
+    InitMissing {},
 }
 
 impl From<ContractError> for StdError {
