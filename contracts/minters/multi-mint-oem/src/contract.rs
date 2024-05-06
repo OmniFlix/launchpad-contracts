@@ -154,7 +154,7 @@ pub fn execute(
             preview_uri,
         } => execute_update_denom(deps, env, info, name, description, preview_uri),
         ExecuteMsg::PurgeDenom {} => execute_purge_denom(deps, env, info),
-        ExecuteMsg::RemoveDrop {} => execute_remove_drop(deps, info),
+        ExecuteMsg::RemoveDrop { drop_id } => execute_remove_drop(deps, info, drop_id),
     }
 }
 
@@ -643,19 +643,22 @@ pub fn execute_new_drop(
     Ok(res)
 }
 
-pub fn execute_remove_drop(deps: DepsMut, info: MessageInfo) -> Result<Response, ContractError> {
+pub fn execute_remove_drop(
+    deps: DepsMut,
+    info: MessageInfo,
+    drop_id: u32,
+) -> Result<Response, ContractError> {
     let auth_details = AUTH_DETAILS.load(deps.storage)?;
     // Check if sender is admin
     if info.sender != auth_details.admin {
         return Err(ContractError::Unauthorized {});
     }
-    // The active drop will always be the biggest drop ID in use.
-    let active_drop_id = ACTIVE_DROP_ID.load(deps.storage)?;
+
     // If active drop id is 0 then no drop is available
-    if active_drop_id == 0 {
+    if drop_id == 0 {
         return Err(ContractError::NoDropAvailable {});
     }
-    let (drop_id, drop) = get_drop_by_id(Some(active_drop_id), deps.storage)?;
+    let (drop_id, drop) = get_drop_by_id(Some(drop_id), deps.storage)?;
 
     if drop.minted_count > 0 {
         return Err(ContractError::DropCantBeRemoved {});
