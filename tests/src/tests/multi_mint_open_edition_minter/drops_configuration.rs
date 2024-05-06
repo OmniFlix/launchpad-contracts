@@ -986,6 +986,31 @@ fn add_drop() {
             TokenDetailsError::TokenNameTooLong {}
         )
     );
+    // Send too short token name
+    let mut new_drop = drop.clone();
+    new_drop.token_details.token_name = " ".to_string();
+    let res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(multi_minter_addr.clone()),
+            &MultiMintOpenEditionMinterExecuteMsg::NewDrop {
+                config: new_drop.config.clone(),
+                token_details: new_drop.token_details.clone(),
+            },
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap_err();
+    let err = res
+        .source()
+        .unwrap()
+        .downcast_ref::<MultiMintOpenEditionMinterContractError>()
+        .unwrap();
+    assert_eq!(
+        err,
+        &MultiMintOpenEditionMinterContractError::TokenDetailsError(
+            TokenDetailsError::TokenNameTooShort {}
+        )
+    );
 
     // Send too long token description
     let mut new_drop = drop.clone();
@@ -1039,6 +1064,32 @@ fn add_drop() {
         )
     );
 
+    // Send too short token preview uri
+    let mut new_drop = drop.clone();
+    new_drop.token_details.preview_uri = Some(" ".to_string());
+    let res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(multi_minter_addr.clone()),
+            &MultiMintOpenEditionMinterExecuteMsg::NewDrop {
+                config: new_drop.config.clone(),
+                token_details: new_drop.token_details.clone(),
+            },
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap_err();
+    let err = res
+        .source()
+        .unwrap()
+        .downcast_ref::<MultiMintOpenEditionMinterContractError>()
+        .unwrap();
+    assert_eq!(
+        err,
+        &MultiMintOpenEditionMinterContractError::TokenDetailsError(
+            TokenDetailsError::PreviewUriTooShort {}
+        )
+    );
+
     // Send too long token data
     let mut new_drop = drop.clone();
     new_drop.token_details.data = Some("a".repeat(4097));
@@ -1088,6 +1139,32 @@ fn add_drop() {
         err,
         &MultiMintOpenEditionMinterContractError::TokenDetailsError(
             TokenDetailsError::BaseTokenUriTooLong {}
+        )
+    );
+
+    // Send too short token base uri
+    let mut new_drop = drop.clone();
+    new_drop.token_details.base_token_uri = " ".to_string();
+    let res = app
+        .execute_contract(
+            creator.clone(),
+            Addr::unchecked(multi_minter_addr.clone()),
+            &MultiMintOpenEditionMinterExecuteMsg::NewDrop {
+                config: new_drop.config.clone(),
+                token_details: new_drop.token_details.clone(),
+            },
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap_err();
+    let err = res
+        .source()
+        .unwrap()
+        .downcast_ref::<MultiMintOpenEditionMinterContractError>()
+        .unwrap();
+    assert_eq!(
+        err,
+        &MultiMintOpenEditionMinterContractError::TokenDetailsError(
+            TokenDetailsError::BaseTokenUriTooShort {}
         )
     );
 
