@@ -8,12 +8,20 @@ pub enum TokenDetailsError {
     InvalidRoyaltyRatio {},
     #[error("Base token uri too long")]
     BaseTokenUriTooLong {},
+    #[error("Base token uri too short")]
+    BaseTokenUriTooShort {},
     #[error("Preview uri too long")]
     PreviewUriTooLong {},
+    #[error("Preview uri too short")]
+    PreviewUriTooShort {},
     #[error("Token description too long")]
     TokenDescriptionTooLong {},
+    #[error("Token description too short")]
+    TokenDescriptionTooShort {},
     #[error("Token name too long")]
     TokenNameTooLong {},
+    #[error("Token name too short")]
+    TokenNameTooShort {},
     #[error("Data too long")]
     DataTooLong {},
 }
@@ -57,9 +65,17 @@ impl TokenDetails {
         if self.base_token_uri.chars().count() > 256 {
             return Err(TokenDetailsError::BaseTokenUriTooLong {});
         }
+        if self.base_token_uri.chars().count() < 3 {
+            return Err(TokenDetailsError::BaseTokenUriTooShort {});
+        }
         if let Some(preview_uri) = &self.preview_uri {
             if preview_uri.chars().count() > 256 {
                 return Err(TokenDetailsError::PreviewUriTooLong {});
+            }
+        }
+        if let Some(preview_uri) = &self.preview_uri {
+            if preview_uri.chars().count() < 3 {
+                return Err(TokenDetailsError::PreviewUriTooShort {});
             }
         }
         if let Some(description) = &self.description {
@@ -70,7 +86,9 @@ impl TokenDetails {
         if self.token_name.chars().count() > 256 {
             return Err(TokenDetailsError::TokenNameTooLong {});
         }
-
+        if self.token_name.chars().count() < 3 {
+            return Err(TokenDetailsError::TokenNameTooShort {});
+        }
         if let Some(data) = &self.data {
             if data.chars().count() > 4096 {
                 return Err(TokenDetailsError::DataTooLong {});
