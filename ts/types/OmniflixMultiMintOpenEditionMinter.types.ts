@@ -12,7 +12,7 @@ export type Decimal = string;
 export interface InstantiateMsg {
   auth_details: AuthDetails;
   collection_details: CollectionDetails;
-  init: OpenEditionMinterInitExtention;
+  init?: OpenEditionMinterInitExtention | null;
   token_details?: TokenDetails | null;
 }
 export interface AuthDetails {
@@ -98,7 +98,9 @@ export type ExecuteMsg = {
     token_details: TokenDetails;
   };
 } | {
-  remove_drop: {};
+  remove_drop: {
+    drop_id: number;
+  };
 } | {
   update_royalty_receivers: {
     receivers: WeightedAddress[];

@@ -60,7 +60,7 @@ export type Decimal = string;
 export interface MinterInstantiateMsgForMinterInitExtention {
   auth_details: AuthDetails;
   collection_details: CollectionDetails;
-  init: MinterInitExtention;
+  init?: MinterInitExtention | null;
   token_details?: TokenDetails | null;
 }
 export interface AuthDetails {

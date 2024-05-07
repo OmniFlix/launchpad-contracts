@@ -12,7 +12,7 @@ export type Decimal = string;
 export interface InstantiateMsg {
   auth_details: AuthDetails;
   collection_details: CollectionDetails;
-  init: OpenEditionMinterInitExtention;
+  init?: OpenEditionMinterInitExtention | null;
   token_details?: TokenDetails | null;
 }
 export interface AuthDetails {

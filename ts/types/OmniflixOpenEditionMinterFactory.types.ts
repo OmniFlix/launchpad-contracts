@@ -74,7 +74,7 @@ export type Decimal = string;
 export interface MinterInstantiateMsgForOpenEditionMinterInitExtention {
   auth_details: AuthDetails;
   collection_details: CollectionDetails;
-  init: OpenEditionMinterInitExtention;
+  init?: OpenEditionMinterInitExtention | null;
   token_details?: TokenDetails | null;
 }
 export interface AuthDetails {
@@ -120,7 +120,7 @@ export interface TokenDetails {
 export interface MinterInstantiateMsgForEmpty {
   auth_details: AuthDetails;
   collection_details: CollectionDetails;
-  init: Empty;
+  init?: Empty | null;
   token_details?: TokenDetails | null;
 }
 export interface Empty {
