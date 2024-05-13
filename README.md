@@ -23,11 +23,11 @@ Testing is done using multi-test package. To run the tests, use the following co
 
 
 ## Optimizations
-To optimize the contract and generate the wasm file, run the following command:
+To optimize the contract and generate the wasm files, run the following command:
 
 ```
 docker run --rm -v "$(pwd)":/code \
   --mount type=volume,source="$(basename "$(pwd)")_cache",target=/target \
   --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
-  cosmwasm/workspace-optimizer:0.13.0
+  cosmwasm/workspace-optimizer:0.14.0
 ```
