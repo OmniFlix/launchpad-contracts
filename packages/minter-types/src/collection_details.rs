@@ -15,7 +15,6 @@ pub struct CollectionDetails {
     pub royalty_receivers: Option<Vec<WeightedAddress>>,
 }
 
-// TODO : Validate values bellow
 impl CollectionDetails {
     pub fn check_integrity(&self) -> Result<(), CollectionDetailsError> {
         if self.collection_name.chars().count() > 256 {
@@ -62,6 +61,29 @@ impl CollectionDetails {
         }
         Ok(())
     }
+}
+
+pub fn update_collection_details(
+    collection: &CollectionDetails,
+    collection_name: Option<String>,
+    description: Option<String>,
+    preview_uri: Option<String>,
+    royalty_receivers: Option<Vec<WeightedAddress>>,
+) -> CollectionDetails {
+    let mut new_collection = collection.clone();
+    if let Some(name) = collection_name {
+        new_collection.collection_name = name;
+    }
+    if let Some(desc) = description {
+        new_collection.description = Some(desc);
+    }
+    if let Some(preview) = preview_uri {
+        new_collection.preview_uri = Some(preview);
+    }
+    if let Some(receivers) = royalty_receivers {
+        new_collection.royalty_receivers = Some(receivers);
+    }
+    new_collection
 }
 
 #[derive(Error, Debug, PartialEq)]

@@ -11,12 +11,10 @@ use cosmwasm_std::{
     Response, StdResult, Uint128, WasmMsg,
 };
 use cw_utils::{may_pay, nonpayable};
-use minter_types::collection_details::CollectionDetails;
+use minter_types::collection_details::{update_collection_details, CollectionDetails};
 use minter_types::config::Config;
 use minter_types::token_details::{Token, TokenDetails};
-use minter_types::utils::{
-    generate_minter_mint_message, generate_update_denom_msg, update_collection_details,
-};
+use minter_types::utils::{generate_minter_mint_message, generate_update_denom_msg};
 
 use omniflix_minter_factory::msg::CreateMinterMsgs;
 use omniflix_round_whitelist::msg::ExecuteMsg::PrivateMint;
