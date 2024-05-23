@@ -27,7 +27,7 @@ use crate::state::{
     AUTH_DETAILS, COLLECTION, CONFIG, MINTABLE_TOKENS, TOKEN_DETAILS, TOTAL_TOKENS_REMAINING,
     USER_MINTING_DETAILS,
 };
-use crate::utils::{collect_mintable_tokens, randomize_token_list, return_random_token};
+use crate::utils::{randomize_token_list, return_random_token_index};
 use minter_types::msg::QueryMsg as BaseMinterQueryMsg;
 use minter_types::types::{AuthDetails, UserDetails};
 use pauser::PauseState;
@@ -122,9 +122,6 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     // Load mint price
     let mut mint_price = config.mint_price;
 
-    // Collect mintable tokens
-    let mintable_tokens = collect_mintable_tokens(deps.as_ref().storage)?;
-
     // Check if public minting is started and if end time is passed
     let is_public = env.block.time >= config.start_time;
     if let Some(end_time) = config.end_time {
@@ -134,7 +131,9 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     }
 
     // Get a random token
-    let random_token = return_random_token(&mintable_tokens, env.clone())?;
+    let random_token_index =
+        return_random_token_index(total_tokens_remaining, env.clone(), deps.storage)?;
+    let random_token = MINTABLE_TOKENS.load(deps.storage, random_token_index)?;
 
     let mut messages: Vec<CosmosMsg> = vec![];
 
@@ -193,7 +192,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     user_details.total_minted_count += 1;
 
     // Add minted token to user details
-    user_details.minted_tokens.push(random_token.1.clone());
+    user_details.minted_tokens.push(random_token.clone());
 
     // Save user details
     USER_MINTING_DETAILS.save(deps.storage, info.sender.clone(), &user_details)?;
@@ -216,19 +215,18 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     let token_details = TOKEN_DETAILS.load(deps.storage)?;
 
     // Update storage
-    MINTABLE_TOKENS.remove(deps.storage, random_token.0);
+    MINTABLE_TOKENS.remove(deps.storage, random_token_index);
     TOTAL_TOKENS_REMAINING.update(deps.storage, |mut total_tokens| -> StdResult<_> {
         total_tokens -= 1;
         Ok(total_tokens)
     })?;
-
-    let token_id = random_token.1.clone().token_id;
+    let random_token_id = random_token.token_id.clone();
 
     // Generate mint message
     let mint_msg: CosmosMsg = generate_minter_mint_message(
         &collection,
         &token_details,
-        token_id.clone(),
+        random_token_id.clone(),
         env.contract.address,
         info.sender,
     )?
@@ -253,7 +251,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     let res = Response::new()
         .add_messages(messages)
         .add_attribute("action", "mint")
-        .add_attribute("token_id", token_id.to_string())
+        .add_attribute("token_id", random_token_id.to_string())
         .add_attribute("collection_id", collection.id);
 
     Ok(res)
@@ -270,6 +268,12 @@ pub fn execute_mint_admin(
     let pause_state = PauseState::new()?;
     pause_state.error_if_paused(deps.storage)?;
 
+    // Check remaining tokens
+    let total_tokens_remaining = TOTAL_TOKENS_REMAINING.load(deps.storage)?;
+    if total_tokens_remaining == 0 {
+        return Err(ContractError::NoTokensLeftToMint {});
+    }
+
     nonpayable(&info)?;
     let collection = COLLECTION.load(deps.storage)?;
     let auth_details = AUTH_DETAILS.load(deps.storage)?;
@@ -282,28 +286,37 @@ pub fn execute_mint_admin(
     // Validate recipient address
     let recipient = deps.api.addr_validate(&recipient)?;
 
-    // Collect mintable tokens
-    let mintable_tokens = collect_mintable_tokens(deps.as_ref().storage)?;
-
     // Retrieve token to mint
-    let token = match token_id {
-        None => return_random_token(&mintable_tokens, env.clone())?,
+    let token_index_pair: (u32, Token) = match token_id {
+        None => {
+            let random_token_index =
+                return_random_token_index(total_tokens_remaining, env.clone(), deps.storage)?;
+            let random_token = MINTABLE_TOKENS.load(deps.storage, random_token_index)?;
+            (random_token_index, random_token)
+        }
         Some(token_id) => {
-            // Find token by ID
-            let token: Option<(u32, Token)> = mintable_tokens
-                .iter()
-                .find(|(_, token)| token.token_id == token_id)
-                .map(|(key, token)| (*key, token.clone()));
-
-            match token {
-                None => return Err(ContractError::TokenIdNotMintable {}),
-                Some(token) => token,
+            let mut position = 0;
+            for res in MINTABLE_TOKENS.range(deps.storage, None, None, Order::Ascending) {
+                let (pos, token) = res?;
+                if token.token_id == token_id {
+                    position = pos;
+                    break;
+                }
             }
+            if position == 0 {
+                return Err(ContractError::TokenIdNotMintable {});
+            }
+            (
+                position,
+                Token {
+                    token_id: token_id.clone(),
+                },
+            )
         }
     };
 
     // Remove token from mintable tokens
-    MINTABLE_TOKENS.remove(deps.storage, token.0);
+    MINTABLE_TOKENS.remove(deps.storage, token_index_pair.0);
 
     // Decrement total tokens remaining
     TOTAL_TOKENS_REMAINING.update(deps.storage, |mut total_tokens| -> StdResult<_> {
@@ -316,12 +329,12 @@ pub fn execute_mint_admin(
         .may_load(deps.storage, recipient.clone())?
         .unwrap_or(UserDetails::default());
     // Update user details directly to override per address limit checks
-    user_details.minted_tokens.push(token.1.clone());
+    user_details.minted_tokens.push(token_index_pair.1.clone());
     user_details.total_minted_count += 1;
     // Save user details
     USER_MINTING_DETAILS.save(deps.storage, recipient.clone(), &user_details)?;
 
-    let token_id = token.1.clone().token_id;
+    let token_id = token_index_pair.1.token_id.clone();
 
     // Generate mint message
     let mint_msg: CosmosMsg = generate_minter_mint_message(
