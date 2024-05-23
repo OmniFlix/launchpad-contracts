@@ -1,12 +1,13 @@
 use crate::round::RoundMethods;
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, Order, StdResult, Storage, Timestamp};
+use cosmwasm_std::{Addr, Api, Order, StdResult, Storage, Timestamp};
 use cw_storage_plus::{Item, Map};
 
 use crate::error::ContractError;
 use whitelist_types::Round;
 
 pub const CONFIG: Item<Config> = Item::new("config");
+pub const ROUNDMEMBERS: Map<(Vec<u8>, Vec<u8>), bool> = Map::new("round_members");
 pub const ROUNDS_KEY: &str = "rounds";
 pub const USERMINTDETAILS_KEY: &str = "user_mint_details";
 
@@ -16,7 +17,7 @@ pub struct Config {
 }
 
 pub type MintCount = u32;
-pub type RoundIndex = u32;
+pub type RoundIndex = u8;
 
 #[cw_serde]
 pub struct MintDetails {
@@ -35,7 +36,7 @@ impl<'a> UserMintDetails<'a> {
         store: &mut dyn Storage,
         user_address: &UserAddress,
         minter_address: &MinterAddress,
-        round_index: &u32,
+        round_index: &u8,
         round: &Round,
     ) -> Result<(), ContractError> {
         // Check if user exist
@@ -73,13 +74,13 @@ impl<'a> UserMintDetails<'a> {
     }
 }
 
-pub struct Rounds<'a>(Map<'a, u32, Round>);
+pub struct Rounds<'a>(Map<'a, RoundIndex, Round>);
 impl<'a> Rounds<'a> {
     pub const fn new(storage_key: &'a str) -> Self {
         Rounds(Map::new(storage_key))
     }
 
-    pub fn save(&self, store: &mut dyn Storage, round: &Round) -> StdResult<u32> {
+    pub fn save(&self, store: &mut dyn Storage, round: &Round) -> StdResult<u8> {
         let last_id = self
             .0
             .range(store, None, None, Order::Descending)
@@ -91,11 +92,11 @@ impl<'a> Rounds<'a> {
         Ok(last_id + 1)
     }
 
-    pub fn update(&self, store: &mut dyn Storage, id: u32, round: &Round) -> StdResult<()> {
+    pub fn update(&self, store: &mut dyn Storage, id: u8, round: &Round) -> StdResult<()> {
         self.0.save(store, id, round)?;
         Ok(())
     }
-    pub fn last_id(&self, store: &dyn Storage) -> StdResult<u32> {
+    pub fn last_id(&self, store: &dyn Storage) -> StdResult<u8> {
         let last_id = self
             .0
             .range(store, None, None, Order::Descending)
@@ -107,12 +108,12 @@ impl<'a> Rounds<'a> {
         Ok(last_id)
     }
 
-    pub fn load(&self, store: &dyn Storage, id: u32) -> Result<Round, ContractError> {
+    pub fn load(&self, store: &dyn Storage, id: u8) -> Result<Round, ContractError> {
         self.0
             .may_load(store, id)?
             .ok_or(ContractError::RoundNotFound {})
     }
-    pub fn remove(&self, store: &mut dyn Storage, id: u32) -> StdResult<()> {
+    pub fn remove(&self, store: &mut dyn Storage, id: u8) -> StdResult<()> {
         self.0.remove(store, id);
         Ok(())
     }
@@ -120,7 +121,7 @@ impl<'a> Rounds<'a> {
         &self,
         store: &dyn Storage,
         current_time: Timestamp,
-    ) -> Option<(u32, Round)> {
+    ) -> Option<(u8, Round)> {
         self.0
             .range(store, None, None, Order::Ascending)
             .filter_map(|result| result.ok())
@@ -129,7 +130,7 @@ impl<'a> Rounds<'a> {
             .find(|(_, round)| round.is_active(current_time))
     }
 
-    pub fn load_all_rounds(&self, store: &dyn Storage) -> StdResult<Vec<(u32, Round)>> {
+    pub fn load_all_rounds(&self, store: &dyn Storage) -> StdResult<Vec<(u8, Round)>> {
         self.0.range(store, None, None, Order::Ascending).collect()
     }
 
@@ -162,9 +163,42 @@ impl<'a> Rounds<'a> {
                 return Err(ContractError::RoundsOverlapped {});
             }
         }
+        // [(1, Round { start_time: Timestamp(Uint64(2000)), end_time: Timestamp(Uint64(3000)), mint_price: Coin { 1000000 "diffirent_denom" }, round_per_address_limit: 1 }),
+        // (2, Round { start_time: Timestamp(Uint64(4000)), end_time: Timestamp(Uint64(5000)), mint_price: Coin { 1000000 "uflix" }, round_per_address_limit: 1 }),
+        //(3, Round { start_time: Timestamp(Uint64(4001)), end_time: Timestamp(Uint64(24334243)), mint_price: Coin { 1000000 "uflix" }, round_per_address_limit: 1 })]
 
         Ok(())
     }
+}
+
+pub fn save_members(
+    store: &mut dyn Storage,
+    api: &dyn Api,
+    round_index: u8,
+    members: &Vec<String>,
+) -> Result<(), ContractError> {
+    const MAX_MEMBERS: usize = 5000;
+    if members.len() > MAX_MEMBERS {
+        return Err(ContractError::WhitelistMemberLimitExceeded {});
+    }
+    if members.is_empty() {
+        return Err(ContractError::EmptyAddressList {});
+    }
+    for member in members {
+        let validated = api.addr_validate(member.as_str())?;
+        let address_str = validated.as_str();
+        let round_index_str = round_index.to_string();
+        ROUNDMEMBERS.save(
+            store,
+            (
+                round_index_str.as_bytes().to_vec(),
+                address_str.as_bytes().to_vec(),
+            ),
+            &true,
+        )?;
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -179,14 +213,12 @@ mod tests {
         let mut deps = mock_dependencies();
         let rounds = Rounds::new("rounds");
         let round = Round {
-            addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
             start_time: Timestamp::from_seconds(1000),
             end_time: Timestamp::from_seconds(2000),
             mint_price: coin(100, "flix"),
             round_per_address_limit: 1,
         };
         let round2 = Round {
-            addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
             start_time: Timestamp::from_seconds(3000),
             end_time: Timestamp::from_seconds(4000),
             mint_price: coin(100, "atom"),
@@ -211,14 +243,12 @@ mod tests {
         let mut deps = mock_dependencies();
         let rounds = Rounds::new("rounds");
         let round = Round {
-            addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
             start_time: Timestamp::from_seconds(1000),
             end_time: Timestamp::from_seconds(2000),
             mint_price: coin(100, "flix"),
             round_per_address_limit: 1,
         };
         let round2 = Round {
-            addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
             start_time: Timestamp::from_seconds(3000),
             end_time: Timestamp::from_seconds(4000),
             mint_price: coin(100, "atom"),
@@ -226,8 +256,6 @@ mod tests {
         };
         let round1_index = rounds.save(&mut deps.storage, &round).unwrap();
         let _round2_index = rounds.save(&mut deps.storage, &round2).unwrap();
-        println!("round1_index: {}", round1_index);
-        println!("round2_index: {}", _round2_index);
 
         rounds.remove(&mut deps.storage, round1_index).unwrap();
         let loadled_rounds = rounds.load_all_rounds(&deps.storage).unwrap();
@@ -235,7 +263,6 @@ mod tests {
         let _loaded_round_1 = rounds.load(&deps.storage, round1_index).unwrap_err();
         // Try saving a new round
         let round3 = Round {
-            addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
             start_time: Timestamp::from_seconds(5000),
             end_time: Timestamp::from_seconds(6000),
             mint_price: coin(100, "atom"),
@@ -252,14 +279,12 @@ mod tests {
         let mut deps = mock_dependencies();
         let rounds = Rounds::new("rounds");
         let round = Round {
-            addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
             start_time: Timestamp::from_seconds(1000),
             end_time: Timestamp::from_seconds(2000),
             mint_price: coin(100, "flix"),
             round_per_address_limit: 1,
         };
         let round2 = Round {
-            addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
             start_time: Timestamp::from_seconds(3000),
             end_time: Timestamp::from_seconds(4000),
             mint_price: coin(100, "atom"),
@@ -291,7 +316,6 @@ mod tests {
 
         // Check load active round with overlapping rounds
         let round3 = Round {
-            addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
             start_time: Timestamp::from_seconds(1500),
             end_time: Timestamp::from_seconds(2500),
             mint_price: coin(100, "atom"),
@@ -311,21 +335,18 @@ mod tests {
         let mut deps = mock_dependencies();
         let rounds = Rounds::new("rounds");
         let round = Round {
-            addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
             start_time: Timestamp::from_seconds(1000),
             end_time: Timestamp::from_seconds(2000),
             mint_price: coin(100, "flix"),
             round_per_address_limit: 1,
         };
         let round2 = Round {
-            addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
             start_time: Timestamp::from_seconds(3000),
             end_time: Timestamp::from_seconds(4000),
             mint_price: coin(100, "atom"),
             round_per_address_limit: 1,
         };
         let round3 = Round {
-            addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
             start_time: Timestamp::from_seconds(1500),
             end_time: Timestamp::from_seconds(2500),
             mint_price: coin(100, "atom"),
@@ -346,7 +367,6 @@ mod tests {
         let user_details = UserMintDetails::new("user_mint_details");
 
         let round_1 = Round {
-            addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
             start_time: Timestamp::from_seconds(1000),
             end_time: Timestamp::from_seconds(2000),
             mint_price: coin(100, "flix"),
@@ -354,7 +374,6 @@ mod tests {
         };
 
         let _round_2 = Round {
-            addresses: vec![Addr::unchecked("addr1"), Addr::unchecked("addr2")],
             start_time: Timestamp::from_seconds(3000),
             end_time: Timestamp::from_seconds(4000),
             mint_price: coin(100, "atom"),

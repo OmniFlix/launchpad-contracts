@@ -7,7 +7,7 @@
 import { MsgExecuteContractEncodeObject } from "@cosmjs/cosmwasm-stargate";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { toUtf8 } from "@cosmjs/encoding";
-import { Addr, Timestamp, Uint64, Uint128, InstantiateMsg, Round, Coin, ExecuteMsg, QueryMsg, TupleOfUint32AndRound, String, Boolean, ArrayOfString, ArrayOfTupleOfUint32AndRound } from "./OmniflixRoundWhitelist.types";
+import { Timestamp, Uint64, Uint128, InstantiateMsg, RoundConfig, Round, Coin, ExecuteMsg, QueryMsg, TupleOfUint8AndRound, String, Boolean, ArrayOfString, ArrayOfTupleOfUint8AndRound } from "./OmniflixRoundWhitelist.types";
 export interface OmniflixRoundWhitelistMsg {
   contractAddress: string;
   sender: string;
@@ -17,9 +17,9 @@ export interface OmniflixRoundWhitelistMsg {
     roundIndex: number;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   addRound: ({
-    round
+    roundConfig
   }: {
-    round: Round;
+    roundConfig: RoundConfig;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   privateMint: ({
     collector
@@ -27,10 +27,10 @@ export interface OmniflixRoundWhitelistMsg {
     collector: string;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   addMembers: ({
-    address,
+    members,
     roundIndex
   }: {
-    address: string[];
+    members: string[];
     roundIndex: number;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   updatePrice: ({
@@ -75,9 +75,9 @@ export class OmniflixRoundWhitelistMsgComposer implements OmniflixRoundWhitelist
     };
   };
   addRound = ({
-    round
+    roundConfig
   }: {
-    round: Round;
+    roundConfig: RoundConfig;
   }, _funds?: Coin[]): MsgExecuteContractEncodeObject => {
     return {
       typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
@@ -86,7 +86,7 @@ export class OmniflixRoundWhitelistMsgComposer implements OmniflixRoundWhitelist
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
           add_round: {
-            round
+            round_config: roundConfig
           }
         })),
         funds: _funds
@@ -113,10 +113,10 @@ export class OmniflixRoundWhitelistMsgComposer implements OmniflixRoundWhitelist
     };
   };
   addMembers = ({
-    address,
+    members,
     roundIndex
   }: {
-    address: string[];
+    members: string[];
     roundIndex: number;
   }, _funds?: Coin[]): MsgExecuteContractEncodeObject => {
     return {
@@ -126,7 +126,7 @@ export class OmniflixRoundWhitelistMsgComposer implements OmniflixRoundWhitelist
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
           add_members: {
-            address,
+            members,
             round_index: roundIndex
           }
         })),

@@ -54,10 +54,13 @@ export type Timestamp = Uint64;
 export type Uint64 = string;
 export interface CreateWhitelistMsg {
   admin: string;
-  rounds: Round[];
+  rounds: RoundConfig[];
+}
+export interface RoundConfig {
+  members: string[];
+  round: Round;
 }
 export interface Round {
-  addresses: Addr[];
   end_time: Timestamp;
   mint_price: Coin;
   round_per_address_limit: number;

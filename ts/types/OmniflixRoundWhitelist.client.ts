@@ -6,17 +6,17 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { StdFee } from "@cosmjs/amino";
-import { Addr, Timestamp, Uint64, Uint128, InstantiateMsg, Round, Coin, ExecuteMsg, QueryMsg, TupleOfUint32AndRound, String, Boolean, ArrayOfString, ArrayOfTupleOfUint32AndRound } from "./OmniflixRoundWhitelist.types";
+import { Timestamp, Uint64, Uint128, InstantiateMsg, RoundConfig, Round, Coin, ExecuteMsg, QueryMsg, TupleOfUint8AndRound, String, Boolean, ArrayOfString, ArrayOfTupleOfUint8AndRound } from "./OmniflixRoundWhitelist.types";
 export interface OmniflixRoundWhitelistReadOnlyInterface {
   contractAddress: string;
-  rounds: () => Promise<ArrayOfTupleOfUint32AndRound>;
+  rounds: () => Promise<ArrayOfTupleOfUint8AndRound>;
   round: ({
     roundIndex
   }: {
     roundIndex: number;
   }) => Promise<Round>;
   isActive: () => Promise<Boolean>;
-  activeRound: () => Promise<TupleOfUint32AndRound>;
+  activeRound: () => Promise<TupleOfUint8AndRound>;
   members: ({
     limit,
     roundIndex,
@@ -51,7 +51,7 @@ export class OmniflixRoundWhitelistQueryClient implements OmniflixRoundWhitelist
     this.admin = this.admin.bind(this);
   }
 
-  rounds = async (): Promise<ArrayOfTupleOfUint32AndRound> => {
+  rounds = async (): Promise<ArrayOfTupleOfUint8AndRound> => {
     return this.client.queryContractSmart(this.contractAddress, {
       rounds: {}
     });
@@ -72,7 +72,7 @@ export class OmniflixRoundWhitelistQueryClient implements OmniflixRoundWhitelist
       is_active: {}
     });
   };
-  activeRound = async (): Promise<TupleOfUint32AndRound> => {
+  activeRound = async (): Promise<TupleOfUint8AndRound> => {
     return this.client.queryContractSmart(this.contractAddress, {
       active_round: {}
     });
@@ -125,9 +125,9 @@ export interface OmniflixRoundWhitelistInterface extends OmniflixRoundWhitelistR
     roundIndex: number;
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   addRound: ({
-    round
+    roundConfig
   }: {
-    round: Round;
+    roundConfig: RoundConfig;
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   privateMint: ({
     collector
@@ -135,10 +135,10 @@ export interface OmniflixRoundWhitelistInterface extends OmniflixRoundWhitelistR
     collector: string;
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   addMembers: ({
-    address,
+    members,
     roundIndex
   }: {
-    address: string[];
+    members: string[];
     roundIndex: number;
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   updatePrice: ({
@@ -178,13 +178,13 @@ export class OmniflixRoundWhitelistClient extends OmniflixRoundWhitelistQueryCli
     }, fee, memo, _funds);
   };
   addRound = async ({
-    round
+    roundConfig
   }: {
-    round: Round;
+    roundConfig: RoundConfig;
   }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       add_round: {
-        round
+        round_config: roundConfig
       }
     }, fee, memo, _funds);
   };
@@ -200,15 +200,15 @@ export class OmniflixRoundWhitelistClient extends OmniflixRoundWhitelistQueryCli
     }, fee, memo, _funds);
   };
   addMembers = async ({
-    address,
+    members,
     roundIndex
   }: {
-    address: string[];
+    members: string[];
     roundIndex: number;
   }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       add_members: {
-        address,
+        members,
         round_index: roundIndex
       }
     }, fee, memo, _funds);

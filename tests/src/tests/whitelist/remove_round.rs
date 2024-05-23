@@ -1,6 +1,6 @@
 #![cfg(test)]
 use crate::helpers::mock_messages::factory_mock_messages::return_round_whitelist_factory_inst_message;
-use crate::helpers::mock_messages::whitelist_mock_messages::return_rounds;
+use crate::helpers::mock_messages::whitelist_mock_messages::return_round_configs;
 use crate::helpers::setup::{setup, SetupResponse};
 use crate::helpers::utils::get_contract_address_from_res;
 use cosmwasm_std::{coin, to_json_binary, Addr, BlockInfo, QueryRequest, Timestamp, WasmQuery};
@@ -32,7 +32,7 @@ fn remove_round() {
             None,
         )
         .unwrap();
-    let rounds = return_rounds();
+    let rounds = return_round_configs();
     let res = app
         .execute_contract(
             creator.clone(),
@@ -133,15 +133,19 @@ fn remove_round() {
     let round = Round {
         start_time: Timestamp::from_nanos(6000),
         end_time: Timestamp::from_nanos(7000),
-        addresses: vec![Addr::unchecked("collector".to_string())],
         round_per_address_limit: 1,
         mint_price: coin(1000000, "uflix"),
+    };
+    let round_members = vec!["collector".to_string()];
+    let round_config = whitelist_types::RoundConfig {
+        round,
+        members: round_members.clone(),
     };
     let _res = app
         .execute_contract(
             admin.clone(),
             Addr::unchecked(round_whitelist_address.clone()),
-            &omniflix_round_whitelist::msg::ExecuteMsg::AddRound { round },
+            &omniflix_round_whitelist::msg::ExecuteMsg::AddRound { round_config },
             &[],
         )
         .unwrap();

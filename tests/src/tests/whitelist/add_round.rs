@@ -1,13 +1,13 @@
 #![cfg(test)]
 use crate::helpers::mock_messages::factory_mock_messages::return_round_whitelist_factory_inst_message;
-use crate::helpers::mock_messages::whitelist_mock_messages::return_rounds;
+use crate::helpers::mock_messages::whitelist_mock_messages::return_round_configs;
 use crate::helpers::setup::{setup, SetupResponse};
 use crate::helpers::utils::get_contract_address_from_res;
 use cosmwasm_std::{coin, Addr, Timestamp};
 
 use cw_multi_test::Executor;
 use omniflix_round_whitelist::error::ContractError as RoundWhitelistContractError;
-use whitelist_types::{CreateWhitelistMsg, Round};
+use whitelist_types::{CreateWhitelistMsg, Round, RoundConfig};
 
 #[test]
 fn add_round() {
@@ -31,7 +31,7 @@ fn add_round() {
             None,
         )
         .unwrap();
-    let rounds = return_rounds();
+    let rounds = return_round_configs();
     let res = app
         .execute_contract(
             creator.clone(),
@@ -50,15 +50,20 @@ fn add_round() {
     let round = Round {
         start_time: Timestamp::from_nanos(1000),
         end_time: Timestamp::from_nanos(2000),
-        addresses: vec![Addr::unchecked("collector".to_string())],
         round_per_address_limit: 1,
         mint_price: coin(1000000, "uflix"),
     };
+    let round_members = vec!["collector".to_string()];
+    let round_config = RoundConfig {
+        round,
+        members: round_members.clone(),
+    };
+
     let error = app
         .execute_contract(
             creator.clone(),
             Addr::unchecked(round_whitelist_address.clone()),
-            &omniflix_round_whitelist::msg::ExecuteMsg::AddRound { round },
+            &omniflix_round_whitelist::msg::ExecuteMsg::AddRound { round_config },
             &[],
         )
         .unwrap_err();
@@ -70,15 +75,20 @@ fn add_round() {
     let round = Round {
         start_time: Timestamp::from_nanos(500),
         end_time: Timestamp::from_nanos(1800),
-        addresses: vec![Addr::unchecked("collector".to_string())],
         round_per_address_limit: 1,
         mint_price: coin(1000000, "uflix"),
     };
+    let round_members = vec!["collector".to_string()];
+    let round_config = RoundConfig {
+        round,
+        members: round_members.clone(),
+    };
+
     let error = app
         .execute_contract(
             admin.clone(),
             Addr::unchecked(round_whitelist_address.clone()),
-            &omniflix_round_whitelist::msg::ExecuteMsg::AddRound { round },
+            &omniflix_round_whitelist::msg::ExecuteMsg::AddRound { round_config },
             &[],
         )
         .unwrap_err();
@@ -90,16 +100,21 @@ fn add_round() {
     let overlapping_round = Round {
         start_time: Timestamp::from_nanos(2500),
         end_time: Timestamp::from_nanos(3500),
-        addresses: vec![Addr::unchecked("collector".to_string())],
         round_per_address_limit: 1,
         mint_price: coin(1000000, "uflix"),
     };
+    let round_members = vec!["collector".to_string()];
+    let round_config = RoundConfig {
+        round: overlapping_round,
+        members: round_members.clone(),
+    };
+
     let error = app
         .execute_contract(
             admin.clone(),
             Addr::unchecked(round_whitelist_address.clone()),
             &omniflix_round_whitelist::msg::ExecuteMsg::AddRound {
-                round: overlapping_round,
+                round_config: round_config.clone(),
             },
             &[],
         )
@@ -112,16 +127,21 @@ fn add_round() {
     let invalid_end_time_round = Round {
         start_time: Timestamp::from_nanos(4000),
         end_time: Timestamp::from_nanos(3000),
-        addresses: vec![Addr::unchecked("collector".to_string())],
         round_per_address_limit: 1,
         mint_price: coin(1000000, "uflix"),
     };
+    let round_members = vec!["collector".to_string()];
+    let round_config = RoundConfig {
+        round: invalid_end_time_round,
+        members: round_members.clone(),
+    };
+
     let error = app
         .execute_contract(
             admin.clone(),
             Addr::unchecked(round_whitelist_address.clone()),
             &omniflix_round_whitelist::msg::ExecuteMsg::AddRound {
-                round: invalid_end_time_round,
+                round_config: round_config.clone(),
             },
             &[],
         )
@@ -132,18 +152,22 @@ fn add_round() {
 
     // Try adding empty addresses
     let empty_addresses_round = Round {
-        start_time: Timestamp::from_nanos(4000),
-        end_time: Timestamp::from_nanos(5000),
-        addresses: vec![],
+        start_time: Timestamp::from_nanos(5000),
+        end_time: Timestamp::from_nanos(6000),
         round_per_address_limit: 1,
         mint_price: coin(1000000, "uflix"),
+    };
+    let empty_addresses = vec![];
+    let emty_addresses_round_config = RoundConfig {
+        round: empty_addresses_round,
+        members: empty_addresses.clone(),
     };
     let error = app
         .execute_contract(
             admin.clone(),
             Addr::unchecked(round_whitelist_address.clone()),
             &omniflix_round_whitelist::msg::ExecuteMsg::AddRound {
-                round: empty_addresses_round,
+                round_config: emty_addresses_round_config.clone(),
             },
             &[],
         )
@@ -156,16 +180,20 @@ fn add_round() {
     let invalid_per_address_limit_round = Round {
         start_time: Timestamp::from_nanos(4000),
         end_time: Timestamp::from_nanos(5000),
-        addresses: vec![Addr::unchecked("collector".to_string())],
         round_per_address_limit: 0,
         mint_price: coin(1000000, "uflix"),
+    };
+    let round_members = vec!["collector".to_string()];
+    let round_config = RoundConfig {
+        round: invalid_per_address_limit_round,
+        members: round_members.clone(),
     };
     let error = app
         .execute_contract(
             admin.clone(),
             Addr::unchecked(round_whitelist_address.clone()),
             &omniflix_round_whitelist::msg::ExecuteMsg::AddRound {
-                round: invalid_per_address_limit_round,
+                round_config: round_config.clone(),
             },
             &[],
         )

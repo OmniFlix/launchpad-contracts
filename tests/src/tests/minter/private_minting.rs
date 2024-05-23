@@ -13,7 +13,7 @@ use crate::helpers::mock_messages::factory_mock_messages::{
     return_minter_factory_inst_message, return_round_whitelist_factory_inst_message,
 };
 use crate::helpers::mock_messages::minter_mock_messages::return_minter_instantiate_msg;
-use crate::helpers::mock_messages::whitelist_mock_messages::return_rounds;
+use crate::helpers::mock_messages::whitelist_mock_messages::return_round_configs;
 use crate::helpers::utils::get_contract_address_from_res;
 
 use crate::{helpers::setup::setup, helpers::utils::query_onft_collection};
@@ -60,9 +60,9 @@ fn minter_private_minting() {
         )
         .unwrap();
 
-    let rounds = return_rounds();
-    let round_1_price = rounds[0].mint_price.clone();
-    let round_2_price = rounds[1].mint_price.clone();
+    let rounds = return_round_configs();
+    let round_1_price = rounds[0].round.mint_price.clone();
+    let round_2_price = rounds[1].round.mint_price.clone();
 
     // Now is 1_000 as default
     let round_whitelist_inst_msg = CreateWhitelistMsg {
