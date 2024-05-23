@@ -15,7 +15,7 @@ use crate::helpers::mock_messages::factory_mock_messages::{
     return_minter_factory_inst_message, return_round_whitelist_factory_inst_message,
 };
 use crate::helpers::mock_messages::minter_mock_messages::return_minter_instantiate_msg;
-use crate::helpers::mock_messages::whitelist_mock_messages::return_rounds;
+use crate::helpers::mock_messages::whitelist_mock_messages::return_round_configs;
 use crate::helpers::utils::get_contract_address_from_res;
 
 use crate::{helpers::setup::setup, helpers::utils::query_onft_collection};
@@ -337,8 +337,8 @@ fn test_minter_creation_with_whitelist() {
             None,
         )
         .unwrap();
-    let rounds = return_rounds();
-    let round_1_start = rounds.clone()[0].start_time;
+    let rounds = return_round_configs();
+    let round_1_start = rounds.clone()[0].round.start_time;
     let round_whitelist_inst_msg = CreateWhitelistMsg {
         admin: admin.to_string(),
         rounds: rounds.clone(),

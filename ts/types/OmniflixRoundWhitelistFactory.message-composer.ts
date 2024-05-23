@@ -7,7 +7,7 @@
 import { MsgExecuteContractEncodeObject } from "@cosmjs/cosmwasm-stargate";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { toUtf8 } from "@cosmjs/encoding";
-import { Addr, Uint128, InstantiateMsg, RoundWhitelistFactoryParams, Coin, ExecuteMsg, Timestamp, Uint64, CreateWhitelistMsg, Round, QueryMsg, Boolean, ParamsResponse, ArrayOfAddr } from "./OmniflixRoundWhitelistFactory.types";
+import { Addr, Uint128, InstantiateMsg, RoundWhitelistFactoryParams, Coin, ExecuteMsg, Timestamp, Uint64, CreateWhitelistMsg, RoundConfig, Round, QueryMsg, Boolean, ParamsResponse, ArrayOfAddr } from "./OmniflixRoundWhitelistFactory.types";
 export interface OmniflixRoundWhitelistFactoryMsg {
   contractAddress: string;
   sender: string;

@@ -4,16 +4,18 @@
 * and run the @cosmwasm/ts-codegen generate command to regenerate this file.
 */
 
-export type Addr = string;
 export type Timestamp = Uint64;
 export type Uint64 = string;
 export type Uint128 = string;
 export interface InstantiateMsg {
   admin: string;
-  rounds: Round[];
+  rounds: RoundConfig[];
+}
+export interface RoundConfig {
+  members: string[];
+  round: Round;
 }
 export interface Round {
-  addresses: Addr[];
   end_time: Timestamp;
   mint_price: Coin;
   round_per_address_limit: number;
@@ -30,7 +32,7 @@ export type ExecuteMsg = {
   };
 } | {
   add_round: {
-    round: Round;
+    round_config: RoundConfig;
   };
 } | {
   private_mint: {
@@ -38,7 +40,7 @@ export type ExecuteMsg = {
   };
 } | {
   add_members: {
-    address: string[];
+    members: string[];
     round_index: number;
   };
 } | {
@@ -72,8 +74,8 @@ export type QueryMsg = {
 } | {
   admin: {};
 };
-export type TupleOfUint32AndRound = [number, Round];
+export type TupleOfUint8AndRound = [number, Round];
 export type String = string;
 export type Boolean = boolean;
 export type ArrayOfString = string[];
-export type ArrayOfTupleOfUint32AndRound = [number, Round][];
+export type ArrayOfTupleOfUint8AndRound = [number, Round][];

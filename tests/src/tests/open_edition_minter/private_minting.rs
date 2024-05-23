@@ -10,7 +10,7 @@ use minter_types::types::UserDetails;
 use omniflix_open_edition_minter_factory::msg::ExecuteMsg as OpenEditionMinterFactoryExecuteMsg;
 use whitelist_types::CreateWhitelistMsg;
 
-use crate::helpers::mock_messages::whitelist_mock_messages::return_rounds;
+use crate::helpers::mock_messages::whitelist_mock_messages::return_round_configs;
 use crate::helpers::utils::get_contract_address_from_res;
 
 use crate::helpers::mock_messages::factory_mock_messages::{
@@ -75,7 +75,7 @@ fn private_minting() {
         )
         .unwrap();
 
-    let rounds = return_rounds();
+    let rounds = return_round_configs();
 
     let round_whitelist_inst_msg = CreateWhitelistMsg {
         admin: admin.to_string(),
@@ -166,7 +166,7 @@ fn private_minting() {
     let error = error.downcast_ref::<OpenEditionMinterError>().unwrap();
     assert_eq!(error, &OpenEditionMinterError::WhitelistNotActive {});
 
-    let round_1_start_time = rounds[0].start_time;
+    let round_1_start_time = rounds[0].round.start_time;
     app.set_block(BlockInfo {
         chain_id: "test_1".to_string(),
         height: 1_000,
@@ -187,7 +187,7 @@ fn private_minting() {
     let error = error.downcast_ref::<OpenEditionMinterError>().unwrap();
     assert_eq!(error, &OpenEditionMinterError::AddressNotWhitelisted {});
 
-    let round_1_mint_price = &rounds[0].mint_price;
+    let round_1_mint_price = &rounds[0].round.mint_price;
 
     // Mint for collector
     let mint_msg = OpenEditionMinterExecuteMsg::Mint {};
@@ -239,8 +239,8 @@ fn private_minting() {
     assert_eq!(error, &RoundWhitelistError::RoundReachedMintLimit {});
 
     // Set block time to round 2 start time
-    let round_2_start_time = rounds[1].start_time;
-    let round_2_mint_price = &rounds[1].mint_price;
+    let round_2_start_time = rounds[1].round.start_time;
+    let round_2_mint_price = &rounds[1].round.mint_price;
 
     app.set_block(BlockInfo {
         chain_id: "test_1".to_string(),

@@ -17,7 +17,7 @@ use crate::helpers::mock_messages::factory_mock_messages::{
     return_minter_factory_inst_message, return_round_whitelist_factory_inst_message,
 };
 use crate::helpers::mock_messages::minter_mock_messages::return_minter_instantiate_msg;
-use crate::helpers::mock_messages::whitelist_mock_messages::return_rounds;
+use crate::helpers::mock_messages::whitelist_mock_messages::return_round_configs;
 use crate::helpers::utils::get_contract_address_from_res;
 
 use crate::helpers::setup::setup;
@@ -63,7 +63,7 @@ fn update_whitelist() {
         )
         .unwrap();
 
-    let rounds = return_rounds();
+    let rounds = return_round_configs();
 
     // Now is 1_000 as default
     let round_whitelist_inst_msg = CreateWhitelistMsg {
@@ -106,7 +106,7 @@ fn update_whitelist() {
     let minter_address = get_contract_address_from_res(res.clone());
     // Can not set whitelist if current round is active
     app.set_block(BlockInfo {
-        time: rounds.clone()[0].start_time,
+        time: rounds.clone()[0].round.start_time,
         height: 1,
         chain_id: "cosmos".to_string(),
     });
@@ -148,8 +148,8 @@ fn update_whitelist() {
         .downcast_ref::<MinterContractError>()
         .is_some());
     // Can not set whitelist if provided address is a already active whitelist
-    let mut rounds = return_rounds();
-    rounds[0].start_time = Timestamp::from_nanos(1_000);
+    let mut rounds = return_round_configs();
+    rounds[0].round.start_time = Timestamp::from_nanos(1_000);
     let round_whitelist_inst_msg = CreateWhitelistMsg {
         admin: admin.to_string(),
         rounds: rounds.clone(),
@@ -185,8 +185,8 @@ fn update_whitelist() {
     assert_eq!(error, &MinterContractError::WhitelistAlreadyActive {});
 
     // Create a non active whitelist
-    let mut rounds = return_rounds();
-    rounds[0].start_time = Timestamp::from_nanos(2_000);
+    let mut rounds = return_round_configs();
+    rounds[0].round.start_time = Timestamp::from_nanos(2_000);
     let round_whitelist_inst_msg = CreateWhitelistMsg {
         admin: admin.to_string(),
         rounds: rounds.clone(),

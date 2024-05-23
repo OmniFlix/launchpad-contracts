@@ -1,6 +1,6 @@
 #![cfg(test)]
 use crate::helpers::mock_messages::factory_mock_messages::return_round_whitelist_factory_inst_message;
-use crate::helpers::mock_messages::whitelist_mock_messages::return_rounds;
+use crate::helpers::mock_messages::whitelist_mock_messages::return_round_configs;
 use crate::helpers::setup::{setup, SetupResponse};
 use crate::helpers::utils::get_contract_address_from_res;
 use cosmwasm_std::{
@@ -32,7 +32,7 @@ fn whitelist_queries() {
             None,
         )
         .unwrap();
-    let rounds = return_rounds();
+    let rounds = return_round_configs();
     let res = app
         .execute_contract(
             creator.clone(),
@@ -124,7 +124,7 @@ fn whitelist_queries() {
             msg: to_json_binary(&RoundWhitelistQueryMsgs::Price {}).unwrap(),
         }))
         .unwrap();
-    assert_eq!(price, rounds[0].mint_price);
+    assert_eq!(price, rounds[0].round.mint_price);
 
     // Query is_member
     // Creator is not a member of first round

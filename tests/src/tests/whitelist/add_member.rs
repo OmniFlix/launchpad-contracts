@@ -1,6 +1,6 @@
 #![cfg(test)]
 use crate::helpers::mock_messages::factory_mock_messages::return_round_whitelist_factory_inst_message;
-use crate::helpers::mock_messages::whitelist_mock_messages::return_rounds;
+use crate::helpers::mock_messages::whitelist_mock_messages::return_round_configs;
 use crate::helpers::setup::{setup, SetupResponse};
 use crate::helpers::utils::get_contract_address_from_res;
 use cosmwasm_std::{coin, Addr};
@@ -32,7 +32,7 @@ fn add_member() {
             None,
         )
         .unwrap();
-    let rounds = return_rounds();
+    let rounds = return_round_configs();
     // Create a whitelist
     let res = app
         .execute_contract(
@@ -55,7 +55,7 @@ fn add_member() {
             admin.clone(),
             Addr::unchecked(round_whitelist_address.clone()),
             &ExecuteMsg::AddMembers {
-                address: ["address".to_string()].to_vec(),
+                members: ["address".to_string()].to_vec(),
                 round_index: 1,
             },
             &[coin(1000000, "uflix")],
@@ -71,7 +71,7 @@ fn add_member() {
             creator.clone(),
             Addr::unchecked(round_whitelist_address.clone()),
             &ExecuteMsg::AddMembers {
-                address: ["address".to_string()].to_vec(),
+                members: ["address".to_string()].to_vec(),
                 round_index: 100,
             },
             &[coin(1000000, "uflix")],
@@ -90,7 +90,7 @@ fn add_member() {
             creator.clone(),
             Addr::unchecked(round_whitelist_address.clone()),
             &ExecuteMsg::AddMembers {
-                address: ["collector".to_string()].to_vec(),
+                members: ["collector".to_string()].to_vec(),
                 round_index: 1,
             },
             &[coin(1000000, "uflix")],
@@ -116,7 +116,7 @@ fn add_member() {
             creator.clone(),
             Addr::unchecked(round_whitelist_address.clone()),
             &ExecuteMsg::AddMembers {
-                address: vec!["collector".to_string(); 500],
+                members: vec!["collector".to_string(); 500],
                 round_index: 1,
             },
             &[coin(1000000, "uflix")],
@@ -147,7 +147,7 @@ fn add_member() {
             creator.clone(),
             Addr::unchecked(round_whitelist_address.clone()),
             &ExecuteMsg::AddMembers {
-                address: addresses.clone(),
+                members: addresses.clone(),
                 round_index: 1,
             },
             &[coin(1000000, "uflix")],
@@ -175,11 +175,11 @@ fn add_member() {
             &RoundWhitelistQueryMsgs::Members {
                 round_index: 1,
                 start_after: None,
-                limit: Some(200),
+                limit: Some(49),
             },
         )
         .unwrap();
-    assert_eq!(members.len(), 200);
+    assert_eq!(members.len(), 49);
 
     // Query members with start_after
     let members: Vec<String> = app
@@ -194,10 +194,9 @@ fn add_member() {
         )
         .unwrap();
     assert_eq!(members.len(), 100);
-    assert_eq!(members[0], "collector150".to_string());
+    assert_eq!(members[0], "collector151".to_string());
 
     // Query members with start_after and limit
-    // Send limit more than 350
     let members: Vec<String> = app
         .wrap()
         .query_wasm_smart(
@@ -205,18 +204,34 @@ fn add_member() {
             &RoundWhitelistQueryMsgs::Members {
                 round_index: 1,
                 start_after: Some("collector150".to_string()),
-                limit: Some(502),
+                limit: Some(49),
             },
         )
         .unwrap();
 
-    assert_eq!(members.len(), 350);
-    assert_eq!(members[0], "collector150".to_string());
+    assert_eq!(members.len(), 49);
+    let one_before_last_member = members[47].clone();
+    let last_member = members[48].clone();
 
-    // Max members per round is 5000
+    // Paginate
+    let members: Vec<String> = app
+        .wrap()
+        .query_wasm_smart(
+            round_whitelist_address.clone(),
+            &RoundWhitelistQueryMsgs::Members {
+                round_index: 1,
+                start_after: Some(one_before_last_member.clone()),
+                limit: Some(49),
+            },
+        )
+        .unwrap();
+    assert_eq!(members.len(), 49);
+    assert_eq!(members[0], last_member);
+
+    // Member limit for an execution is 5000
     // Try adding more than 5000 members
     let mut addresses: Vec<String> = Vec::new();
-    for i in 500..5000 {
+    for i in 0..4999 + 2 {
         let address = format!("collector{}", i);
         addresses.push(address.clone());
     }
@@ -225,7 +240,7 @@ fn add_member() {
             creator.clone(),
             Addr::unchecked(round_whitelist_address.clone()),
             &ExecuteMsg::AddMembers {
-                address: addresses.clone(),
+                members: addresses.clone(),
                 round_index: 1,
             },
             &[coin(1000000, "uflix")],

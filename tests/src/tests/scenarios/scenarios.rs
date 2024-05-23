@@ -20,8 +20,8 @@ use omniflix_open_edition_minter_factory::msg::{
     ExecuteMsg as OpenEditionMinterFactoryExecuteMsg, MultiMinterCreateMsg,
 };
 use omniflix_round_whitelist::msg::ExecuteMsg as RoundWhitelistExecuteMsg;
-use whitelist_types::RoundWhitelistQueryMsgs;
 use whitelist_types::{CreateWhitelistMsg, Round};
+use whitelist_types::{RoundConfig, RoundWhitelistQueryMsgs};
 
 type MultiMintOpenEditionMinterQueryMsg =
     CommonMinterQueryMsg<MultiMintOpenEditionMinterQueryMsgExtension>;
@@ -149,35 +149,51 @@ fn test_scenario_1() {
             start_time: Timestamp::from_nanos(1_000_000),
             end_time: Timestamp::from_nanos(2_000_000),
             round_per_address_limit: 1,
-            addresses: (1..=25)
-                .map(|i| Addr::unchecked(format!("collector{}", i)))
-                .collect::<Vec<Addr>>(),
             mint_price: coin(1_000_000, "uflix"),
         },
         Round {
             start_time: Timestamp::from_nanos(2_000_000),
             end_time: Timestamp::from_nanos(3_000_000),
             round_per_address_limit: 1,
-            addresses: (1..=25)
-                .map(|i| Addr::unchecked(format!("collector{}", i)))
-                .collect::<Vec<Addr>>(),
             mint_price: coin(2_000_000, "ibc_atom"),
         },
         Round {
             start_time: Timestamp::from_nanos(3_000_000),
             end_time: Timestamp::from_nanos(4_000_000),
             round_per_address_limit: 1,
-            addresses: (26..=50)
-                .map(|i| Addr::unchecked(format!("collector{}", i)))
-                .collect::<Vec<Addr>>(),
             mint_price: coin(3_000_000, "ibc_atom"),
         },
     ]
     .to_vec();
 
+    let round_1_members = (1..=25)
+        .map(|i| format!("collector{}", i))
+        .collect::<Vec<String>>();
+    let round_2_members = (1..=25)
+        .map(|i| format!("collector{}", i))
+        .collect::<Vec<String>>();
+    let round_3_members = (26..=50)
+        .map(|i| format!("collector{}", i))
+        .collect::<Vec<String>>();
+
+    let round_1_config = RoundConfig {
+        round: rounds[0].clone(),
+        members: round_1_members.clone(),
+    };
+    let round_2_config = RoundConfig {
+        round: rounds[1].clone(),
+        members: round_2_members.clone(),
+    };
+    let round_3_config = RoundConfig {
+        round: rounds[2].clone(),
+        members: round_3_members.clone(),
+    };
+
+    let round_configs = vec![round_1_config, round_2_config, round_3_config];
+
     let round_whitelist_inst_msg = CreateWhitelistMsg {
         admin: admin.to_string(),
-        rounds: rounds.clone(),
+        rounds: round_configs.clone(),
     };
     let create_round_whitelist_msg =
         omniflix_round_whitelist_factory::msg::ExecuteMsg::CreateWhitelist {
@@ -415,8 +431,8 @@ fn test_scenario_1() {
             admin.clone(),
             Addr::unchecked(round_whitelist_addr.clone()),
             &RoundWhitelistExecuteMsg::AddMembers {
-                address: vec![collector_1.clone().to_string()],
-                round_index: index as u32,
+                members: vec![collector_1.clone().to_string()],
+                round_index: index as u8,
             },
             &[],
         )
@@ -441,16 +457,22 @@ fn test_scenario_1() {
         start_time: Timestamp::from_nanos(4_000_000),
         end_time: Timestamp::from_nanos(5_000_000),
         round_per_address_limit: 1,
-        addresses: (1..=100)
-            .map(|i| Addr::unchecked(format!("collector{}", i)))
-            .collect::<Vec<Addr>>(),
         mint_price: coin(200_000, "uflix"),
+    };
+    let round_4_addresses = (1..=100)
+        .map(|i| format!("collector{}", i))
+        .collect::<Vec<String>>();
+    let round_4_config = RoundConfig {
+        round: round_4.clone(),
+        members: round_4_addresses.clone(),
     };
     let _res = app
         .execute_contract(
             admin.clone(),
             Addr::unchecked(round_whitelist_addr.clone()),
-            &RoundWhitelistExecuteMsg::AddRound { round: round_4 },
+            &RoundWhitelistExecuteMsg::AddRound {
+                round_config: round_4_config,
+            },
             &[],
         )
         .unwrap();
@@ -620,35 +642,53 @@ fn test_scenario_2() {
             start_time: Timestamp::from_nanos(1_000_000),
             end_time: Timestamp::from_nanos(2_000_000),
             round_per_address_limit: 100,
-            addresses: (1..=25)
-                .map(|i| Addr::unchecked(format!("collector{}", i)))
-                .collect::<Vec<Addr>>(),
             mint_price: coin(1_000_000, "uflix"),
         },
         Round {
             start_time: Timestamp::from_nanos(2_000_000),
             end_time: Timestamp::from_nanos(3_000_000),
             round_per_address_limit: 100,
-            addresses: (1..=25)
-                .map(|i| Addr::unchecked(format!("collector{}", i)))
-                .collect::<Vec<Addr>>(),
             mint_price: coin(2_000_000, "ibc_atom"),
         },
         Round {
             start_time: Timestamp::from_nanos(3_000_000),
             end_time: Timestamp::from_nanos(4_000_000),
             round_per_address_limit: 1,
-            addresses: (26..=50)
-                .map(|i| Addr::unchecked(format!("collector{}", i)))
-                .collect::<Vec<Addr>>(),
             mint_price: coin(3_000_000, "ibc_atom"),
         },
     ]
     .to_vec();
 
+    let round_1_members = (1..=25)
+        .map(|i| format!("collector{}", i))
+        .collect::<Vec<String>>();
+
+    let round_2_members = (1..=25)
+        .map(|i| format!("collector{}", i))
+        .collect::<Vec<String>>();
+
+    let round_3_members = (26..=50)
+        .map(|i| format!("collector{}", i))
+        .collect::<Vec<String>>();
+
+    let round_1_config = RoundConfig {
+        round: rounds[0].clone(),
+        members: round_1_members.clone(),
+    };
+    let round_2_config = RoundConfig {
+        round: rounds[1].clone(),
+        members: round_2_members.clone(),
+    };
+    let round_3_config = RoundConfig {
+        round: rounds[2].clone(),
+        members: round_3_members.clone(),
+    };
+
+    let round_configs = vec![round_1_config, round_2_config, round_3_config];
+
     let round_whitelist_inst_msg = CreateWhitelistMsg {
         admin: admin.to_string(),
-        rounds: rounds.clone(),
+        rounds: round_configs.clone(),
     };
     let create_round_whitelist_msg =
         omniflix_round_whitelist_factory::msg::ExecuteMsg::CreateWhitelist {
@@ -864,16 +904,22 @@ fn test_scenario_2() {
         start_time: Timestamp::from_nanos(4_500_000),
         end_time: Timestamp::from_nanos(8_000_000),
         round_per_address_limit: 100,
-        addresses: (1..=100)
-            .map(|i| Addr::unchecked(format!("collector{}", i)))
-            .collect::<Vec<Addr>>(),
         mint_price: coin(200_000, "uflix"),
+    };
+    let round_4_addresses = (1..=100)
+        .map(|i| format!("collector{}", i))
+        .collect::<Vec<String>>();
+    let round_4_config = RoundConfig {
+        round: round_4.clone(),
+        members: round_4_addresses.clone(),
     };
     let _res = app
         .execute_contract(
             admin.clone(),
             Addr::unchecked(round_whitelist_addr.clone()),
-            &RoundWhitelistExecuteMsg::AddRound { round: round_4 },
+            &RoundWhitelistExecuteMsg::AddRound {
+                round_config: round_4_config,
+            },
             &[],
         )
         .unwrap();
@@ -905,14 +951,23 @@ fn test_scenario_2() {
         start_time: Timestamp::from_nanos(8_000_000 + 2),
         end_time: Timestamp::from_nanos(11_000_000),
         round_per_address_limit: 100,
-        addresses: (1..=100)
-            .map(|i| Addr::unchecked(format!("collector{}", i)))
-            .collect::<Vec<Addr>>(),
         mint_price: coin(200_000, "uflix"),
     }];
+
+    let round_configs = rounds
+        .iter()
+        .enumerate()
+        .map(|(index, round)| RoundConfig {
+            round: round.clone(),
+            members: (1..=100)
+                .map(|i| Addr::unchecked(format!("collector{}", i)).to_string())
+                .collect::<Vec<String>>(),
+        })
+        .collect::<Vec<RoundConfig>>();
+
     let round_whitelist_inst_msg = CreateWhitelistMsg {
         admin: admin.to_string(),
-        rounds: rounds.clone(),
+        rounds: round_configs.clone(),
     };
     let create_round_whitelist_msg =
         omniflix_round_whitelist_factory::msg::ExecuteMsg::CreateWhitelist {

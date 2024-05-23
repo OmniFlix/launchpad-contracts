@@ -1,6 +1,6 @@
 #![cfg(test)]
 use crate::helpers::mock_messages::factory_mock_messages::return_round_whitelist_factory_inst_message;
-use crate::helpers::mock_messages::whitelist_mock_messages::return_rounds;
+use crate::helpers::mock_messages::whitelist_mock_messages::return_round_configs;
 use crate::helpers::setup::{setup, SetupResponse};
 use cosmwasm_std::{coin, to_json_binary, QueryRequest, WasmQuery};
 
@@ -44,7 +44,7 @@ fn paused_factory() {
     assert!(!is_paused);
 
     // Create a whitelist
-    let rounds = return_rounds();
+    let rounds = return_round_configs();
     let _res = app
         .execute_contract(
             creator.clone(),

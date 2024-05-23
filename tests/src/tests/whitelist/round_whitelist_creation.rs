@@ -1,8 +1,8 @@
 #![cfg(test)]
-use cosmwasm_std::{coin, Addr, Timestamp, Uint128};
+use cosmwasm_std::{coin, Timestamp, Uint128};
 
 use crate::helpers::mock_messages::factory_mock_messages::return_round_whitelist_factory_inst_message;
-use crate::helpers::mock_messages::whitelist_mock_messages::return_rounds;
+use crate::helpers::mock_messages::whitelist_mock_messages::return_round_configs;
 use crate::helpers::setup::{setup, SetupResponse};
 use crate::helpers::utils::get_contract_address_from_res;
 
@@ -34,7 +34,7 @@ fn whitelist_creation() {
         )
         .unwrap();
 
-    let rounds = return_rounds();
+    let rounds = return_round_configs();
 
     // Send wrong fee amount
     let error = app
@@ -85,8 +85,8 @@ fn whitelist_creation() {
     );
 
     // Invalid start time for first round
-    let mut rounds = return_rounds();
-    rounds[0].start_time = Timestamp::from_nanos(1000 - 1);
+    let mut rounds = return_round_configs();
+    rounds[0].round.start_time = Timestamp::from_nanos(1000 - 1);
     let error = app
         .execute_contract(
             creator.clone(),
@@ -105,9 +105,9 @@ fn whitelist_creation() {
     assert_eq!(error, &RoundWhitelistContractError::RoundAlreadyStarted {});
 
     // Invalid end time for first round
-    let mut rounds = return_rounds();
-    rounds[0].start_time = Timestamp::from_nanos(2000);
-    rounds[0].end_time = Timestamp::from_nanos(2000 - 1);
+    let mut rounds = return_round_configs();
+    rounds[0].round.start_time = Timestamp::from_nanos(2000);
+    rounds[0].round.end_time = Timestamp::from_nanos(2000 - 1);
     let error = app
         .execute_contract(
             creator.clone(),
@@ -126,8 +126,8 @@ fn whitelist_creation() {
     assert_eq!(error, &RoundWhitelistContractError::InvalidEndTime {});
 
     // 0 per address limit
-    let mut rounds = return_rounds();
-    rounds[0].round_per_address_limit = 0;
+    let mut rounds = return_round_configs();
+    rounds[0].round.round_per_address_limit = 0;
     let error = app
         .execute_contract(
             creator.clone(),
@@ -149,7 +149,7 @@ fn whitelist_creation() {
     );
 
     // Try instantiating without factory
-    let rounds = return_rounds();
+    let rounds = return_round_configs();
 
     let _error = app
         .instantiate_contract(
@@ -165,11 +165,11 @@ fn whitelist_creation() {
         )
         .unwrap_err();
     // Overlapping rounds
-    let mut rounds = return_rounds();
-    rounds[0].start_time = Timestamp::from_nanos(2000);
-    rounds[0].end_time = Timestamp::from_nanos(3000);
-    rounds[1].start_time = Timestamp::from_nanos(2500);
-    rounds[1].end_time = Timestamp::from_nanos(3500);
+    let mut rounds = return_round_configs();
+    rounds[0].round.start_time = Timestamp::from_nanos(2000);
+    rounds[0].round.end_time = Timestamp::from_nanos(3000);
+    rounds[1].round.start_time = Timestamp::from_nanos(2500);
+    rounds[1].round.end_time = Timestamp::from_nanos(3500);
     let error = app
         .execute_contract(
             creator.clone(),
@@ -188,10 +188,10 @@ fn whitelist_creation() {
     assert_eq!(error, &RoundWhitelistContractError::RoundsOverlapped {});
 
     // Send more than 5000 diffirent members for a round
-    let mut rounds = return_rounds();
-    for i in 0..5001 {
-        let address = Addr::unchecked(format!("collector{}", i));
-        rounds[0].addresses.push(address);
+    let mut rounds = return_round_configs();
+    for _i in 0..5001 {
+        let address = "collector".to_string();
+        rounds[0].members.push(address);
     }
 
     let error = app
@@ -213,11 +213,11 @@ fn whitelist_creation() {
         error,
         &RoundWhitelistContractError::WhitelistMemberLimitExceeded {}
     );
-    // Send more than 5000 Same members for a round should not fail
-    let mut rounds = return_rounds();
-    for _i in 0..5001 {
-        let address = Addr::unchecked("collector");
-        rounds[0].addresses.push(address);
+    // Send more than 4999 Same members for a round should not fail
+    let mut rounds = return_round_configs();
+    for _i in 0..4999 {
+        let address = "collector".to_string();
+        rounds[0].members.push(address);
     }
 
     let res = app
@@ -256,7 +256,7 @@ fn whitelist_creation() {
     let uflix_before = query_res.amount;
 
     // Happy path
-    let rounds = return_rounds();
+    let rounds = return_round_configs();
     let _res = app
         .execute_contract(
             creator.clone(),

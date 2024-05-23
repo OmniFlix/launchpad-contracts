@@ -7,27 +7,32 @@ use minter_types::msg::QueryMsg as MinterQueryMsg;
 #[cw_serde]
 pub struct CreateWhitelistMsg {
     pub admin: String,
-    pub rounds: Vec<Round>,
+    pub rounds: Vec<RoundConfig>,
+}
+#[cw_serde]
+pub struct RoundConfig {
+    pub round: Round,
+    pub members: Vec<String>,
 }
 
 #[cw_serde]
 #[derive(QueryResponses)]
 pub enum RoundWhitelistQueryMsgs {
-    #[returns(Vec<(u32,Round)>)]
+    #[returns(Vec<(u8,Round)>)]
     Rounds {},
 
     #[returns(Round)]
-    Round { round_index: u32 },
+    Round { round_index: u8 },
     // Returns true if any round is active
     #[returns(bool)]
     IsActive {},
 
-    #[returns((u32,Round))]
+    #[returns((u8,Round))]
     ActiveRound {},
 
     #[returns(Vec<String>)]
     Members {
-        round_index: u32,
+        round_index: u8,
         start_after: Option<String>,
         limit: Option<u32>,
     },
@@ -44,7 +49,6 @@ pub enum RoundWhitelistQueryMsgs {
 
 #[cw_serde]
 pub struct Round {
-    pub addresses: Vec<Addr>,
     pub start_time: Timestamp,
     pub end_time: Timestamp,
     pub mint_price: Coin,

@@ -1,8 +1,11 @@
+use core::str;
+
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::Coin;
 use cosmwasm_std::{to_json_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
+use cosmwasm_std::{Coin, Order};
 use cw2::set_contract_version;
+use cw_storage_plus::Bound;
 use omniflix_round_whitelist_factory::msg::ParamsResponse;
 use omniflix_round_whitelist_factory::msg::QueryMsg as QueryFactoryParams;
 
@@ -10,8 +13,13 @@ use crate::error::ContractError;
 use crate::msg::ExecuteMsg;
 use crate::round::RoundMethods;
 
-use crate::state::{Config, Rounds, UserMintDetails, CONFIG, ROUNDS_KEY, USERMINTDETAILS_KEY};
-use whitelist_types::{check_if_minter, CreateWhitelistMsg, Round, RoundWhitelistQueryMsgs};
+use crate::state::{
+    save_members, Config, Rounds, UserMintDetails, CONFIG, ROUNDMEMBERS, ROUNDS_KEY,
+    USERMINTDETAILS_KEY,
+};
+use whitelist_types::{
+    check_if_minter, CreateWhitelistMsg, Round, RoundConfig, RoundWhitelistQueryMsgs,
+};
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
     deps: DepsMut,
@@ -25,25 +33,20 @@ pub fn instantiate(
         info.sender.clone().into_string(),
         &QueryFactoryParams::Params {},
     )?;
+    let rounds_state = Rounds::new(ROUNDS_KEY);
     let admin = deps.api.addr_validate(&msg.admin)?;
-    let rounds = msg
-        .rounds
+
+    msg.rounds
         .into_iter()
-        .map(|round| {
+        .try_for_each::<_, Result<_, ContractError>>(|round_config| {
+            let round = round_config.round;
             // Check round integrity
             round.check_integrity(env.block.time)?;
-            // Validate members and remove duplicates
-            let validated_round = round.validate_members_and_return(deps.as_ref())?;
-            Ok(validated_round)
-        })
-        .collect::<Result<Vec<Round>, ContractError>>()?;
-
-    // Save the rounds
-    let rounds_state = Rounds::new(ROUNDS_KEY);
-    rounds_state.check_round_overlaps(deps.storage, Some(rounds.clone()))?;
-    rounds.clone().into_iter().for_each(|round| {
-        let _ = rounds_state.save(deps.storage, &round);
-    });
+            let round_index = rounds_state.save(deps.storage, &round)?;
+            save_members(deps.storage, deps.api, round_index, &round_config.members)?;
+            Ok(())
+        })?;
+    rounds_state.check_round_overlaps(deps.storage, None)?;
 
     let config = Config {
         admin: admin.clone(),
@@ -63,12 +66,14 @@ pub fn execute(
         ExecuteMsg::RemoveRound { round_index } => {
             execute_remove_round(deps, env, info, round_index)
         }
-        ExecuteMsg::AddRound { round } => execute_add_round(deps, env, info, round),
+        ExecuteMsg::AddRound {
+            round_config: RoundConfig { round, members },
+        } => execute_add_round(deps, env, info, round, members),
         ExecuteMsg::PrivateMint { collector } => execute_private_mint(deps, env, info, collector),
         ExecuteMsg::AddMembers {
-            address,
+            members,
             round_index,
-        } => execute_add_members(deps, env, info, address, round_index),
+        } => execute_add_members(deps, env, info, members, round_index),
         ExecuteMsg::UpdatePrice {
             mint_price,
             round_index,
@@ -79,7 +84,7 @@ pub fn execute_remove_round(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    round_index: u32,
+    round_index: u8,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
     let config = CONFIG.load(deps.storage)?;
@@ -107,6 +112,7 @@ pub fn execute_add_round(
     env: Env,
     info: MessageInfo,
     round: Round,
+    members: Vec<String>,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
     let config = CONFIG.load(deps.storage)?;
@@ -114,13 +120,13 @@ pub fn execute_add_round(
         return Err(ContractError::Unauthorized {});
     }
     round.check_integrity(env.block.time)?;
-    let validated_round = round.validate_members_and_return(deps.as_ref())?;
 
     let rounds = Rounds::new(ROUNDS_KEY);
     // Check overlaps
-    rounds.check_round_overlaps(deps.storage, Some([validated_round.clone()].to_vec()))?;
+    rounds.check_round_overlaps(deps.storage, Some([round.clone()].to_vec()))?;
     // Save the round
-    let new_round_index = rounds.save(deps.storage, &validated_round)?;
+    let new_round_index = rounds.save(deps.storage, &round)?;
+    save_members(deps.storage, deps.api, new_round_index, &members)?;
 
     let res = Response::new()
         .add_attribute("action", "add_round")
@@ -169,8 +175,8 @@ pub fn execute_add_members(
     deps: DepsMut,
     _env: Env,
     info: MessageInfo,
-    addresses: Vec<String>,
-    round_index: u32,
+    members: Vec<String>,
+    round_index: u8,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
     let config = CONFIG.load(deps.storage)?;
@@ -181,16 +187,14 @@ pub fn execute_add_members(
     // We are not checking if the round has started or ended
     let rounds = Rounds::new(ROUNDS_KEY);
     // Check if the round exists
-    let mut round = rounds.load(deps.storage, round_index)?;
+    rounds.load(deps.storage, round_index)?;
     // Add the address to the round
-    round.add_members(deps.as_ref(), addresses.clone())?;
-    // Save the round
-    rounds.update(deps.storage, round_index, &round)?;
+    save_members(deps.storage, deps.api, round_index, &members)?;
 
     let res = Response::new()
         .add_attribute("action", "add_members")
         .add_attribute("round_index", round_index.to_string())
-        .add_attribute("addresses", addresses.join(","));
+        .add_attribute("addresses", members.join(","));
     Ok(res)
 }
 
@@ -199,7 +203,7 @@ pub fn execute_update_price(
     env: Env,
     info: MessageInfo,
     mint_price: Coin,
-    round_index: u32,
+    round_index: u8,
 ) -> Result<Response, ContractError> {
     // Check if sender is admin
     let config = CONFIG.load(deps.storage)?;
@@ -248,7 +252,7 @@ pub fn query(deps: Deps, env: Env, msg: RoundWhitelistQueryMsgs) -> StdResult<Bi
     }
 }
 
-pub fn query_active_round(deps: Deps, env: Env) -> Result<(u32, Round), ContractError> {
+pub fn query_active_round(deps: Deps, env: Env) -> Result<(u8, Round), ContractError> {
     let rounds = Rounds::new(ROUNDS_KEY);
     let active_round = rounds.load_active_round(deps.storage, env.block.time);
     let active_round = match active_round {
@@ -268,13 +272,40 @@ pub fn query_is_active(deps: Deps, env: Env) -> Result<bool, ContractError> {
 pub fn query_members(
     deps: Deps,
     _env: Env,
-    round_index: u32,
+    round_index: u8,
     start_after: Option<String>,
     limit: Option<u32>,
 ) -> Result<Vec<String>, ContractError> {
-    let rounds = Rounds::new(ROUNDS_KEY);
-    let round = rounds.load(deps.storage, round_index)?;
-    let members = round.members(start_after, limit)?;
+    const MAX_LIMIT: u32 = 100;
+    let round_index_str = round_index.to_string();
+    let prefix: String = round_index_str.clone();
+
+    let start = match start_after {
+        Some(start_after) => {
+            let start_after = start_after.as_bytes().to_vec();
+            Bound::exclusive(start_after)
+        }
+        None => Bound::inclusive(prefix.as_bytes().to_vec()),
+    };
+    let limit: u32 = match limit {
+        Some(limit) => limit.min(MAX_LIMIT),
+        None => MAX_LIMIT,
+    };
+
+    let members: Vec<(Vec<u8>, bool)> = ROUNDMEMBERS
+        .prefix(prefix.as_bytes().to_vec())
+        .range(deps.storage, Some(start), None, Order::Ascending)
+        .take(limit as usize)
+        .map(|item| item.unwrap())
+        .collect();
+
+    let members: Vec<String> = members
+        .iter()
+        .map(|member| {
+            let member = str::from_utf8(&member.0).unwrap();
+            member.to_string()
+        })
+        .collect();
     Ok(members)
 }
 
@@ -289,23 +320,15 @@ pub fn query_price(deps: Deps, env: Env) -> Result<Coin, ContractError> {
     Ok(price)
 }
 
-pub fn query_rounds(deps: Deps, _env: Env) -> Result<Vec<(u32, Round)>, ContractError> {
+pub fn query_rounds(deps: Deps, _env: Env) -> Result<Vec<(u8, Round)>, ContractError> {
     let rounds = Rounds::new(ROUNDS_KEY);
-    let mut rounds = rounds.load_all_rounds(deps.storage)?;
-    // remove members from rounds
-    // To query members use Members query
-    rounds.iter_mut().for_each(|round| {
-        round.1.addresses = vec![];
-    });
+    let rounds = rounds.load_all_rounds(deps.storage)?;
     Ok(rounds)
 }
 
-pub fn query_round(deps: Deps, round_index: u32) -> Result<Round, ContractError> {
+pub fn query_round(deps: Deps, round_index: u8) -> Result<Round, ContractError> {
     let rounds = Rounds::new(ROUNDS_KEY);
-    let mut round = rounds.load(deps.storage, round_index)?;
-    // remove members from round
-    // To query members use Members query
-    round.addresses = vec![];
+    let round = rounds.load(deps.storage, round_index)?;
     Ok(round)
 }
 
@@ -316,8 +339,13 @@ pub fn query_is_member(deps: Deps, env: Env, address: String) -> Result<bool, Co
         Some(active_round) => active_round,
         None => return Err(ContractError::NoActiveRound {}),
     };
-    let address = deps.api.addr_validate(&address)?;
-    let is_member = active_round.1.is_member(&address);
+    let str_index = active_round.0.to_string();
+    let is_member = ROUNDMEMBERS
+        .load(
+            deps.storage,
+            (str_index.as_bytes().to_vec(), address.as_bytes().to_vec()),
+        )
+        .unwrap_or(false);
     Ok(is_member)
 }
 
