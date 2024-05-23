@@ -63,7 +63,9 @@ pub fn return_random_token_index(
 
     let r = rng.next_u32();
 
-    let token_skip_amount = r % num_of_tokens;
+    let divider = 50.min(num_of_tokens);
+    // We should limit the amount of tokens we skip to prevent gas exhaustion
+    let token_skip_amount = r % divider;
 
     let random_token_position: u32 = MINTABLE_TOKENS
         .keys(storage, None, None, Order::Ascending)
