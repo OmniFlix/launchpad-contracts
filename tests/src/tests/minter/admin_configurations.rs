@@ -49,7 +49,6 @@ fn update_whitelist() {
             None,
         )
         .unwrap();
-    println!("Factory address: {:?}", factory_addr);
     let round_whitelist_factory_inst_msg =
         return_round_whitelist_factory_inst_message(round_whitelist_code_id);
     let round_whitelist_factory_addr = app
@@ -262,7 +261,6 @@ fn burn_remaining_tokens() {
             None,
         )
         .unwrap();
-    println!("Factory address: {:?}", factory_addr);
     let minter_inst_msg = return_minter_instantiate_msg();
     let create_minter_msg = FactoryExecuteMsg::CreateMinter {
         msg: minter_inst_msg.clone(),

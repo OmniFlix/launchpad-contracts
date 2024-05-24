@@ -63,12 +63,17 @@ pub fn return_random_token_index(
 
     let r = rng.next_u32();
 
+    let order = match tx_index % 2 {
+        0 => Order::Ascending,
+        _ => Order::Descending,
+    };
+
     let divider = 50.min(num_of_tokens);
     // We should limit the amount of tokens we skip to prevent gas exhaustion
     let token_skip_amount = r % divider;
 
     let random_token_position: u32 = MINTABLE_TOKENS
-        .keys(storage, None, None, Order::Ascending)
+        .keys(storage, None, None, order)
         .skip(token_skip_amount as usize)
         .take(1)
         .collect::<Result<Vec<u32>, StdError>>()?[0];
@@ -119,6 +124,7 @@ mod tests {
         let randomized_list = randomize_token_list(tokens.clone(), total_tokens, env).unwrap();
 
         assert_ne!(randomized_list, tokens);
+        assert_ne!(randomized_list[100], tokens[100]);
     }
 
     #[test]
@@ -127,9 +133,9 @@ mod tests {
         let mut deps = mock_dependencies();
         let total_tokens = 1000;
         let mut env = mock_env();
-        env.block.height = 652678625765;
-        env.block.time = Timestamp::from_nanos(782787);
-        env.transaction = Some(TransactionInfo { index: 121474982 });
+        env.block.height = 400_000;
+        env.block.time = Timestamp::from_nanos(120_000_000);
+        env.transaction = Some(TransactionInfo { index: 23_000 });
 
         let tokens = generate_tokens(total_tokens);
 
@@ -145,62 +151,20 @@ mod tests {
 
         // Random index should be between 1 and num of tokens
         assert!(random_token_index >= 1 && random_token_index <= total_tokens);
-    }
-    #[test]
-    fn redo_random_pick() {
-        let mut deps = mock_dependencies();
-        // Regenerate token list
+
+        // New env with different params
         let mut env = mock_env();
-        env.block.height = 100_000;
-        env.block.time = Timestamp::from_nanos(200_000);
-        env.transaction = Some(TransactionInfo { index: 400_000 + 1 });
-        let mut total_tokens = 1000;
-        let tokens = generate_tokens(total_tokens);
+        env.block.height = 450_000;
+        env.block.time = Timestamp::from_nanos(130_000_000);
+        env.transaction = Some(TransactionInfo { index: 24_000 });
 
-        let randomized_list =
-            randomize_token_list(tokens.clone(), total_tokens, env.clone()).unwrap();
+        let random_token_index_new =
+            return_random_token_index(total_tokens, env, deps.as_ref().storage).unwrap();
 
-        // save tokens
-        for token in randomized_list.clone() {
-            MINTABLE_TOKENS
-                .save(deps.as_mut().storage, token.0, &token.1)
-                .unwrap();
-        }
+        // Random index should be between 1 and num of tokens
+        assert!(random_token_index_new >= 1 && random_token_index_new <= total_tokens);
 
-        // Pick a token from the list let's say it's index 5
-        let picked_token = &randomized_list[4];
-
-        // Count how many times it takes to pick the token
-        let mut count = 0;
-
-        loop {
-            let random_token_index =
-                return_random_token_index(total_tokens, env.clone(), deps.as_ref().storage)
-                    .unwrap()
-                    .clone();
-            let random_token = MINTABLE_TOKENS
-                .load(deps.as_ref().storage, random_token_index)
-                .unwrap();
-
-            count += 1;
-
-            if random_token == picked_token.1 {
-                break;
-            } else {
-                MINTABLE_TOKENS.remove(deps.as_mut().storage, random_token_index);
-                total_tokens -= 1;
-            }
-        }
-
-        println!("Final Count: {}", count);
-        println!(
-            "Remaining token count: {}",
-            MINTABLE_TOKENS
-                .range(deps.as_ref().storage, None, None, Order::Ascending)
-                .count() as u32
-                - 1 as u32
-        );
-        //Spoiler allert - it takes 270 times to pick the token
-        //Add 1 to tx index and it takes 123 times
+        // Random index should be different
+        assert_ne!(random_token_index, random_token_index_new);
     }
 }
