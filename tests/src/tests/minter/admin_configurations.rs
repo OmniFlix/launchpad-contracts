@@ -279,14 +279,17 @@ fn burn_remaining_tokens() {
     let minter_address = get_contract_address_from_res(res.clone());
 
     // Query mintable tokens
-    let mintable_tokens: Vec<Token> = app
+    let mintable_tokens: Vec<(u32, Token)> = app
         .wrap()
         .query_wasm_smart(
             minter_address.clone(),
-            &MinterQueryMsg::Extension(MinterExtensionQueryMsg::MintableTokens {}),
+            &MinterQueryMsg::Extension(MinterExtensionQueryMsg::MintableTokens {
+                start_after: None,
+                limit: None,
+            }),
         )
         .unwrap();
-    assert_eq!(mintable_tokens.len(), 1000);
+    assert_eq!(mintable_tokens.len(), 50);
 
     // Query tokens remaining
     let tokens_remaining: u32 = app
@@ -296,7 +299,7 @@ fn burn_remaining_tokens() {
             &MinterQueryMsg::Extension(MinterExtensionQueryMsg::TotalTokensRemaining {}),
         )
         .unwrap();
-    assert_eq!(tokens_remaining, 1000);
+    assert_eq!(tokens_remaining, 50);
 
     // Burn remaining tokens execution sets mintable tokens to 0
     // Try minting before
@@ -315,14 +318,17 @@ fn burn_remaining_tokens() {
         .unwrap();
 
     // Query mintable tokens
-    let mintable_tokens: Vec<Token> = app
+    let mintable_tokens: Vec<(u32, Token)> = app
         .wrap()
         .query_wasm_smart(
             minter_address.clone(),
-            &MinterQueryMsg::Extension(MinterExtensionQueryMsg::MintableTokens {}),
+            &MinterQueryMsg::Extension(MinterExtensionQueryMsg::MintableTokens {
+                start_after: None,
+                limit: None,
+            }),
         )
         .unwrap();
-    assert_eq!(mintable_tokens.len(), 999);
+    assert_eq!(mintable_tokens.len(), 49);
 
     // Query tokens remaining
     let tokens_remaining: u32 = app
@@ -332,7 +338,7 @@ fn burn_remaining_tokens() {
             &MinterQueryMsg::Extension(MinterExtensionQueryMsg::TotalTokensRemaining {}),
         )
         .unwrap();
-    assert_eq!(tokens_remaining, 999);
+    assert_eq!(tokens_remaining, 49);
 
     // Non admin can not burn remaining tokens
     let res = app
@@ -358,11 +364,14 @@ fn burn_remaining_tokens() {
         .unwrap();
 
     // Query mintable tokens
-    let mintable_tokens: Vec<Token> = app
+    let mintable_tokens: Vec<(u32, Token)> = app
         .wrap()
         .query_wasm_smart(
             minter_address.clone(),
-            &MinterQueryMsg::Extension(MinterExtensionQueryMsg::MintableTokens {}),
+            &MinterQueryMsg::Extension(MinterExtensionQueryMsg::MintableTokens {
+                start_after: None,
+                limit: None,
+            }),
         )
         .unwrap();
     assert_eq!(mintable_tokens.len(), 0);
@@ -610,11 +619,14 @@ fn randomize_list() {
     let minter_address = get_contract_address_from_res(res.clone());
 
     // Query mintable tokens
-    let mintable_tokens: Vec<Token> = app
+    let mintable_tokens: Vec<(u32, Token)> = app
         .wrap()
         .query_wasm_smart(
             minter_address.clone(),
-            &MinterQueryMsg::Extension(MinterExtensionQueryMsg::MintableTokens {}),
+            &MinterQueryMsg::Extension(MinterExtensionQueryMsg::MintableTokens {
+                start_after: None,
+                limit: None,
+            }),
         )
         .unwrap();
     let first_token = mintable_tokens[0].clone();
@@ -643,11 +655,14 @@ fn randomize_list() {
         .unwrap();
 
     // Query mintable tokens
-    let mintable_tokens: Vec<Token> = app
+    let mintable_tokens: Vec<(u32, Token)> = app
         .wrap()
         .query_wasm_smart(
             minter_address.clone(),
-            &MinterQueryMsg::Extension(MinterExtensionQueryMsg::MintableTokens {}),
+            &MinterQueryMsg::Extension(MinterExtensionQueryMsg::MintableTokens {
+                start_after: None,
+                limit: None,
+            }),
         )
         .unwrap();
     let first_token_after_randomize = mintable_tokens[0].clone();

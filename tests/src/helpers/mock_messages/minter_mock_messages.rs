@@ -38,7 +38,7 @@ pub fn return_minter_instantiate_msg() -> CreateMinterMsg {
             end_time: Some(Timestamp::from_nanos(2_000_000_000)),
             per_address_limit: Some(1),
             whitelist_address: None,
-            num_tokens: 1000,
+            num_tokens: 50,
         }),
         auth_details: AuthDetails {
             admin: Addr::unchecked("creator".to_string()),

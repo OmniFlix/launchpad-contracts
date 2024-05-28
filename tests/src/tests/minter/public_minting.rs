@@ -61,17 +61,20 @@ fn minter_public_minting() {
     let minter_address = get_contract_address_from_res(res.clone());
     // First check queries
     // Query mintable tokens
-    let mintable_tokens_data: Vec<Token> = app
+    let mintable_tokens_data: Vec<(u32, Token)> = app
         .wrap()
         .query(&QueryRequest::Wasm(WasmQuery::Smart {
             contract_addr: minter_address.clone(),
             msg: to_json_binary(&MinterQueryMsg::Extension(
-                MinterExtensionQueryMsg::MintableTokens {},
+                MinterExtensionQueryMsg::MintableTokens {
+                    start_after: None,
+                    limit: None,
+                },
             ))
             .unwrap(),
         }))
         .unwrap();
-    assert_eq!(mintable_tokens_data.len(), 1000);
+    assert_eq!(mintable_tokens_data.len(), 50);
 
     // Query total tokens remaining
     let total_tokens_remaining_data: u32 = app
@@ -84,7 +87,7 @@ fn minter_public_minting() {
             .unwrap(),
         }))
         .unwrap();
-    assert_eq!(total_tokens_remaining_data, 1000);
+    assert_eq!(total_tokens_remaining_data, 50);
 
     // Query config
     let total_minted_count: u32 = app
@@ -252,7 +255,7 @@ fn minter_public_minting() {
             .unwrap(),
         }))
         .unwrap();
-    assert_eq!(total_tokens_remaining_data, 999);
+    assert_eq!(total_tokens_remaining_data, 49);
 
     // Try minting second time with same address
     let error = app
@@ -268,7 +271,7 @@ fn minter_public_minting() {
     assert_eq!(error, &MinterContractError::AddressReachedMintLimit {});
 
     // Create a loop from 1 to 999 and mint every remaining token to receivers
-    for i in 1..=999 {
+    for i in 1..=49 {
         // add i as string to the end of the collector address
         let collector = Addr::unchecked(format!("{}{}", collector, i));
         // Mint tokens to mint nft
@@ -293,7 +296,10 @@ fn minter_public_minting() {
         .query(&QueryRequest::Wasm(WasmQuery::Smart {
             contract_addr: minter_address.clone(),
             msg: to_json_binary(&MinterQueryMsg::Extension(
-                MinterExtensionQueryMsg::MintableTokens {},
+                MinterExtensionQueryMsg::MintableTokens {
+                    start_after: None,
+                    limit: None,
+                },
             ))
             .unwrap(),
         }))
@@ -317,7 +323,7 @@ fn minter_public_minting() {
     // Every token should be diffirent
     let mut minted_list: Vec<Token> = Vec::new();
 
-    for i in 1..=999 {
+    for i in 1..=49 {
         let user_details_data: UserDetails = app
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
@@ -330,9 +336,9 @@ fn minter_public_minting() {
             .unwrap();
         minted_list.push(user_details_data.minted_tokens[0].clone());
     }
-    assert_eq!(minted_list.len(), 999);
+    assert_eq!(minted_list.len(), 49);
     minted_list.sort_by(|a, b| a.token_id.cmp(&b.token_id));
-    for i in 0..=997 {
+    for i in 0..=47 {
         assert_ne!(minted_list[i], minted_list[i + 1]);
     }
     // Now there is no tokens left to mint
@@ -418,7 +424,7 @@ pub fn mint_admin() {
             Addr::unchecked(minter_address.clone()),
             &MinterExecuteMsg::MintAdmin {
                 recipient: "gift_recipient".to_string(),
-                token_id: Some("334".to_string()),
+                token_id: Some("34".to_string()),
             },
             &[],
         )
@@ -439,7 +445,7 @@ pub fn mint_admin() {
             Addr::unchecked(minter_address.clone()),
             &MinterExecuteMsg::MintAdmin {
                 recipient: "gift_recipient".to_string(),
-                token_id: Some("334".to_string()),
+                token_id: Some("34".to_string()),
             },
             &[],
         )
@@ -447,7 +453,7 @@ pub fn mint_admin() {
     let token_id: String = res.events[1].attributes[2].value.clone();
     let collection_id: String = res.events[1].attributes[3].value.clone();
     assert_eq!(collection_id, "id".to_string());
-    assert_eq!(token_id, "334".to_string());
+    assert_eq!(token_id, "34".to_string());
 
     // Query onft collection
     let collection = query_onft_collection(app.storage(), minter_address.clone());
@@ -485,20 +491,23 @@ pub fn mint_admin() {
     assert_eq!(token_data.minted_tokens[0].token_id, token_id);
 
     // Check total tokens remaining
-    let total_tokens_remaining_data: Vec<Token> = app
+    let total_tokens_remaining_data: Vec<(u32, Token)> = app
         .wrap()
         .query(&QueryRequest::Wasm(WasmQuery::Smart {
             contract_addr: minter_address.clone(),
             msg: to_json_binary(&MinterQueryMsg::Extension(
-                MinterExtensionQueryMsg::MintableTokens {},
+                MinterExtensionQueryMsg::MintableTokens {
+                    start_after: None,
+                    limit: None,
+                },
             ))
             .unwrap(),
         }))
         .unwrap();
-    assert_eq!(total_tokens_remaining_data.len(), 999);
+    assert_eq!(total_tokens_remaining_data.len(), 49);
     assert!(!total_tokens_remaining_data
         .iter()
-        .any(|x| x.token_id == token_id));
+        .any(|x| x.1.token_id == token_id));
 
     // Try minting with same Id
     let error = app
@@ -507,7 +516,7 @@ pub fn mint_admin() {
             Addr::unchecked(minter_address.clone()),
             &MinterExecuteMsg::MintAdmin {
                 recipient: "gift_recipient".to_string(),
-                token_id: Some("334".to_string()),
+                token_id: Some("34".to_string()),
             },
             &[],
         )

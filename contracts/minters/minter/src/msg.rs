@@ -47,8 +47,11 @@ pub enum ExecuteMsg {
 #[cw_serde]
 #[derive(QueryResponses)]
 pub enum MinterExtensionQueryMsg {
-    #[returns(Vec<Token>)]
-    MintableTokens {},
+    #[returns(Vec<(u32,Token)>)]
+    MintableTokens {
+        start_after: Option<u32>,
+        limit: Option<u32>,
+    },
     #[returns(u32)]
     TotalTokensRemaining {},
 }

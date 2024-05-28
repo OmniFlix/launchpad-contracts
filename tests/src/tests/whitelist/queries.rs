@@ -152,4 +152,89 @@ fn whitelist_queries() {
         }))
         .unwrap();
     assert!(is_member);
+
+    // Query members
+}
+
+#[test]
+fn test_paginated_members_query() {
+    let res: SetupResponse = setup();
+    let admin = res.test_accounts.admin;
+    let creator = res.test_accounts.creator;
+    let round_whitelist_factory_code_id = res.round_whitelist_factory_code_id;
+    let round_whitelist_code_id = res.round_whitelist_code_id;
+    let mut app = res.app;
+
+    let round_whitelist_factory_inst_msg =
+        return_round_whitelist_factory_inst_message(round_whitelist_code_id);
+
+    let round_whitelist_factory_addr = app
+        .instantiate_contract(
+            round_whitelist_factory_code_id,
+            admin.clone(),
+            &round_whitelist_factory_inst_msg,
+            &[],
+            "round_whitelist_factory",
+            None,
+        )
+        .unwrap();
+    let mut rounds = return_round_configs();
+    let mut additional_members = vec![];
+    for i in 0..1000 {
+        additional_members.push(format!("member_{}", i));
+    }
+
+    rounds[0].members = additional_members.clone();
+
+    let res = app
+        .execute_contract(
+            creator.clone(),
+            round_whitelist_factory_addr.clone(),
+            &omniflix_round_whitelist_factory::msg::ExecuteMsg::CreateWhitelist {
+                msg: CreateWhitelistMsg {
+                    admin: admin.to_string(),
+                    rounds: rounds.clone(),
+                },
+            },
+            &[coin(1000000, "uflix")],
+        )
+        .unwrap();
+
+    let round_whitelist_address = get_contract_address_from_res(res);
+
+    // Query round 1 members
+    // Create a loop to paginate and get all members
+    let mut members: Vec<String> = vec![];
+    let mut start_after: Option<String> = None;
+    let limit = 100;
+    loop {
+        let members_data: Vec<String> = app
+            .wrap()
+            .query(&QueryRequest::Wasm(WasmQuery::Smart {
+                contract_addr: round_whitelist_address.clone(),
+                msg: to_json_binary(&RoundWhitelistQueryMsgs::Members {
+                    round_index: 1,
+                    start_after: start_after.clone(),
+                    limit: Some(limit),
+                })
+                .unwrap(),
+            }))
+            .unwrap();
+        if members_data.is_empty() {
+            break;
+        }
+        start_after = Some(members_data.last().unwrap().clone());
+        members.extend(members_data);
+    }
+
+    // Sort members by extracting the numeric part
+    members.sort_unstable_by_key(|member| {
+        member
+            .trim_start_matches("member_")
+            .parse::<usize>()
+            .unwrap()
+    });
+
+    assert_eq!(members.len(), 1000);
+    assert_eq!(members, additional_members);
 }

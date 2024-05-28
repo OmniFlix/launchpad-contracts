@@ -7,7 +7,6 @@ use minter_types::msg::QueryMsg;
 
 use minter_types::config::{Config as MinterConfig, ConfigurationError};
 use minter_types::token_details::{Token, TokenDetails, TokenDetailsError};
-
 use omniflix_minter_factory::msg::ExecuteMsg as FactoryExecuteMsg;
 use whitelist_types::CreateWhitelistMsg;
 
@@ -21,7 +20,6 @@ use crate::helpers::utils::get_contract_address_from_res;
 use crate::{helpers::setup::setup, helpers::utils::query_onft_collection};
 use omniflix_minter::error::ContractError as MinterContractError;
 use omniflix_minter_factory::error::ContractError as MinterFactoryError;
-
 #[test]
 fn minter_creation() {
     let res = setup();
@@ -274,19 +272,22 @@ fn minter_creation() {
     assert_eq!(token_details.royalty_ratio, Decimal::percent(10));
 
     // Query mintable tokens
-    let mintable_tokens_data: Vec<Token> = app
+    let mintable_tokens_data: Vec<(u32, Token)> = app
         .wrap()
         .query(&QueryRequest::Wasm(WasmQuery::Smart {
             contract_addr: minter_address.clone(),
             msg: to_json_binary(&QueryMsg::Extension(
-                omniflix_minter::msg::MinterExtensionQueryMsg::MintableTokens {},
+                omniflix_minter::msg::MinterExtensionQueryMsg::MintableTokens {
+                    start_after: None,
+                    limit: None,
+                },
             ))
             .unwrap(),
         }))
         .unwrap();
-    assert_eq!(mintable_tokens_data.len(), 1000);
+    assert_eq!(mintable_tokens_data.len(), 50);
     // This is not a proper check but I am making sure list is randomized and is not starting from 1
-    assert_ne!(mintable_tokens_data[0].token_id, 1.to_string());
+    assert_ne!(mintable_tokens_data[0].1.token_id, 1.to_string());
 
     // Check total tokens remaining
     let total_tokens_remaining_data: u32 = app
@@ -299,7 +300,7 @@ fn minter_creation() {
             .unwrap(),
         }))
         .unwrap();
-    assert_eq!(total_tokens_remaining_data, 1000);
+    assert_eq!(total_tokens_remaining_data, 50);
 }
 
 #[test]
@@ -409,4 +410,117 @@ fn test_minter_creation_with_whitelist() {
             &[coin(2000000, "uflix")],
         )
         .unwrap();
+}
+
+#[test]
+fn test_minter_queries() {
+    let res = setup();
+    let admin = res.test_accounts.admin;
+    let minter_factory_code_id = res.minter_factory_code_id;
+    let minter_code_id = res.minter_code_id;
+    let mut app = res.app;
+
+    let factory_inst_msg = return_minter_factory_inst_message(minter_code_id);
+    let factory_addr = app
+        .instantiate_contract(
+            minter_factory_code_id,
+            admin.clone(),
+            &factory_inst_msg,
+            &[],
+            "factory",
+            None,
+        )
+        .unwrap();
+
+    let mut minter_inst_msg = return_minter_instantiate_msg();
+    minter_inst_msg.init.as_mut().unwrap().num_tokens = 559;
+    let create_minter_msg = FactoryExecuteMsg::CreateMinter {
+        msg: minter_inst_msg,
+    };
+    let res = app
+        .execute_contract(
+            admin.clone(),
+            factory_addr,
+            &create_minter_msg,
+            &[coin(2000000, "uflix")],
+        )
+        .unwrap();
+    let minter_address = get_contract_address_from_res(res.clone());
+
+    // Query config
+    let config_data: MinterConfig = app
+        .wrap()
+        .query(&QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr: minter_address.clone(),
+            msg: to_json_binary(&QueryMsg::<Empty>::Config {}).unwrap(),
+        }))
+        .unwrap();
+    assert_eq!(config_data.per_address_limit, Some(1));
+    assert_eq!(config_data.mint_price.denom, "uflix".to_string());
+    assert_eq!(config_data.start_time, Timestamp::from_nanos(1000000000));
+    assert_eq!(config_data.mint_price.amount, Uint128::from(1000000u128));
+
+    let token_details: TokenDetails = app
+        .wrap()
+        .query(&QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr: minter_address.clone(),
+            msg: to_json_binary(&QueryMsg::<Empty>::TokenDetails {}).unwrap(),
+        }))
+        .unwrap();
+    assert_eq!(token_details.royalty_ratio, Decimal::percent(10));
+
+    // Query and paginate mintable tokens
+    // Create a loop to query all tokens
+    let mut start_after: Option<u32> = None;
+    let limit = 10;
+    let mut tokens = vec![];
+    loop {
+        let mintable_tokens_data: Vec<(u32, Token)> = app
+            .wrap()
+            .query(&QueryRequest::Wasm(WasmQuery::Smart {
+                contract_addr: minter_address.clone(),
+                msg: to_json_binary(&QueryMsg::Extension(
+                    omniflix_minter::msg::MinterExtensionQueryMsg::MintableTokens {
+                        start_after: start_after,
+                        limit: Some(limit),
+                    },
+                ))
+                .unwrap(),
+            }))
+            .unwrap();
+        if mintable_tokens_data.is_empty() {
+            break;
+        }
+        start_after = Some(mintable_tokens_data.last().unwrap().0);
+        tokens.extend(mintable_tokens_data);
+    }
+    // Make sure index list is starting from 1
+    // And ends at token number
+    // Collect all indexes
+    let indexes: Vec<u32> = tokens.iter().map(|(index, _)| *index).collect();
+    let expected_indexes: Vec<u32> = (1..=559).collect();
+    assert_eq!(indexes, expected_indexes);
+    // Collect tokens and sort
+    let tokens: Vec<Token> = tokens.into_iter().map(|(_, token)| token).collect();
+    // Make sure token ids are in order
+    let mut token_ids: Vec<u32> = tokens
+        .iter()
+        .map(|token| token.token_id.parse().unwrap())
+        .collect();
+    token_ids.sort();
+    let expected_token_ids: Vec<u32> = (1..=559).collect();
+    assert_eq!(token_ids, expected_token_ids);
+
+    // Check total tokens remaining
+    let total_tokens_remaining_data: u32 = app
+        .wrap()
+        .query(&QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr: minter_address.clone(),
+            msg: to_json_binary(&QueryMsg::Extension(
+                omniflix_minter::msg::MinterExtensionQueryMsg::TotalTokensRemaining {},
+            ))
+            .unwrap(),
+        }))
+        .unwrap();
+    assert_eq!(total_tokens_remaining_data, 559);
 }

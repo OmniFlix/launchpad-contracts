@@ -10,6 +10,7 @@ use cosmwasm_std::{
     to_json_binary, Addr, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo, Order,
     Response, StdResult, Uint128, WasmMsg,
 };
+use cw_storage_plus::Bound;
 use cw_utils::{may_pay, nonpayable};
 use minter_types::collection_details::{update_collection_details, CollectionDetails};
 use minter_types::config::Config;
@@ -690,8 +691,8 @@ pub fn query(
         }
         BaseMinterQueryMsg::TokenDetails {} => to_json_binary(&query_token_details(deps, env)?),
         BaseMinterQueryMsg::Extension(ext) => match ext {
-            MinterExtensionQueryMsg::MintableTokens {} => {
-                to_json_binary(&query_mintable_tokens(deps, env)?)
+            MinterExtensionQueryMsg::MintableTokens { start_after, limit } => {
+                to_json_binary(&query_mintable_tokens(deps, start_after, limit)?)
             }
             MinterExtensionQueryMsg::TotalTokensRemaining {} => {
                 to_json_binary(&query_total_tokens(deps, env)?)
@@ -714,14 +715,18 @@ fn query_config(deps: Deps, _env: Env) -> Result<Config, ContractError> {
     Ok(config)
 }
 
-fn query_mintable_tokens(deps: Deps, _env: Env) -> Result<Vec<Token>, ContractError> {
-    let mut mintable_tokens: Vec<Token> = Vec::new();
-    for item in MINTABLE_TOKENS.range(deps.storage, None, None, Order::Ascending) {
-        let (_key, value) = item?;
-
-        // Add the (key, value) tuple to the vector
-        mintable_tokens.push(value);
-    }
+fn query_mintable_tokens(
+    deps: Deps,
+    start_after: Option<u32>,
+    limit: Option<u32>,
+) -> Result<Vec<(u32, Token)>, ContractError> {
+    let start_after = start_after.unwrap_or(0);
+    let limit = limit.unwrap_or(100).min(100);
+    let bound = Bound::exclusive(start_after);
+    let mintable_tokens: Vec<(u32, Token)> = MINTABLE_TOKENS
+        .range(deps.storage, Some(bound), None, Order::Ascending)
+        .take(limit as usize)
+        .collect::<StdResult<_>>()?;
     Ok(mintable_tokens)
 }
 
