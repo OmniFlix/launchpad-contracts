@@ -165,7 +165,10 @@ export type QueryMsg = {
   total_minted_count: {};
 };
 export type MinterExtensionQueryMsg = {
-  mintable_tokens: {};
+  mintable_tokens: {
+    limit?: number | null;
+    start_after?: number | null;
+  };
 } | {
   total_tokens_remaining: {};
 };
