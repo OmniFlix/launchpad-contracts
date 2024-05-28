@@ -1,6 +1,6 @@
 use cosmwasm_std::{Coin, Timestamp};
 
-use whitelist_types::{Round, RoundConfig};
+use whitelist_types::RoundConfig;
 
 pub fn return_round_configs() -> Vec<RoundConfig> {
     let round_1 = whitelist_types::Round {

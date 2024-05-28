@@ -42,10 +42,11 @@ pub fn randomize_token_list(
     Ok(randomized_tokens)
 }
 
-pub fn return_random_token(
-    token_list: &[(u32, Token)],
+pub fn return_random_token_index(
+    num_of_tokens: u32,
     env: Env,
-) -> Result<(u32, Token), StdError> {
+    storage: &dyn Storage,
+) -> Result<u32, StdError> {
     // Generate random token id
     let tx_index: u32 = if let Some(tx) = env.transaction {
         tx.index
@@ -62,21 +63,22 @@ pub fn return_random_token(
 
     let r = rng.next_u32();
 
-    let is_ascending = r % 2 == 0;
+    let order = match tx_index % 2 {
+        0 => Order::Ascending,
+        _ => Order::Descending,
+    };
 
-    let length = token_list.len() as u32;
-    let random_index = r % length;
+    let divider = 50.min(num_of_tokens);
+    // We should limit the amount of tokens we skip to prevent gas exhaustion
+    let token_skip_amount = r % divider;
 
-    match is_ascending {
-        true => {
-            let random_token = &token_list[random_index as usize];
-            Ok(random_token.clone())
-        }
-        false => {
-            let random_token = &token_list[length as usize - random_index as usize - 1];
-            Ok(random_token.clone())
-        }
-    }
+    let random_token_position: u32 = MINTABLE_TOKENS
+        .keys(storage, None, None, order)
+        .skip(token_skip_amount as usize)
+        .take(1)
+        .collect::<Result<Vec<u32>, StdError>>()?[0];
+
+    Ok(random_token_position)
 }
 
 pub fn generate_tokens(num_of_tokens: u32) -> Vec<(u32, Token)> {
@@ -92,20 +94,13 @@ pub fn generate_tokens(num_of_tokens: u32) -> Vec<(u32, Token)> {
         .collect();
     tokens
 }
-pub fn collect_mintable_tokens(storage: &dyn Storage) -> Result<Vec<(u32, Token)>, StdError> {
-    // Collect mintable tokens
-    let mut mintable_tokens: Vec<(u32, Token)> = Vec::new();
-    for item in MINTABLE_TOKENS.range(storage, None, None, Order::Ascending) {
-        let (key, value) = item?;
-        mintable_tokens.push((key, value));
-    }
-    Ok(mintable_tokens)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cosmwasm_std::{testing::mock_env, Timestamp, TransactionInfo};
+    use cosmwasm_std::{
+        testing::{mock_dependencies, mock_env},
+        Timestamp, TransactionInfo,
+    };
 
     #[test]
     fn test_randomize_token_list() {
@@ -129,69 +124,47 @@ mod tests {
         let randomized_list = randomize_token_list(tokens.clone(), total_tokens, env).unwrap();
 
         assert_ne!(randomized_list, tokens);
+        assert_ne!(randomized_list[100], tokens[100]);
     }
 
     #[test]
     fn test_return_random_token() {
         // Generate vector of 1000 elements from 1 to 1000
-        let tokens: Vec<(u32, Token)> = (1..=1000)
-            .map(|x| {
-                (
-                    x,
-                    Token {
-                        token_id: x.to_string(),
-                    },
-                )
-            })
-            .collect();
+        let mut deps = mock_dependencies();
         let total_tokens = 1000;
         let mut env = mock_env();
-        env.block.height = 652678625765;
-        env.block.time = Timestamp::from_nanos(782787);
-        env.transaction = Some(TransactionInfo { index: 121474982 });
+        env.block.height = 400_000;
+        env.block.time = Timestamp::from_nanos(120_000_000);
+        env.transaction = Some(TransactionInfo { index: 23_000 });
 
-        let randomized_list =
-            randomize_token_list(tokens.clone(), total_tokens, env.clone()).unwrap();
-        let random_token = return_random_token(&randomized_list.clone(), env).unwrap();
-        // This random token should have a key and a token. The key and token should be between 1 and 1000
-        assert!(random_token.0 >= 1 && random_token.0 <= 1000);
-        assert!(
-            random_token.1.token_id.parse::<u32>().unwrap() >= 1
-                && random_token.1.token_id.parse::<u32>().unwrap() <= 1000
-        );
-        // Regenerate token list
-        let mut env = mock_env();
-        env.block.height = 100_000;
-        env.block.time = Timestamp::from_nanos(200_000);
-        env.transaction = Some(TransactionInfo { index: 400_000 });
+        let tokens = generate_tokens(total_tokens);
 
-        let randomized_list =
-            randomize_token_list(tokens.clone(), total_tokens, env.clone()).unwrap();
-
-        // Pick a token from the list let's say it's 5
-        let picked_token = &randomized_list[4];
-
-        // Count how many times it takes to pick the token
-        let mut count = 0;
-        let mut modified_list = randomized_list.clone(); // Create a mutable copy
-
-        loop {
-            let random_token = return_random_token(&modified_list, env.clone())
-                .unwrap()
-                .clone();
-            count += 1;
-
-            if random_token == *picked_token {
-                break;
-            } else {
-                // Remove token from the mutable copy of the list
-                modified_list.retain(|x| x != &random_token);
-            }
+        // Save tokens
+        for token in tokens.clone() {
+            MINTABLE_TOKENS
+                .save(deps.as_mut().storage, token.0, &token.1)
+                .unwrap();
         }
 
-        println!("Final Count: {}", count);
-        println!("Modified List Count: {:?}", modified_list.clone().len());
-        // Spoiler allert - it takes 896 times to pick the token
-        // Add 1 to tx index and it takes 123 times
+        let random_token_index =
+            return_random_token_index(total_tokens, env, deps.as_ref().storage).unwrap();
+
+        // Random index should be between 1 and num of tokens
+        assert!(random_token_index >= 1 && random_token_index <= total_tokens);
+
+        // New env with different params
+        let mut env = mock_env();
+        env.block.height = 450_000;
+        env.block.time = Timestamp::from_nanos(130_000_000);
+        env.transaction = Some(TransactionInfo { index: 24_000 });
+
+        let random_token_index_new =
+            return_random_token_index(total_tokens, env, deps.as_ref().storage).unwrap();
+
+        // Random index should be between 1 and num of tokens
+        assert!(random_token_index_new >= 1 && random_token_index_new <= total_tokens);
+
+        // Random index should be different
+        assert_ne!(random_token_index, random_token_index_new);
     }
 }

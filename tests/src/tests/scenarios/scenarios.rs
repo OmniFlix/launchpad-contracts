@@ -957,7 +957,7 @@ fn test_scenario_2() {
     let round_configs = rounds
         .iter()
         .enumerate()
-        .map(|(index, round)| RoundConfig {
+        .map(|(_, round)| RoundConfig {
             round: round.clone(),
             members: (1..=100)
                 .map(|i| Addr::unchecked(format!("collector{}", i)).to_string())
