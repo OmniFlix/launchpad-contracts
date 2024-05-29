@@ -1,0 +1,514 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'omniflix-minter'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=omniflix-minter"
+                ],
+                "filter": {
+                    "name": "omniflix-minter",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'schema'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=schema",
+                    "--package=omniflix-minter"
+                ],
+                "filter": {
+                    "name": "schema",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'schema'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=schema",
+                    "--package=omniflix-minter"
+                ],
+                "filter": {
+                    "name": "schema",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'minter-types'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=minter-types"
+                ],
+                "filter": {
+                    "name": "minter-types",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'omniflix-minter-factory'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=omniflix-minter-factory"
+                ],
+                "filter": {
+                    "name": "omniflix-minter-factory",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'schema'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=schema",
+                    "--package=omniflix-minter-factory"
+                ],
+                "filter": {
+                    "name": "schema",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'schema'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=schema",
+                    "--package=omniflix-minter-factory"
+                ],
+                "filter": {
+                    "name": "schema",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'factory-types'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=factory-types"
+                ],
+                "filter": {
+                    "name": "factory-types",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'pauser'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=pauser"
+                ],
+                "filter": {
+                    "name": "pauser",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'omniflix-round-whitelist'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=omniflix-round-whitelist"
+                ],
+                "filter": {
+                    "name": "omniflix-round-whitelist",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'schema'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=schema",
+                    "--package=omniflix-round-whitelist"
+                ],
+                "filter": {
+                    "name": "schema",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'schema'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=schema",
+                    "--package=omniflix-round-whitelist"
+                ],
+                "filter": {
+                    "name": "schema",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'omniflix-round-whitelist-factory'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=omniflix-round-whitelist-factory"
+                ],
+                "filter": {
+                    "name": "omniflix-round-whitelist-factory",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'schema'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=schema",
+                    "--package=omniflix-round-whitelist-factory"
+                ],
+                "filter": {
+                    "name": "schema",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'schema'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=schema",
+                    "--package=omniflix-round-whitelist-factory"
+                ],
+                "filter": {
+                    "name": "schema",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'whitelist-types'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=whitelist-types"
+                ],
+                "filter": {
+                    "name": "whitelist-types",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'omniflix-multi-mint-open-edition-minter'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=omniflix-multi-mint-open-edition-minter"
+                ],
+                "filter": {
+                    "name": "omniflix-multi-mint-open-edition-minter",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'schema'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=schema",
+                    "--package=omniflix-multi-mint-open-edition-minter"
+                ],
+                "filter": {
+                    "name": "schema",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'schema'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=schema",
+                    "--package=omniflix-multi-mint-open-edition-minter"
+                ],
+                "filter": {
+                    "name": "schema",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'omniflix-open-edition-minter-factory'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=omniflix-open-edition-minter-factory"
+                ],
+                "filter": {
+                    "name": "omniflix-open-edition-minter-factory",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'schema'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=schema",
+                    "--package=omniflix-open-edition-minter-factory"
+                ],
+                "filter": {
+                    "name": "schema",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'schema'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=schema",
+                    "--package=omniflix-open-edition-minter-factory"
+                ],
+                "filter": {
+                    "name": "schema",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'omniflix-open-edition-minter'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=omniflix-open-edition-minter"
+                ],
+                "filter": {
+                    "name": "omniflix-open-edition-minter",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'schema'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=schema",
+                    "--package=omniflix-open-edition-minter"
+                ],
+                "filter": {
+                    "name": "schema",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'schema'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=schema",
+                    "--package=omniflix-open-edition-minter"
+                ],
+                "filter": {
+                    "name": "schema",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'integration-tests'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=integration-tests"
+                ],
+                "filter": {
+                    "name": "integration-tests",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'omniflix-testing'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=omniflix-testing"
+                ],
+                "filter": {
+                    "name": "omniflix-testing",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}

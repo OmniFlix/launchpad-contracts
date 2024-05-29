@@ -16,16 +16,12 @@ pub struct Config {
     pub admin: Addr,
 }
 
-pub type MintCount = u32;
 pub type RoundIndex = u8;
-
-#[cw_serde]
-pub struct MintDetails {
-    pub rounds: Vec<(RoundIndex, MintCount)>,
-}
+pub type MintCount = u8;
 pub type MinterAddress = Addr;
 pub type UserAddress = Addr;
-pub struct UserMintDetails<'a>(Map<'a, (UserAddress, MinterAddress), MintDetails>);
+
+pub struct UserMintDetails<'a>(Map<'a, (UserAddress, MinterAddress, RoundIndex), MintCount>);
 impl<'a> UserMintDetails<'a> {
     pub const fn new(storage_key: &'a str) -> Self {
         UserMintDetails(Map::new(storage_key))
@@ -34,41 +30,32 @@ impl<'a> UserMintDetails<'a> {
     pub fn mint_for_user(
         &self,
         store: &mut dyn Storage,
-        user_address: &UserAddress,
-        minter_address: &MinterAddress,
-        round_index: &u8,
+        user_address: UserAddress,
+        minter_address: MinterAddress,
+        round_index: u8,
         round: &Round,
     ) -> Result<(), ContractError> {
-        // Check if user exist
-        let mut user_mint_details = self
+        // Load mint count for the use
+        let mint_count = self
             .0
-            .may_load(store, (user_address.clone(), minter_address.clone()))?
-            .unwrap_or(MintDetails { rounds: Vec::new() });
-
-        // Find the index of the round inside the user_mint_details
-        let user_mint_index = user_mint_details
-            .rounds
-            .iter()
-            .position(|(found_round_index, _)| found_round_index == round_index);
-
-        if let Some(index) = user_mint_index {
-            // Increment the mint count for the existing round
-            user_mint_details.rounds[index].1 += 1;
-
-            // Check if the updated mint count exceeds the round_per_address_limit
-            if user_mint_details.rounds[index].1 > round.round_per_address_limit {
-                return Err(ContractError::RoundReachedMintLimit {});
-            }
-        } else {
-            // Round not found, add a new entry for the round
-            user_mint_details.rounds.push((*round_index, 1));
+            .may_load(
+                store,
+                (
+                    user_address.clone(),
+                    minter_address.clone(),
+                    round_index.clone(),
+                ),
+            )?
+            .unwrap_or(0);
+        // Check if the user has reached the mint limit
+        if mint_count >= round.round_per_address_limit {
+            return Err(ContractError::RoundReachedMintLimit {});
         }
-
-        // Save the updated user_mint_details
+        // Increment the mint count
         self.0.save(
             store,
-            (user_address.clone(), minter_address.clone()),
-            &user_mint_details,
+            (user_address, minter_address, round_index),
+            &(mint_count + 1),
         )?;
         Ok(())
     }
@@ -81,13 +68,7 @@ impl<'a> Rounds<'a> {
     }
 
     pub fn save(&self, store: &mut dyn Storage, round: &Round) -> StdResult<u8> {
-        let last_id = self
-            .0
-            .range(store, None, None, Order::Descending)
-            .next()
-            .transpose()?
-            .map(|(id, _)| id)
-            .unwrap_or(0);
+        let last_id = self.last_id(store)?;
         self.0.save(store, last_id + 1, round)?;
         Ok(last_id + 1)
     }
@@ -163,20 +144,17 @@ impl<'a> Rounds<'a> {
                 return Err(ContractError::RoundsOverlapped {});
             }
         }
-        // [(1, Round { start_time: Timestamp(Uint64(2000)), end_time: Timestamp(Uint64(3000)), mint_price: Coin { 1000000 "diffirent_denom" }, round_per_address_limit: 1 }),
-        // (2, Round { start_time: Timestamp(Uint64(4000)), end_time: Timestamp(Uint64(5000)), mint_price: Coin { 1000000 "uflix" }, round_per_address_limit: 1 }),
-        //(3, Round { start_time: Timestamp(Uint64(4001)), end_time: Timestamp(Uint64(24334243)), mint_price: Coin { 1000000 "uflix" }, round_per_address_limit: 1 })]
-
         Ok(())
     }
 }
-
+// Validates and saves the members to the storage
 pub fn save_members(
     store: &mut dyn Storage,
     api: &dyn Api,
     round_index: u8,
     members: &Vec<String>,
 ) -> Result<(), ContractError> {
+    // Maximum number of members that can be added to a round at once
     const MAX_MEMBERS: usize = 5000;
     if members.len() > MAX_MEMBERS {
         return Err(ContractError::WhitelistMemberLimitExceeded {});
@@ -201,9 +179,29 @@ pub fn save_members(
     Ok(())
 }
 
+pub fn check_member(
+    store: &dyn Storage,
+    api: &dyn Api,
+    round_index: u8,
+    address: &str,
+) -> Result<bool, ContractError> {
+    let validated = api.addr_validate(address)?;
+    let address_str = validated.as_str();
+    let round_index_str = round_index.to_string();
+    let is_member = ROUNDMEMBERS
+        .may_load(
+            store,
+            (
+                round_index_str.as_bytes().to_vec(),
+                address_str.as_bytes().to_vec(),
+            ),
+        )?
+        .unwrap_or(false);
+    Ok(is_member)
+}
+
 #[cfg(test)]
 mod tests {
-
     use super::*;
     use cosmwasm_std::testing::mock_dependencies;
     use cosmwasm_std::{coin, Addr};
@@ -388,37 +386,120 @@ mod tests {
         user_details
             .mint_for_user(
                 &mut deps.storage,
-                &user_address,
-                &minter_address,
-                &1,
+                user_address.clone(),
+                minter_address.clone(),
+                1.clone(),
                 &round_1,
             )
             .unwrap();
         // Check if the user_mint_details is saved
-        let user_mint_details = user_details
+        let mint_count = user_details
             .0
             .load(
                 &deps.storage,
-                (user_address.clone(), minter_address.clone()),
+                (user_address.clone(), minter_address.clone(), 1),
             )
             .unwrap();
-        assert_eq!(
-            user_mint_details,
-            MintDetails {
-                rounds: vec![(1, 1)]
-            }
-        );
+        assert_eq!(mint_count, 1);
 
         // Try to mint for a user again
         let res = user_details
-            .mint_for_user(
-                &mut deps.storage,
-                &user_address,
-                &minter_address,
-                &1,
-                &round_1,
-            )
+            .mint_for_user(&mut deps.storage, user_address, minter_address, 1, &round_1)
             .unwrap_err();
         assert_eq!(res, ContractError::RoundReachedMintLimit {});
+    }
+    #[test]
+    fn test_rounds_functions() {
+        // Test last_id
+        let mut deps = mock_dependencies();
+        let rounds = Rounds::new("rounds");
+        let round = Round {
+            start_time: Timestamp::from_seconds(1000),
+            end_time: Timestamp::from_seconds(2000),
+            mint_price: coin(100, "flix"),
+            round_per_address_limit: 1,
+        };
+
+        let index = rounds.save(&mut deps.storage, &round).unwrap();
+        // last_index is 1
+        assert_eq!(index, 1);
+        let last_index = rounds.last_id(&deps.storage).unwrap();
+        assert_eq!(last_index, 1);
+
+        // Add new round
+        let round2 = Round {
+            start_time: Timestamp::from_seconds(3000),
+            end_time: Timestamp::from_seconds(4000),
+            mint_price: coin(100, "atom"),
+            round_per_address_limit: 1,
+        };
+        let index2 = rounds.save(&mut deps.storage, &round2).unwrap();
+        // last_index is 2
+        assert_eq!(index2, 2);
+        // Add 2 more rounds
+        let round3 = Round {
+            start_time: Timestamp::from_seconds(5000),
+            end_time: Timestamp::from_seconds(6000),
+            mint_price: coin(100, "atom"),
+            round_per_address_limit: 1,
+        };
+        let index3 = rounds.save(&mut deps.storage, &round3).unwrap();
+        // last_index is 3
+        assert_eq!(index3, 3);
+
+        let round4 = Round {
+            start_time: Timestamp::from_seconds(7000),
+            end_time: Timestamp::from_seconds(8000),
+            mint_price: coin(100, "atom"),
+            round_per_address_limit: 1,
+        };
+        let index4 = rounds.save(&mut deps.storage, &round4).unwrap();
+        // last_index is 4
+        assert_eq!(index4, 4);
+
+        // Remove round 2
+        rounds.remove(&mut deps.storage, 2).unwrap();
+
+        // Check last index
+        let last_index = rounds.last_id(&deps.storage).unwrap();
+        assert_eq!(last_index, 4);
+
+        //Remove round 4
+        rounds.remove(&mut deps.storage, 4).unwrap();
+
+        // Check last index
+        let last_index = rounds.last_id(&deps.storage).unwrap();
+        assert_eq!(last_index, 3);
+
+        // Check if round 2 is removed
+        let loaded_round_2 = rounds.load(&deps.storage, 2).unwrap_err();
+        assert_eq!(loaded_round_2, ContractError::RoundNotFound {});
+    }
+
+    #[test]
+    fn test_save_load_members() {
+        let mut deps = mock_dependencies();
+        let members = vec!["member1".to_string(), "member2".to_string()];
+        save_members(&mut deps.storage, &deps.api, 1, &members.clone()).unwrap();
+        let is_member = check_member(&deps.storage, &deps.api, 1, "member1").unwrap();
+        assert_eq!(is_member, true);
+        let is_member = check_member(&deps.storage, &deps.api, 1, "member2").unwrap();
+        assert_eq!(is_member, true);
+        let is_member = check_member(&deps.storage, &deps.api, 1, "member3").unwrap();
+        assert_eq!(is_member, false);
+
+        // Overwrite saves should not affect anything
+        save_members(&mut deps.storage, &deps.api, 1, &members.clone()).unwrap();
+        let is_member = check_member(&deps.storage, &deps.api, 1, "member1").unwrap();
+        assert_eq!(is_member, true);
+        let is_member = check_member(&deps.storage, &deps.api, 1, "member2").unwrap();
+        assert_eq!(is_member, true);
+        let is_member = check_member(&deps.storage, &deps.api, 1, "member3").unwrap();
+        assert_eq!(is_member, false);
+
+        // Save empty members
+        let members = vec![];
+        let res = save_members(&mut deps.storage, &deps.api, 1, &members.clone()).unwrap_err();
+        assert_eq!(res, ContractError::EmptyAddressList {});
     }
 }

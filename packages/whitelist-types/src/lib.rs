@@ -52,7 +52,7 @@ pub struct Round {
     pub start_time: Timestamp,
     pub end_time: Timestamp,
     pub mint_price: Coin,
-    pub round_per_address_limit: u32,
+    pub round_per_address_limit: u8,
 }
 
 pub fn check_if_minter(address: &Addr, deps: Deps) -> Result<(), StdError> {

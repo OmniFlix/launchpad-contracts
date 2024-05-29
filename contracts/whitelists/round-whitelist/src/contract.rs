@@ -14,7 +14,7 @@ use crate::msg::ExecuteMsg;
 use crate::round::RoundMethods;
 
 use crate::state::{
-    save_members, Config, Rounds, UserMintDetails, CONFIG, ROUNDMEMBERS, ROUNDS_KEY,
+    check_member, save_members, Config, Rounds, UserMintDetails, CONFIG, ROUNDMEMBERS, ROUNDS_KEY,
     USERMINTDETAILS_KEY,
 };
 use whitelist_types::{
@@ -159,9 +159,9 @@ pub fn execute_private_mint(
 
     UserMintDetails::new(USERMINTDETAILS_KEY).mint_for_user(
         deps.storage,
-        &collector,
-        &info.sender,
-        &active_round.0,
+        collector.clone(),
+        info.sender,
+        active_round.0,
         &active_round.1,
     )?;
 
@@ -339,13 +339,7 @@ pub fn query_is_member(deps: Deps, env: Env, address: String) -> Result<bool, Co
         Some(active_round) => active_round,
         None => return Err(ContractError::NoActiveRound {}),
     };
-    let str_index = active_round.0.to_string();
-    let is_member = ROUNDMEMBERS
-        .load(
-            deps.storage,
-            (str_index.as_bytes().to_vec(), address.as_bytes().to_vec()),
-        )
-        .unwrap_or(false);
+    let is_member = check_member(deps.storage, deps.api, active_round.0, &address)?;
     Ok(is_member)
 }
 
