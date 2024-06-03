@@ -143,14 +143,11 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
 
         // Check if any whitelist is present
         if let Some(whitelist_address) = config.whitelist_address {
-            // Check if whitelist is active
-            let is_active = check_if_whitelist_is_active(&whitelist_address, deps.as_ref())?;
-            if !is_active {
-                return Err(ContractError::WhitelistNotActive {});
-            }
-
             // Check whitelist price
-            let whitelist_price = check_whitelist_price(&whitelist_address, deps.as_ref())?;
+            // If it's not active, whitelist contract will return an error
+            // We catch the error and return a whitelist not active error
+            let whitelist_price = check_whitelist_price(&whitelist_address, deps.as_ref())
+                .map_err(|_| ContractError::WhitelistNotActive {})?;
             mint_price = whitelist_price;
 
             // Check if member is whitelisted
