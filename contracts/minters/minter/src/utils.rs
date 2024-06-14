@@ -68,7 +68,7 @@ pub fn return_random_token_index(
         _ => Order::Descending,
     };
 
-    let divider = 50.min(num_of_tokens);
+    let divider = 100.min(num_of_tokens);
     // We should limit the amount of tokens we skip to prevent gas exhaustion
     let token_skip_amount = r % divider;
 
