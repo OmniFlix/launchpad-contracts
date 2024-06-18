@@ -783,7 +783,7 @@ mod open_edition_minter_factory_test {
 
         // query is_paused
         let is_paused = query_is_paused(deps.as_ref(), mock_env()).unwrap();
-        assert_eq!(is_paused, true);
+        assert!(is_paused);
 
         // Non pauser can not unpause
         let info = mock_info("non_pauser", &[]);
@@ -803,7 +803,7 @@ mod open_edition_minter_factory_test {
 
         // query is_paused
         let is_paused = query_is_paused(deps.as_ref(), mock_env()).unwrap();
-        assert_eq!(is_paused, false);
+        assert!(!is_paused);
     }
 
     #[test]

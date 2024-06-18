@@ -60,7 +60,7 @@ pub fn instantiate_with_migration(
     let randomized_tokens =
         randomize_token_list(tokens.clone(), mintable_tokens.len() as u32, env.clone())?;
     randomized_tokens.iter().for_each(|(index, token)| {
-        MINTABLE_TOKENS.save(deps.storage, *index, &token).unwrap();
+        MINTABLE_TOKENS.save(deps.storage, *index, token).unwrap();
     });
     TOKEN_DETAILS.save(deps.storage, &token_details)?;
     TOTAL_TOKENS_REMAINING.save(deps.storage, &remaining_tokens_count)?;

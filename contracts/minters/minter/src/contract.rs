@@ -227,8 +227,7 @@ pub fn execute_mint(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
         random_token_id.clone(),
         env.contract.address,
         info.sender,
-    )?
-    .into();
+    )?;
 
     // Generate bank send message if payment amount is non-zero
     if !mint_price.amount.is_zero() {
@@ -341,8 +340,7 @@ pub fn execute_mint_admin(
         token_id.clone(),
         env.contract.address,
         recipient.clone(),
-    )?
-    .into();
+    )?;
 
     let res = Response::new()
         .add_message(mint_msg)

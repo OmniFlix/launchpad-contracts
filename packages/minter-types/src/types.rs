@@ -13,9 +13,9 @@ pub struct AuthDetails {
 
 impl AuthDetails {
     pub fn validate(&self, deps: &Deps) -> Result<(), StdError> {
-        deps.api.addr_validate(&self.admin.to_string())?;
+        deps.api.addr_validate(self.admin.as_ref())?;
         deps.api
-            .addr_validate(&self.payment_collector.to_string())?;
+            .addr_validate(self.payment_collector.as_ref())?;
         Ok(())
     }
 }

@@ -322,7 +322,7 @@ fn burn_remaining_tokens() {
         .unwrap();
 
     // Query collection
-    let collection = query_onft_collection(&app.storage(), minter_address.clone());
+    let collection = query_onft_collection(app.storage(), minter_address.clone());
     assert_eq!(collection.onfts.len(), 1);
 
     // Non creator can not burn remaining tokens

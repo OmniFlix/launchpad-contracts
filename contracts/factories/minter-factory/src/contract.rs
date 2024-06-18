@@ -592,7 +592,7 @@ mod minter_factory_tests {
         let info = mock_info("admin", &[]);
         let _res = execute_pause(deps.as_mut(), mock_env(), info).unwrap();
         let is_paused = query_is_paused(deps.as_ref(), mock_env()).unwrap();
-        assert_eq!(is_paused, true);
+        assert!(is_paused);
 
         // Non admin cannot unpause
         let info = mock_info("non_admin", &[]);
@@ -608,7 +608,7 @@ mod minter_factory_tests {
         let info = mock_info("admin", &[]);
         let _res = execute_unpause(deps.as_mut(), mock_env(), info).unwrap();
         let is_paused = query_is_paused(deps.as_ref(), mock_env()).unwrap();
-        assert_eq!(is_paused, false);
+        assert!(!is_paused);
     }
 
     #[test]

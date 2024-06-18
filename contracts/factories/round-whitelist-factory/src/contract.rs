@@ -246,7 +246,7 @@ mod round_whitelist_factory_tests {
 
         // Query params
         let res = query(deps.as_ref(), mock_env(), QueryMsg::Params {}).unwrap();
-        let params: ParamsResponse = from_json(&res).unwrap();
+        let params: ParamsResponse = from_json(res).unwrap();
         assert_eq!(params.params.admin, Addr::unchecked("admin"));
         assert_eq!(
             params.params.fee_collector_address,
@@ -293,8 +293,8 @@ mod round_whitelist_factory_tests {
 
         // Query is_paused
         let res = query(deps.as_ref(), mock_env(), QueryMsg::IsPaused {}).unwrap();
-        let is_paused: bool = from_json(&res).unwrap();
-        assert_eq!(is_paused, true);
+        let is_paused: bool = from_json(res).unwrap();
+        assert!(is_paused);
 
         // Non pauser can not unpause
         let info = mock_info("anyone", &[]);
@@ -313,8 +313,8 @@ mod round_whitelist_factory_tests {
 
         // Query is_paused
         let res = query(deps.as_ref(), mock_env(), QueryMsg::IsPaused {}).unwrap();
-        let is_paused: bool = from_json(&res).unwrap();
-        assert_eq!(is_paused, false);
+        let is_paused: bool = from_json(res).unwrap();
+        assert!(!is_paused);
     }
 
     #[test]
@@ -351,7 +351,7 @@ mod round_whitelist_factory_tests {
 
         // Query pausers
         let res = query(deps.as_ref(), mock_env(), QueryMsg::Pausers {}).unwrap();
-        let pausers: Vec<Addr> = from_json(&res).unwrap();
+        let pausers: Vec<Addr> = from_json(res).unwrap();
         assert_eq!(pausers.len(), 1);
         assert_eq!(pausers[0], Addr::unchecked("anyone"));
     }
@@ -384,7 +384,7 @@ mod round_whitelist_factory_tests {
 
         // Query params
         let res = query(deps.as_ref(), mock_env(), QueryMsg::Params {}).unwrap();
-        let params: ParamsResponse = from_json(&res).unwrap();
+        let params: ParamsResponse = from_json(res).unwrap();
         assert_eq!(params.params.admin, Addr::unchecked("anyone"));
     }
 
@@ -419,7 +419,7 @@ mod round_whitelist_factory_tests {
 
         // Query params
         let res = query(deps.as_ref(), mock_env(), QueryMsg::Params {}).unwrap();
-        let params: ParamsResponse = from_json(&res).unwrap();
+        let params: ParamsResponse = from_json(res).unwrap();
         assert_eq!(
             params.params.fee_collector_address,
             Addr::unchecked("anyone")
@@ -465,7 +465,7 @@ mod round_whitelist_factory_tests {
 
         // Query params
         let res = query(deps.as_ref(), mock_env(), QueryMsg::Params {}).unwrap();
-        let params: ParamsResponse = from_json(&res).unwrap();
+        let params: ParamsResponse = from_json(res).unwrap();
         assert_eq!(
             params.params.whitelist_creation_fee,
             Coin::new(200, "uflix")
@@ -500,7 +500,7 @@ mod round_whitelist_factory_tests {
 
         // Query params
         let res = query(deps.as_ref(), mock_env(), QueryMsg::Params {}).unwrap();
-        let params: ParamsResponse = from_json(&res).unwrap();
+        let params: ParamsResponse = from_json(res).unwrap();
         assert_eq!(params.params.whitelist_code_id, 2);
     }
 }

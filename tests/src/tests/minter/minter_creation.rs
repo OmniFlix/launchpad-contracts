@@ -481,7 +481,7 @@ fn test_minter_queries() {
                 contract_addr: minter_address.clone(),
                 msg: to_json_binary(&QueryMsg::Extension(
                     omniflix_minter::msg::MinterExtensionQueryMsg::MintableTokens {
-                        start_after: start_after,
+                        start_after,
                         limit: Some(limit),
                     },
                 ))

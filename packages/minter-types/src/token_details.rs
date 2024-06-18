@@ -44,20 +44,6 @@ pub struct TokenDetails {
     pub preview_uri: Option<String>,
 }
 impl TokenDetails {
-    pub fn default() -> Self {
-        TokenDetails {
-            token_name: "".to_string(),
-            data: None,
-            description: None,
-            transferable: false,
-            extensible: false,
-            nsfw: false,
-            royalty_ratio: Decimal::zero(),
-            base_token_uri: "".to_string(),
-            preview_uri: None,
-        }
-    }
-
     pub fn check_integrity(&self) -> Result<(), TokenDetailsError> {
         if self.royalty_ratio < Decimal::zero() || self.royalty_ratio > Decimal::one() {
             return Err(TokenDetailsError::InvalidRoyaltyRatio {});

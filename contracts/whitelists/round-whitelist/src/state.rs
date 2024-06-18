@@ -43,7 +43,7 @@ impl<'a> UserMintDetails<'a> {
                 (
                     user_address.clone(),
                     minter_address.clone(),
-                    round_index.clone(),
+                    round_index,
                 ),
             )?
             .unwrap_or(0);
@@ -388,7 +388,7 @@ mod tests {
                 &mut deps.storage,
                 user_address.clone(),
                 minter_address.clone(),
-                1.clone(),
+                1,
                 &round_1,
             )
             .unwrap();
@@ -482,20 +482,20 @@ mod tests {
         let members = vec!["member1".to_string(), "member2".to_string()];
         save_members(&mut deps.storage, &deps.api, 1, &members.clone()).unwrap();
         let is_member = check_member(&deps.storage, &deps.api, 1, "member1").unwrap();
-        assert_eq!(is_member, true);
+        assert!(is_member);
         let is_member = check_member(&deps.storage, &deps.api, 1, "member2").unwrap();
-        assert_eq!(is_member, true);
+        assert!(is_member);
         let is_member = check_member(&deps.storage, &deps.api, 1, "member3").unwrap();
-        assert_eq!(is_member, false);
+        assert!(!is_member);
 
         // Overwrite saves should not affect anything
         save_members(&mut deps.storage, &deps.api, 1, &members.clone()).unwrap();
         let is_member = check_member(&deps.storage, &deps.api, 1, "member1").unwrap();
-        assert_eq!(is_member, true);
+        assert!(is_member);
         let is_member = check_member(&deps.storage, &deps.api, 1, "member2").unwrap();
-        assert_eq!(is_member, true);
+        assert!(is_member);
         let is_member = check_member(&deps.storage, &deps.api, 1, "member3").unwrap();
-        assert_eq!(is_member, false);
+        assert!(!is_member);
 
         // Save empty members
         let members = vec![];
