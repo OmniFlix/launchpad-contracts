@@ -16,5 +16,5 @@ Each round of the whitelist has an end time and a starting time. The creator of 
 #### RemoveRound
 - Creator of the whitelist can remove a round from the whitelist. The round should not have started yet.
 
-#### PrivatelyMint
+#### PrivateMint
 - This function is for the minter contract to call. It checks if the buyer is in the whitelist and if the round is active. If both conditions are met, the sender can mint the token. The private mint details are stored in the contract. More than one minter contract can call this function. Same buyer with different minter contracts can mint without effecting each other.

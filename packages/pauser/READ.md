@@ -1,1 +1,0 @@
-This rust package is a simple swich that can be used to pause and unpause the contract.

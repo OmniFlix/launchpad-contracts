@@ -4,7 +4,7 @@ Multi mint contract is a Open edition minter contract with configurable token pa
 
 Drop is a configuration for a set of tokens. It includes the following parameters:
 
-- `token_details`: Token details such as name, symbol, description, and preview_uri.
+- `token_details`: Token details such as name, description, and preview_uri.
 - `price`: The price of the token.
 - `start_time`: The start time of the trading.
 - `end_time`: The end time of the trading.
