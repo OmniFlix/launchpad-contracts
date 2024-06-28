@@ -1,6 +1,19 @@
-## Minter
+# Overview of the Classic Minter Contract
 
-The Minter contract is the primary component of the launchpad.
+The Classic Minter contract is a core contract within the OmniFlix Hub, designed to facilitate the minting of unique NFTs.
+
+This contract is managed by an `admin` who oversees the collection and its parameters. The contract supports the minting of NFTs that are associated with media stored on IPFS or similar decentralized storage networks.
+
+The minting process can be initiated by any account interacting with the contract and can be set up to mint NFTs either for free or in exchange for a supported token.
+
+Key features of the Classic Minter contract include:
+
+- **Admin Management**: The contract admin has control over the collection and can configure various parameters related to minting.
+- **Decentralized Media Storage**: Supports storing media on IPFS or similar networks, ensuring the decentralized and immutable storage of NFT content.
+- **Flexible Minting Options**: Allows for both free and paid minting, providing flexibility for creators to set up their collections according to their needs.
+- **User Interaction**: Users can interact with the contract to mint new NFTs, making the process straightforward and accessible.
+
+This contract ensures that creators have a robust and flexible tool to manage their NFT collections on the OmniFlix Hub blockchain and related apps.
 
 #### Instantiate
 
@@ -27,3 +40,30 @@ The Minter contract is the primary component of the launchpad.
 #### RandomizeList
 
 - Creator has the ability to randomize token list. It's only gated by the creator because this operation is costly. In the future, a small fee could be collected from whoever wants to randomize the list.
+
+#### UpdateWhitelistAddress
+- This feature enables the creator to designate a whitelist address. Once set, the provided address should correspond to a whitelist contract, and private minting should not be initiated.
+
+#### Pause
+- This function allows the creator to pause the minting process. When paused, no new tokens can be minted.
+
+#### Unpause
+- This function allows the creator to resume the minting process after it has been paused.
+
+#### SetPausers
+- This function allows the creator to set the pausers list. The pausers are the addresses that can pause and unpause the minting process. Full list of pausers should be sent at every update.
+
+#### UpdateRoyaltyReceivers
+- This function allows the creator to update the list of royalty receivers. The list includes weighted addresses, where the weight determines the percentage of royalties received by each address.
+
+#### UpdateDenom
+- This function allows the creator to update the collection name, description, and preview URI associated with the ONFT collection.
+
+#### PurgeDenom
+- This function allows the creator to purge the collection. In order to do this, the collection should not have any tokens minted.
+
+#### UpdateAdmin
+- This function allows the creator to update the admin address. The new admin address should be provided.
+
+#### UpdatePaymentCollector
+- This function allows the creator to update the payment collector address. The new payment collector address should be provided.

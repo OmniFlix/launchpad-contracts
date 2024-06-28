@@ -1,6 +1,15 @@
-## Open Edition Minter
+# Overview of the Open Edition Minter (OEM) Contract
 
-Open edition minter contract is a minter contract which mints one NFT with predefined metadata.
+The Open Edition Minter (OEM) contract is designed to facilitate the minting of a single NFT within a collection, using predefined metadata. This type of minter contract allows for a flexible and scalable approach to NFT minting, where multiple users can mint the same NFT under a unified contract.
+
+Key features of the OEM contract include:
+
+- **Single NFT Collection**: Mints a single type of NFT within a collection, ensuring uniformity in the minted tokens.
+- **Predefined Metadata**: Uses predefined metadata for the NFT, simplifying the minting process and ensuring consistency.
+- **Integration with Whitelisting Contracts**: OEM contracts can work in conjunction with whitelisting contracts, enabling private minting rounds before opening to the public. This feature allows for controlled access to the minting process, supporting exclusive and tiered releases.
+- **Public and Private Minting Rounds**: Facilitates both private and public minting rounds, providing creators with the ability to manage and sequence their NFT drops effectively.
+
+This contract is ideal for scenarios where creators wish to offer a single, consistent NFT to a broad audience, leveraging the benefits of both private and public minting phases.
 
 #### Instantiate
 

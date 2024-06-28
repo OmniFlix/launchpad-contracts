@@ -1,8 +1,15 @@
-## Round Whitelist
+# Overview of the Round Whitelist Contract
 
-The Round whitelist contract maintains a list of addresses that are eligible to participate in the token sale.
+The Round Whitelist contract is designed to manage and maintain a list of addresses eligible to participate in the token minting process. This contract supports multiple rounds of minting, each with configurable start and end times, enabling private minting phases based on the creator’s configuration.
 
-Each round of the whitelist has an end time and a starting time. The creator of the whitelist contract can specify these parameters for each round, allowing for multiple rounds of private minting. However, if the creator decides to send out only one round, the whitelist contract can still function as a traditional whitelist.
+Key features of the Round Whitelist contract include:
+
+- **Eligibility Management**: Maintains a list of addresses that are eligible to mint tokens, ensuring controlled access to the minting process.
+- **Configurable Rounds**: Allows the creator to define multiple rounds of minting, each with its own start and end times, along with sets of addresses that are permitted to mint. This flexibility supports various release strategies, including exclusive private rounds.
+- **Single Round Functionality**: If desired, the contract can be configured to operate with a single round, functioning as a traditional whitelist.
+- **Time-bound Access**: Each round is time-bound, with specific start and end times set by the creator. This ensures that minting can only occur during the designated periods.
+
+This contract provides a robust solution for managing access to the minting process, offering flexibility and control to creators who wish to implement tiered or phased minting strategies.
 
 ### Instantiate 
 

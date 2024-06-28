@@ -1,4 +1,16 @@
-Multi mint contract is a Open edition minter contract with configurable token parameters called "drop".
+# Overview of the Multi Mint Open Edition Minter (MM-OEM) Contract
+
+The Multi Mint Open Edition Minter (MM-OEM) contract is an advanced version of the Open Edition Minter (OEM) contract, designed to support multiple NFT mints within the same collection. This contract introduces the concept of "drops," allowing for greater flexibility and configurability in the minting process.
+
+Key features of the MM-OEM contract include:
+
+- **Configurable Drops**: Unlike typical OEM contracts that manage a single mint, the MM-OEM contract allows users to configure multiple NFT mints, known as "drops," within the same contract and collection. Each drop can have its own parameters, providing enhanced flexibility for creators.
+- **Predefined Metadata**: Uses predefined metadata for each drop, ensuring consistency and simplifying the minting process.
+- **Integration with Whitelisting Contracts**: MM-OEM contracts are compatible with whitelisting contracts, enabling private minting rounds before opening to the public. This feature supports controlled access and tiered release strategies.
+- **Public and Private Minting Rounds**: Facilitates both private and public minting rounds for each drop, giving creators the ability to manage and sequence their NFT releases effectively.
+- **Single Contract Management**: Manages multiple NFT mints under a single contract, streamlining the deployment and management processes.
+
+This contract is ideal for creators looking to release multiple NFT drops within a single collection, leveraging the benefits of both private and public minting phases while maintaining control over the minting parameters for each drop.
 
 #### Drop
 
@@ -18,8 +30,8 @@ Similar to the Minter contract, the creator is required to send Collection detai
 ### NewDrop
 
 - This function allows the creator to create a new drop with the given parameters. The creator can create multiple drops with different parameters. Active drop will be changed to the new drop. But the previous drop will be still active for minting.
-    - `new_token_details`: New token details such as name, symbol, description, and preview_uri.
-    - `new_config`: New configuration for the new drop. It includes the following parameters:
+    - `token_details`: New token details such as name, symbol, description, and preview_uri.
+    - `config`: New configuration for the new drop. It includes the following parameters:
         - `price`: The price of the token.
         - `start_time`: The start time of the trading.
         - `end_time`: The end time of the trading.
