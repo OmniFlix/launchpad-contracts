@@ -40,7 +40,7 @@ anyhow = "1.0.79"
 itertools = "0.12.0"
 serde = "1.0.195"
 thiserror = "1.0.56"
-prost              = { version = "0.11.9", default-features = false }
+prost = {version = "0.12.3", default-features = false, features = ["prost-derive"]}
 omniflix-minter-factory = {path = "../../contracts/factories/minter-factory"}
 omniflix-minter = {path = "../../contracts/minters/minter"}
 omniflix-round-whitelist-factory = {path = "../../contracts/factories/round-whitelist-factory"}
