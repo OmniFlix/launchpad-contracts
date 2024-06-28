@@ -1,3 +1,3 @@
-## Omniflix launchpad tests
-Contains related tests for the Omniflix launchpad contracts.
+## Omniflix Launchpad Tests
+This is a collection of tests for the Omniflix Launchpad project
 
