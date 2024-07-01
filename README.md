@@ -1,12 +1,10 @@
-# Omniflix Launchpad 
+# **OmniFlix Launchpad**
 
-## Omniflix Launchpad Contracts
+This repository hosts the smart contracts for the OmniFlix launchpad. These contracts empower creators to launch an NFT collection where the user’s themselves mint NFTs. After setting these up, creators can share the details with their community or users, enabling them to mint an NFT.
 
-This repository hosts the smart contracts for the OmniFlix launchpad. These contracts empower creators to launch an NFT collection. After setting these up, creators can share the details with their community or users, enabling them to mint an NFT.
+## **Factories**
 
-## Factories
-
-Launchpad utilizes a singleton structure for each collection that is released through this launchpad. The purpose of the factories is to create an instance of minters and whitelist contracts.
+Launchpad utilizes a singleton structure for each collection that is released through this launchpad. The purpose of these factory contracts is to create an instance of minters & whitelist contracts.
 
 ## Design
 <img src="launchpad-design.png" align="center" height="300" width="1000"/>

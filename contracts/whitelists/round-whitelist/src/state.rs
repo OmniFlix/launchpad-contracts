@@ -40,11 +40,7 @@ impl<'a> UserMintDetails<'a> {
             .0
             .may_load(
                 store,
-                (
-                    user_address.clone(),
-                    minter_address.clone(),
-                    round_index,
-                ),
+                (user_address.clone(), minter_address.clone(), round_index),
             )?
             .unwrap_or(0);
         // Check if the user has reached the mint limit
