@@ -1,7 +1,7 @@
 use crate::round::RoundMethods;
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, Api, Order, StdResult, Storage, Timestamp};
-use cw_storage_plus::{Item, Map};
+use cosmwasm_std::{Addr, Api, Order, StdError, StdResult, Storage, Timestamp};
+use cw_storage_plus::{Item, Map, PrefixBound};
 
 use crate::error::ContractError;
 use whitelist_types::Round;
@@ -170,6 +170,30 @@ pub fn save_members(
             ),
             &true,
         )?;
+    }
+
+    Ok(())
+}
+
+pub fn remove_members_with_round_index(
+    store: &mut dyn Storage,
+    round_index: u8,
+) -> Result<(), ContractError> {
+    let round_index_str = round_index.to_string();
+    let next_round_index_str = (round_index + 1).to_string();
+
+    let keys_to_remove: Vec<(Vec<u8>, Vec<u8>)> = ROUNDMEMBERS
+        .prefix_range(
+            store,
+            Some(PrefixBound::inclusive(round_index_str.as_bytes())),
+            Some(PrefixBound::exclusive(next_round_index_str.as_bytes())),
+            Order::Ascending,
+        )
+        .map(|result| result.map(|((round_index, address), _)| (round_index, address)))
+        .collect::<Result<Vec<(Vec<u8>, Vec<u8>)>, StdError>>()?;
+
+    for key in keys_to_remove {
+        ROUNDMEMBERS.remove(store, key);
     }
 
     Ok(())
@@ -497,5 +521,43 @@ mod tests {
         let members = vec![];
         let res = save_members(&mut deps.storage, &deps.api, 1, &members.clone()).unwrap_err();
         assert_eq!(res, ContractError::EmptyAddressList {});
+    }
+    #[test]
+    fn test_remove_members() {
+        let mut deps = mock_dependencies();
+        let members = vec!["member1".to_string(), "member2".to_string()];
+        save_members(&mut deps.storage, &deps.api, 1, &members.clone()).unwrap();
+        let is_member = check_member(&deps.storage, &deps.api, 1, "member1").unwrap();
+        assert!(is_member);
+        let is_member = check_member(&deps.storage, &deps.api, 1, "member2").unwrap();
+        assert!(is_member);
+
+        remove_members_with_round_index(&mut deps.storage, 1).unwrap();
+        let is_member = check_member(&deps.storage, &deps.api, 1, "member1").unwrap();
+        assert!(!is_member);
+        let is_member = check_member(&deps.storage, &deps.api, 1, "member2").unwrap();
+        assert!(!is_member);
+
+        let mut deps = mock_dependencies();
+        // Remove members when there are multiple rounds
+        let members = vec!["member1".to_string(), "member2".to_string()];
+        save_members(&mut deps.storage, &deps.api, 1, &members.clone()).unwrap();
+
+        let members_2 = vec!["member3".to_string(), "member4".to_string()];
+        save_members(&mut deps.storage, &deps.api, 2, &members_2.clone()).unwrap();
+
+        remove_members_with_round_index(&mut deps.storage, 1).unwrap();
+
+        let is_member = check_member(&deps.storage, &deps.api, 1, "member1").unwrap();
+        assert!(!is_member);
+
+        let is_member = check_member(&deps.storage, &deps.api, 1, "member2").unwrap();
+        assert!(!is_member);
+
+        let is_member = check_member(&deps.storage, &deps.api, 2, "member3").unwrap();
+        assert!(is_member);
+
+        let is_member = check_member(&deps.storage, &deps.api, 2, "member4").unwrap();
+        assert!(is_member);
     }
 }
