@@ -14,8 +14,8 @@ use crate::msg::ExecuteMsg;
 use crate::round::RoundMethods;
 
 use crate::state::{
-    check_member, save_members, Config, Rounds, UserMintDetails, CONFIG, ROUNDMEMBERS, ROUNDS_KEY,
-    USERMINTDETAILS_KEY,
+    check_member, remove_members_with_round_index, save_members, Config, Rounds, UserMintDetails,
+    CONFIG, ROUNDMEMBERS, ROUNDS_KEY, USERMINTDETAILS_KEY,
 };
 use whitelist_types::{
     check_if_minter, CreateWhitelistMsg, Round, RoundConfig, RoundWhitelistQueryMsgs,
@@ -100,6 +100,9 @@ pub fn execute_remove_round(
     }
     // Remove the round
     rounds.remove(deps.storage, round_index)?;
+
+    // Remove the members
+    remove_members_with_round_index(deps.storage, round_index)?;
 
     let res = Response::new()
         .add_attribute("action", "remove_round")
