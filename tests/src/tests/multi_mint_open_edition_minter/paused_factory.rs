@@ -80,7 +80,7 @@ fn paused_mm_oem_factory() {
             &OpenEditionMinterFactoryExecuteMsg::CreateMultiMintOpenEditionMinter {
                 msg: multi_minter_inst_msg.clone(),
             },
-            &[coin(20_000_000, "uflix".to_string())],
+            &[coin(2_000_000, "uflix".to_string())],
         )
         .unwrap();
 

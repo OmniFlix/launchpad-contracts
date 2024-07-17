@@ -1,5 +1,6 @@
+use cosmwasm_std::Coin;
 use cosmwasm_std::StdError;
-use cosmwasm_std::{Coin, Uint128};
+use cw_utils::NativeBalance;
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq)]
@@ -16,43 +17,23 @@ pub fn check_payment(
     sent_funds: &[Coin],
     expected_funds: &[Coin],
 ) -> Result<(), CustomPaymentError> {
-    // Remove 0 amounts
-    let expected_funds = expected_funds
-        .iter()
-        .filter(|coin| coin.amount > Uint128::zero())
-        .cloned() // Clone the elements
-        .collect::<Vec<_>>();
+    let mut expected_balance = NativeBalance::default();
+    for coin in expected_funds {
+        expected_balance += coin.clone();
+    }
+    expected_balance.normalize();
 
-    // Check length
-    if sent_funds.len() > expected_funds.len() {
+    let mut sent_balance = NativeBalance::default();
+    for coin in sent_funds {
+        sent_balance += coin.clone();
+    }
+    sent_balance.normalize();
+
+    if expected_balance != sent_balance {
         return Err(CustomPaymentError::InsufficientFunds {
             expected: expected_funds.to_vec(),
             actual: sent_funds.to_vec(),
         });
-    }
-
-    let mut mut_sent_funds = sent_funds.to_vec(); // Create a mutable copy
-
-    for expected in expected_funds.clone() {
-        if let Some(sent_index) = mut_sent_funds
-            .iter()
-            .position(|sent| expected.denom == sent.denom)
-        {
-            let sent = &mut mut_sent_funds[sent_index];
-            if expected.amount > sent.amount {
-                return Err(CustomPaymentError::InsufficientFunds {
-                    expected: expected_funds.to_vec(),
-                    actual: sent_funds.to_vec(),
-                });
-            } else {
-                sent.amount = sent.amount.checked_sub(expected.amount).unwrap();
-            }
-        } else {
-            return Err(CustomPaymentError::InsufficientFunds {
-                expected: expected_funds.to_vec(),
-                actual: sent_funds.to_vec(),
-            });
-        }
     }
 
     Ok(())
@@ -118,8 +99,9 @@ mod tests {
             coin(300, "uluna"),
             coin(500, "uluna"),
         ];
+        // More funds sent than expected
         let res = check_payment(&sent_funds, &expected_funds);
-        assert!(res.is_ok());
+        assert!(res.is_err());
 
         let sent_funds = vec![coin(1100 - 1, "uluna")];
         let expected_funds = vec![
