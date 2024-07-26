@@ -10,6 +10,7 @@ use cosmwasm_std::{
     to_json_binary, Addr, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo,
     Response, StdResult, Uint128, WasmMsg,
 };
+use cw_utils::NativeBalance;
 use factory_types::check_payment;
 use minter_types::utils::check_collection_creation_fee;
 use pauser::PauseState;
@@ -336,6 +337,12 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::Params {} => to_json_binary(&query_params(deps)?),
         QueryMsg::IsPaused {} => to_json_binary(&query_is_paused(deps, _env)?),
         QueryMsg::Pausers {} => to_json_binary(&query_pausers(deps, _env)?),
+        QueryMsg::OpenEditionMinterCreationFee {} => {
+            to_json_binary(&query_open_edition_minter_creation_fee(deps)?)
+        }
+        QueryMsg::MultiMinterCreationFee {} => {
+            to_json_binary(&query_multi_minter_creation_fee(deps)?)
+        }
     }
 }
 
@@ -354,6 +361,29 @@ fn query_pausers(deps: Deps, _env: Env) -> Result<Vec<Addr>, ContractError> {
     let pause_state = PauseState::new()?;
     let pausers = pause_state.pausers.load(deps.storage).unwrap_or(vec![]);
     Ok(pausers)
+}
+fn query_open_edition_minter_creation_fee(deps: Deps) -> Result<Vec<Coin>, ContractError> {
+    let params = PARAMS.load(deps.storage)?;
+    let collection_creation_fee: Coin = check_collection_creation_fee(deps.querier)?;
+    let mut fees = NativeBalance::default();
+    fees += collection_creation_fee;
+    fees += params.open_edition_minter_creation_fee;
+    fees.normalize();
+    Ok(fees.into_vec())
+}
+
+fn query_multi_minter_creation_fee(deps: Deps) -> Result<Vec<Coin>, ContractError> {
+    let params = PARAMS.load(deps.storage)?;
+    if params.multi_minter_params.is_none() {
+        return Err(ContractError::MultiMinterNotEnabled {});
+    }
+    let multi_minter_params = params.multi_minter_params.unwrap();
+    let collection_creation_fee: Coin = check_collection_creation_fee(deps.querier)?;
+    let mut fees = NativeBalance::default();
+    fees += collection_creation_fee;
+    fees += multi_minter_params.multi_minter_creation_fee;
+    fees.normalize();
+    Ok(fees.into_vec())
 }
 
 #[cfg(test)]

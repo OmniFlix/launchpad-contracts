@@ -82,4 +82,6 @@ pub enum QueryMsg {
     IsPaused {},
     #[returns(Vec<Addr>)]
     Pausers {},
+    #[returns(Vec<Coin>)]
+    MinterCreationFee {},
 }
