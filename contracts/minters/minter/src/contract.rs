@@ -29,7 +29,7 @@ use crate::state::{
     USER_MINTING_DETAILS,
 };
 use crate::utils::{randomize_token_list, return_random_token_index};
-use minter_types::msg::QueryMsg as BaseMinterQueryMsg;
+use minter_types::msg::{MintHistoryResponse, QueryMsg as BaseMinterQueryMsg};
 use minter_types::types::{AuthDetails, UserDetails};
 use pauser::PauseState;
 
@@ -673,6 +673,9 @@ pub fn query(
     msg: BaseMinterQueryMsg<MinterExtensionQueryMsg>,
 ) -> StdResult<Binary> {
     match msg {
+        BaseMinterQueryMsg::MintHistory { address } => {
+            to_json_binary(&query_mint_history(deps, env, address)?)
+        }
         BaseMinterQueryMsg::Collection {} => to_json_binary(&query_collection(deps, env)?),
         BaseMinterQueryMsg::Config {} => to_json_binary(&query_config(deps, env)?),
         BaseMinterQueryMsg::UserMintingDetails { address } => {
@@ -761,4 +764,23 @@ fn query_total_minted_count(deps: Deps, _env: Env) -> Result<u32, ContractError>
 fn query_auth_details(deps: Deps, _env: Env) -> Result<AuthDetails, ContractError> {
     let auth_details = AUTH_DETAILS.load(deps.storage)?;
     Ok(auth_details)
+}
+fn query_mint_history(
+    deps: Deps,
+    _env: Env,
+    address: String,
+) -> Result<MintHistoryResponse, ContractError> {
+    let address = deps.api.addr_validate(&address)?;
+    let user_minting_details = USER_MINTING_DETAILS
+        .load(deps.storage, address)
+        .unwrap_or_default();
+    let config = CONFIG.load(deps.storage)?;
+    let public_mint_limit = config.per_address_limit.unwrap_or(0);
+    let total_minted_count = user_minting_details.total_minted_count;
+    let public_minted_count = user_minting_details.public_mint_count;
+    Ok(MintHistoryResponse {
+        public_minted_count,
+        public_mint_limit,
+        total_minted_count,
+    })
 }

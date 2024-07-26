@@ -7,7 +7,7 @@ use cosmwasm_std::{
 use cw_utils::{may_pay, maybe_addr, must_pay, nonpayable};
 use minter_types::collection_details::{update_collection_details, CollectionDetails};
 use minter_types::config::Config;
-use minter_types::msg::QueryMsg as BaseMinterQueryMsg;
+use minter_types::msg::{MintHistoryResponse, QueryMsg as BaseMinterQueryMsg};
 use minter_types::token_details::{Token, TokenDetails};
 use minter_types::types::{AuthDetails, UserDetails};
 use minter_types::utils::{
@@ -706,6 +706,9 @@ pub fn query(
     msg: BaseMinterQueryMsg<OEMQueryExtension>,
 ) -> StdResult<Binary> {
     match msg {
+        BaseMinterQueryMsg::MintHistory { address } => {
+            to_json_binary(&query_mint_history(deps, env, address)?)
+        }
         BaseMinterQueryMsg::Collection {} => to_json_binary(&query_collection(deps, env)?),
         BaseMinterQueryMsg::TokenDetails {} => to_json_binary(&query_token_details(deps, env)?),
         BaseMinterQueryMsg::Config {} => to_json_binary(&query_config(deps, env)?),
@@ -782,4 +785,23 @@ fn query_pausers(deps: Deps, _env: Env) -> Result<Vec<Addr>, ContractError> {
 fn query_auth_details(deps: Deps, _env: Env) -> Result<AuthDetails, ContractError> {
     let auth_details = AUTH_DETAILS.load(deps.storage)?;
     Ok(auth_details)
+}
+fn query_mint_history(
+    deps: Deps,
+    _env: Env,
+    address: String,
+) -> Result<MintHistoryResponse, ContractError> {
+    let address = deps.api.addr_validate(&address)?;
+    let user_details = USER_MINTING_DETAILS
+        .load(deps.storage, address)
+        .unwrap_or_default();
+    let config = CONFIG.load(deps.storage)?;
+    let public_mint_limit = config.per_address_limit.unwrap_or(0);
+    let total_minted_count = user_details.total_minted_count;
+    let public_minted_count = user_details.public_mint_count;
+    Ok(MintHistoryResponse {
+        public_minted_count,
+        public_mint_limit,
+        total_minted_count,
+    })
 }

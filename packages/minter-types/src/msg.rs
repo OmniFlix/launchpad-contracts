@@ -36,4 +36,13 @@ pub enum QueryMsg<T> {
     Extension(T),
     #[returns(u32)]
     TotalMintedCount {},
+    #[returns(MintHistoryResponse)]
+    MintHistory { address: String },
+}
+
+#[cw_serde]
+pub struct MintHistoryResponse {
+    pub public_minted_count: u32,
+    pub public_mint_limit: u32,
+    pub total_minted_count: u32,
 }
