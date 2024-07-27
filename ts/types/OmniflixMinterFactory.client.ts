@@ -6,12 +6,13 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { StdFee } from "@cosmjs/amino";
-import { Addr, Uint128, InstantiateMsg, MinterFactoryParams, Coin, ExecuteMsg, Timestamp, Uint64, Decimal, MinterInstantiateMsgForMinterInitExtention, AuthDetails, CollectionDetails, WeightedAddress, MinterInitExtention, TokenDetails, CreateMinterMsgWithMigration, Config, MigrationData, Token, QueryMsg, Boolean, ParamsResponse, ArrayOfAddr } from "./OmniflixMinterFactory.types";
+import { Addr, Uint128, InstantiateMsg, MinterFactoryParams, Coin, ExecuteMsg, Timestamp, Uint64, Decimal, MinterInstantiateMsgForMinterInitExtention, AuthDetails, CollectionDetails, WeightedAddress, MinterInitExtention, TokenDetails, CreateMinterMsgWithMigration, Config, MigrationData, Token, QueryMsg, Boolean, ArrayOfCoin, ParamsResponse, ArrayOfAddr } from "./OmniflixMinterFactory.types";
 export interface OmniflixMinterFactoryReadOnlyInterface {
   contractAddress: string;
   params: () => Promise<ParamsResponse>;
   isPaused: () => Promise<Boolean>;
   pausers: () => Promise<ArrayOfAddr>;
+  minterCreationFee: () => Promise<ArrayOfCoin>;
 }
 export class OmniflixMinterFactoryQueryClient implements OmniflixMinterFactoryReadOnlyInterface {
   client: CosmWasmClient;
@@ -23,6 +24,7 @@ export class OmniflixMinterFactoryQueryClient implements OmniflixMinterFactoryRe
     this.params = this.params.bind(this);
     this.isPaused = this.isPaused.bind(this);
     this.pausers = this.pausers.bind(this);
+    this.minterCreationFee = this.minterCreationFee.bind(this);
   }
 
   params = async (): Promise<ParamsResponse> => {
@@ -38,6 +40,11 @@ export class OmniflixMinterFactoryQueryClient implements OmniflixMinterFactoryRe
   pausers = async (): Promise<ArrayOfAddr> => {
     return this.client.queryContractSmart(this.contractAddress, {
       pausers: {}
+    });
+  };
+  minterCreationFee = async (): Promise<ArrayOfCoin> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      minter_creation_fee: {}
     });
   };
 }

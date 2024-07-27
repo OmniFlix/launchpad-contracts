@@ -131,8 +131,11 @@ export type QueryMsg = {
   is_paused: {};
 } | {
   pausers: {};
+} | {
+  minter_creation_fee: {};
 };
 export type Boolean = boolean;
+export type ArrayOfCoin = Coin[];
 export interface ParamsResponse {
   params: MinterFactoryParams;
 }

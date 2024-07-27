@@ -129,6 +129,10 @@ export type QueryMsg = {
   extension: OEMQueryExtension;
 } | {
   total_minted_count: {};
+} | {
+  mint_history: {
+    address: string;
+  };
 };
 export type OEMQueryExtension = {
   tokens_remaining: {};
@@ -143,6 +147,11 @@ export interface Config {
 }
 export type Uint32 = number;
 export type Boolean = boolean;
+export interface MintHistoryResponse {
+  public_mint_limit: number;
+  public_minted_count: number;
+  total_minted_count: number;
+}
 export type ArrayOfAddr = Addr[];
 export interface UserDetails {
   minted_tokens: Token[];

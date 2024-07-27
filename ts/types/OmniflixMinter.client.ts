@@ -6,7 +6,7 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { StdFee } from "@cosmjs/amino";
-import { InstantiateMsg, Addr, Timestamp, Uint64, Uint128, Decimal, MinterInstantiateMsgForMinterInitExtention, AuthDetails, CollectionDetails, WeightedAddress, MinterInitExtention, Coin, TokenDetails, CreateMinterMsgWithMigration, Config, MigrationData, Token, ExecuteMsg, QueryMsg, MinterExtensionQueryMsg, Uint32, Boolean, ArrayOfAddr, UserDetails } from "./OmniflixMinter.types";
+import { InstantiateMsg, Addr, Timestamp, Uint64, Uint128, Decimal, MinterInstantiateMsgForMinterInitExtention, AuthDetails, CollectionDetails, WeightedAddress, MinterInitExtention, Coin, TokenDetails, CreateMinterMsgWithMigration, Config, MigrationData, Token, ExecuteMsg, QueryMsg, MinterExtensionQueryMsg, Uint32, Boolean, MintHistoryResponse, ArrayOfAddr, UserDetails } from "./OmniflixMinter.types";
 export interface OmniflixMinterReadOnlyInterface {
   contractAddress: string;
   collection: () => Promise<CollectionDetails>;
@@ -22,6 +22,11 @@ export interface OmniflixMinterReadOnlyInterface {
   pausers: () => Promise<ArrayOfAddr>;
   extension: (minterExtensionQueryMsg: MinterExtensionQueryMsg) => Promise<Uint32>;
   totalMintedCount: () => Promise<Uint32>;
+  mintHistory: ({
+    address
+  }: {
+    address: string;
+  }) => Promise<MintHistoryResponse>;
 }
 export class OmniflixMinterQueryClient implements OmniflixMinterReadOnlyInterface {
   client: CosmWasmClient;
@@ -39,6 +44,7 @@ export class OmniflixMinterQueryClient implements OmniflixMinterReadOnlyInterfac
     this.pausers = this.pausers.bind(this);
     this.extension = this.extension.bind(this);
     this.totalMintedCount = this.totalMintedCount.bind(this);
+    this.mintHistory = this.mintHistory.bind(this);
   }
 
   collection = async (): Promise<CollectionDetails> => {
@@ -90,6 +96,17 @@ export class OmniflixMinterQueryClient implements OmniflixMinterReadOnlyInterfac
   totalMintedCount = async (): Promise<Uint32> => {
     return this.client.queryContractSmart(this.contractAddress, {
       total_minted_count: {}
+    });
+  };
+  mintHistory = async ({
+    address
+  }: {
+    address: string;
+  }): Promise<MintHistoryResponse> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      mint_history: {
+        address
+      }
     });
   };
 }

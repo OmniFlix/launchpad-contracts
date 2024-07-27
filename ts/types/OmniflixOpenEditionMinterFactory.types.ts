@@ -132,8 +132,13 @@ export type QueryMsg = {
   is_paused: {};
 } | {
   pausers: {};
+} | {
+  open_edition_minter_creation_fee: {};
+} | {
+  multi_minter_creation_fee: {};
 };
 export type Boolean = boolean;
+export type ArrayOfCoin = Coin[];
 export interface ParamsResponse {
   params: OpenEditionMinterFactoryParams;
 }
