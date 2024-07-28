@@ -1,7 +1,9 @@
 use crate::drop::Drop;
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::Coin;
-use minter_types::{config::Config, token_details::TokenDetails, types::UserDetails};
+use minter_types::{
+    config::Config, msg::MintHistoryResponse, token_details::TokenDetails, types::UserDetails,
+};
 use omniflix_std::types::omniflix::onft::v1beta1::WeightedAddress;
 
 #[cw_serde]
@@ -74,4 +76,9 @@ pub enum QueryMsgExtension {
     ActiveDropId {},
     #[returns(Vec<(u32,Drop)>)]
     AllDrops {},
+    #[returns(MintHistoryResponse)]
+    MintHistory {
+        address: String,
+        drop_id: Option<u32>,
+    },
 }

@@ -7,7 +7,7 @@
 import { MsgExecuteContractEncodeObject } from "@cosmjs/cosmwasm-stargate";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { toUtf8 } from "@cosmjs/encoding";
-import { InstantiateMsg, Addr, Timestamp, Uint64, Uint128, Decimal, MinterInstantiateMsgForMinterInitExtention, AuthDetails, CollectionDetails, WeightedAddress, MinterInitExtention, Coin, TokenDetails, CreateMinterMsgWithMigration, Config, MigrationData, Token, ExecuteMsg, QueryMsg, MinterExtensionQueryMsg, Uint32, Boolean, ArrayOfAddr, UserDetails } from "./OmniflixMinter.types";
+import { InstantiateMsg, Addr, Timestamp, Uint64, Uint128, Decimal, MinterInstantiateMsgForMinterInitExtention, AuthDetails, CollectionDetails, WeightedAddress, MinterInitExtention, Coin, TokenDetails, CreateMinterMsgWithMigration, Config, MigrationData, Token, ExecuteMsg, QueryMsg, MinterExtensionQueryMsg, Uint32, Boolean, MintHistoryResponse, ArrayOfAddr, UserDetails } from "./OmniflixMinter.types";
 export interface OmniflixMinterMsg {
   contractAddress: string;
   sender: string;

@@ -150,6 +150,10 @@ export type QueryMsg = {
   extension: QueryMsgExtension;
 } | {
   total_minted_count: {};
+} | {
+  mint_history: {
+    address: string;
+  };
 };
 export type QueryMsgExtension = {
   token_details: {
@@ -176,9 +180,19 @@ export type QueryMsgExtension = {
   active_drop_id: {};
 } | {
   all_drops: {};
+} | {
+  mint_history: {
+    address: string;
+    drop_id?: number | null;
+  };
 };
 export type Uint32 = number;
 export type Boolean = boolean;
+export interface MintHistoryResponse {
+  public_mint_limit: number;
+  public_minted_count: number;
+  total_minted_count: number;
+}
 export type ArrayOfAddr = Addr[];
 export interface UserDetails {
   minted_tokens: Token[];

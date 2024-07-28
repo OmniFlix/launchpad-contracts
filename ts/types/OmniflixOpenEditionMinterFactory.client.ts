@@ -6,12 +6,14 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { StdFee } from "@cosmjs/amino";
-import { Addr, Uint128, InstantiateMsg, OpenEditionMinterFactoryParams, MultiMinterParams, Coin, ExecuteMsg, Timestamp, Uint64, Decimal, MinterInstantiateMsgForOpenEditionMinterInitExtention, AuthDetails, CollectionDetails, WeightedAddress, OpenEditionMinterInitExtention, TokenDetails, MinterInstantiateMsgForEmpty, Empty, QueryMsg, Boolean, ParamsResponse, ArrayOfAddr } from "./OmniflixOpenEditionMinterFactory.types";
+import { Addr, Uint128, InstantiateMsg, OpenEditionMinterFactoryParams, MultiMinterParams, Coin, ExecuteMsg, Timestamp, Uint64, Decimal, MinterInstantiateMsgForOpenEditionMinterInitExtention, AuthDetails, CollectionDetails, WeightedAddress, OpenEditionMinterInitExtention, TokenDetails, MinterInstantiateMsgForEmpty, Empty, QueryMsg, Boolean, ArrayOfCoin, ParamsResponse, ArrayOfAddr } from "./OmniflixOpenEditionMinterFactory.types";
 export interface OmniflixOpenEditionMinterFactoryReadOnlyInterface {
   contractAddress: string;
   params: () => Promise<ParamsResponse>;
   isPaused: () => Promise<Boolean>;
   pausers: () => Promise<ArrayOfAddr>;
+  openEditionMinterCreationFee: () => Promise<ArrayOfCoin>;
+  multiMinterCreationFee: () => Promise<ArrayOfCoin>;
 }
 export class OmniflixOpenEditionMinterFactoryQueryClient implements OmniflixOpenEditionMinterFactoryReadOnlyInterface {
   client: CosmWasmClient;
@@ -23,6 +25,8 @@ export class OmniflixOpenEditionMinterFactoryQueryClient implements OmniflixOpen
     this.params = this.params.bind(this);
     this.isPaused = this.isPaused.bind(this);
     this.pausers = this.pausers.bind(this);
+    this.openEditionMinterCreationFee = this.openEditionMinterCreationFee.bind(this);
+    this.multiMinterCreationFee = this.multiMinterCreationFee.bind(this);
   }
 
   params = async (): Promise<ParamsResponse> => {
@@ -38,6 +42,16 @@ export class OmniflixOpenEditionMinterFactoryQueryClient implements OmniflixOpen
   pausers = async (): Promise<ArrayOfAddr> => {
     return this.client.queryContractSmart(this.contractAddress, {
       pausers: {}
+    });
+  };
+  openEditionMinterCreationFee = async (): Promise<ArrayOfCoin> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      open_edition_minter_creation_fee: {}
+    });
+  };
+  multiMinterCreationFee = async (): Promise<ArrayOfCoin> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      multi_minter_creation_fee: {}
     });
   };
 }

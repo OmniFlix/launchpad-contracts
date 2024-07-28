@@ -7,7 +7,7 @@ use cosmwasm_std::{
 use cw_utils::{may_pay, must_pay, nonpayable};
 use minter_types::collection_details::{update_collection_details, CollectionDetails};
 use minter_types::config::Config;
-use minter_types::msg::QueryMsg as BaseMinterQueryMsg;
+use minter_types::msg::{MintHistoryResponse, QueryMsg as BaseMinterQueryMsg};
 use minter_types::token_details::{Token, TokenDetails};
 use minter_types::types::{AuthDetails, UserDetails};
 use minter_types::utils::{
@@ -774,6 +774,9 @@ pub fn query(
     msg: BaseMinterQueryMsg<QueryMsgExtension>,
 ) -> StdResult<Binary> {
     match msg {
+        BaseMinterQueryMsg::MintHistory { address } => {
+            to_json_binary(&query_mint_history(deps, env, address, None)?)
+        }
         BaseMinterQueryMsg::Collection {} => to_json_binary(&query_collection(deps, env)?),
         BaseMinterQueryMsg::TokenDetails {} => {
             to_json_binary(&query_token_details(deps, env, None)?)
@@ -805,6 +808,9 @@ pub fn query(
             }
             QueryMsgExtension::TokensMintedInDrop { drop_id } => {
                 to_json_binary(&query_tokens_minted_in_drop(deps, env, drop_id)?)
+            }
+            QueryMsgExtension::MintHistory { address, drop_id } => {
+                to_json_binary(&query_mint_history(deps, env, address, drop_id)?)
             }
         },
     }
@@ -915,4 +921,35 @@ fn query_tokens_minted_in_drop(
     let (_, drop) = get_drop_by_id(drop_id, deps.storage)?;
     let drop_minted_count = drop.minted_count;
     Ok(drop_minted_count)
+}
+
+fn query_mint_history(
+    deps: Deps,
+    env: Env,
+    address: String,
+    drop_id: Option<u32>,
+) -> Result<MintHistoryResponse, ContractError> {
+    let address = deps.api.addr_validate(&address)?;
+    let drop_id = drop_id.unwrap_or(ACTIVE_DROP_ID.load(deps.storage)?);
+    if drop_id == 0 {
+        return Err(ContractError::NoDropAvailable {});
+    }
+    let user_minting_details = UserMintingDetails::new(USER_MINTING_DETAILS_KEY);
+    let user_details = user_minting_details
+        .load(deps.storage, drop_id, address)
+        .unwrap_or_default();
+    let public_minted_count = user_details.public_mint_count;
+    let total_minted_count = user_details.total_minted_count;
+    let public_mint_limit = DROPS
+        .load(deps.storage, drop_id)?
+        .drop_params
+        .config
+        .per_address_limit
+        .unwrap_or(0);
+    let mint_history = MintHistoryResponse {
+        public_minted_count,
+        total_minted_count,
+        public_mint_limit,
+    };
+    Ok(mint_history)
 }
