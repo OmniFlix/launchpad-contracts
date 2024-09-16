@@ -925,7 +925,7 @@ fn query_tokens_minted_in_drop(
 
 fn query_mint_history(
     deps: Deps,
-    env: Env,
+    _env: Env,
     address: String,
     drop_id: Option<u32>,
 ) -> Result<MintHistoryResponse, ContractError> {

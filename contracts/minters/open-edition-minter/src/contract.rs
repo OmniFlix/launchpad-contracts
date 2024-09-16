@@ -64,6 +64,7 @@ pub fn instantiate(
 
     // Extract other necessary information
     let collection_details = msg.collection_details.clone();
+
     if msg.init.is_none() {
         return Err(ContractError::InitMissing {});
     }
@@ -126,6 +127,7 @@ pub fn instantiate(
         denom: collection_creation_fee.denom,
         amount: collection_creation_fee.amount,
     };
+
     let collection_creation_msg: CosmosMsg = generate_create_denom_msg(
         &collection_details,
         env.contract.address.clone(),
@@ -137,7 +139,16 @@ pub fn instantiate(
     // Prepare the response with attributes
     let res = Response::new()
         .add_message(collection_creation_msg)
-        .add_attribute("action", "instantiate");
+        .add_attribute("action", "instantiate")
+        .add_attribute("collection_id", collection_details.id)
+        .add_attribute("contract_address", env.contract.address.clone())
+        .add_attribute("admin", auth_details.admin.to_string())
+        .add_attribute(
+            "payment_collector",
+            auth_details.payment_collector.to_string(),
+        )
+        .add_attribute("mint_price", config.mint_price.to_string())
+        .add_attribute("start_time", config.start_time.to_string());
 
     Ok(res)
 }
