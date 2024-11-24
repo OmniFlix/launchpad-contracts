@@ -32,7 +32,7 @@ pub enum ExecuteMsg {
     SetPausers {
         pausers: Vec<String>,
     },
-    NewMintInstance {
+    CreateMintInstance {
         token_details: TokenDetails,
         config: Config,
     },

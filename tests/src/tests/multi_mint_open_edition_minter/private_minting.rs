@@ -158,7 +158,7 @@ fn multi_mint_oem_private_minting() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::NewMintInstance {
+            &MultiMintOpenEditionMinterExecuteMsg::CreateMintInstance {
                 token_details: token_details.clone(),
                 config: config.clone(),
             },

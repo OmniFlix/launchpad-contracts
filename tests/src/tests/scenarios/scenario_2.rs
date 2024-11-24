@@ -292,7 +292,7 @@ fn test_scenario_2() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::NewMintInstance {
+            &MultiMintOpenEditionMinterExecuteMsg::CreateMintInstance {
                 token_details,
                 config,
             },
@@ -688,7 +688,7 @@ fn test_scenario_2() {
         whitelist_address: None,
         num_tokens: Some(100),
     };
-    let new_mint_instance_msg = MultiMintOpenEditionMinterExecuteMsg::NewMintInstance {
+    let new_mint_instance_msg = MultiMintOpenEditionMinterExecuteMsg::CreateMintInstance {
         token_details: new_token_details,
         config: new_config,
     };

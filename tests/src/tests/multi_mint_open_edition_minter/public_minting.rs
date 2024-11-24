@@ -99,7 +99,9 @@ fn multi_mint_oem_public_minting() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::Mint { mint_instance_id: None },
+            &MultiMintOpenEditionMinterExecuteMsg::Mint {
+                mint_instance_id: None,
+            },
             &[coin(2000000, "uflix")],
         )
         .unwrap_err();
@@ -136,7 +138,7 @@ fn multi_mint_oem_public_minting() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::NewMintInstance {
+            &MultiMintOpenEditionMinterExecuteMsg::CreateMintInstance {
                 config,
                 token_details,
             },
@@ -160,7 +162,9 @@ fn multi_mint_oem_public_minting() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::Mint { mint_instance_id: Some(1) },
+            &MultiMintOpenEditionMinterExecuteMsg::Mint {
+                mint_instance_id: Some(1),
+            },
             &[coin(2000000, "uflix")],
         )
         .unwrap_err();
@@ -245,7 +249,9 @@ fn multi_mint_oem_public_minting() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::Mint { mint_instance_id: Some(1) },
+            &MultiMintOpenEditionMinterExecuteMsg::Mint {
+                mint_instance_id: Some(1),
+            },
             &[coin(2000000, "uflix")],
         )
         .unwrap_err();
@@ -268,7 +274,9 @@ fn multi_mint_oem_public_minting() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::Mint { mint_instance_id: Some(1) },
+            &MultiMintOpenEditionMinterExecuteMsg::Mint {
+                mint_instance_id: Some(1),
+            },
             &[coin(2000000, "uflix")],
         )
         .unwrap_err();
@@ -295,7 +303,9 @@ fn multi_mint_oem_public_minting() {
         .execute_contract(
             collector.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::Mint { mint_instance_id: Some(1) },
+            &MultiMintOpenEditionMinterExecuteMsg::Mint {
+                mint_instance_id: Some(1),
+            },
             &[coin(5000000, "uflix")],
         )
         .unwrap();
@@ -340,7 +350,9 @@ fn multi_mint_oem_public_minting() {
         .execute_contract(
             collector.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::Mint { mint_instance_id: Some(1) },
+            &MultiMintOpenEditionMinterExecuteMsg::Mint {
+                mint_instance_id: Some(1),
+            },
             &[coin(5000000, "uflix")],
         )
         .unwrap_err();
@@ -365,7 +377,9 @@ fn multi_mint_oem_public_minting() {
             .execute_contract(
                 collector.clone(),
                 Addr::unchecked(multi_minter_addr.clone()),
-                &MultiMintOpenEditionMinterExecuteMsg::Mint { mint_instance_id: Some(1) },
+                &MultiMintOpenEditionMinterExecuteMsg::Mint {
+                    mint_instance_id: Some(1),
+                },
                 &[coin(5000000, "uflix")],
             )
             .unwrap();
@@ -386,7 +400,9 @@ fn multi_mint_oem_public_minting() {
         .execute_contract(
             collector.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::Mint { mint_instance_id: Some(1) },
+            &MultiMintOpenEditionMinterExecuteMsg::Mint {
+                mint_instance_id: Some(1),
+            },
             &[coin(5000000, "uflix")],
         )
         .unwrap_err();
@@ -507,7 +523,7 @@ fn multi_mint_oem_admin_mint() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::NewMintInstance {
+            &MultiMintOpenEditionMinterExecuteMsg::CreateMintInstance {
                 config,
                 token_details,
             },

@@ -110,7 +110,7 @@ fn paused_mm_oem() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::NewMintInstance {
+            &MultiMintOpenEditionMinterExecuteMsg::CreateMintInstance {
                 config,
                 token_details,
             },
@@ -176,7 +176,9 @@ fn paused_mm_oem() {
     assert!(is_paused);
 
     // Ensure that the minter can not mint
-    let mint_msg = MultiMintOpenEditionMinterExecuteMsg::Mint { mint_instance_id: None };
+    let mint_msg = MultiMintOpenEditionMinterExecuteMsg::Mint {
+        mint_instance_id: None,
+    };
 
     let error = app
         .execute_contract(

@@ -144,10 +144,10 @@ pub fn execute(
         ExecuteMsg::Pause {} => execute_pause(deps, env, info),
         ExecuteMsg::Unpause {} => execute_unpause(deps, env, info),
         ExecuteMsg::SetPausers { pausers } => execute_set_pausers(deps, env, info, pausers),
-        ExecuteMsg::NewMintInstance {
+        ExecuteMsg::CreateMintInstance {
             config,
             token_details,
-        } => execute_new_mint_instance(deps, env, info, config, token_details),
+        } => execute_create_mint_instance(deps, env, info, config, token_details),
 
         ExecuteMsg::UpdateRoyaltyReceivers { receivers } => {
             execute_update_royalty_receivers(deps, env, info, receivers)
@@ -615,7 +615,7 @@ pub fn execute_set_pausers(
     Ok(res)
 }
 
-pub fn execute_new_mint_instance(
+pub fn execute_create_mint_instance(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
@@ -664,7 +664,7 @@ pub fn execute_new_mint_instance(
     ACTIVE_MINT_INSTANCE_ID.save(deps.storage, &new_mint_instance_id)?;
 
     let res = Response::new()
-        .add_attribute("action", "new_mint_instance")
+        .add_attribute("action", "create_mint_instance")
         .add_attribute("new_mint_instance_id", new_mint_instance_id.to_string());
 
     Ok(res)

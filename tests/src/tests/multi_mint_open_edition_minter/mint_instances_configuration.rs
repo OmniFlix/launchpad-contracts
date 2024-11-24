@@ -121,7 +121,7 @@ fn remove_mint_instance() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::NewMintInstance {
+            &MultiMintOpenEditionMinterExecuteMsg::CreateMintInstance {
                 config,
                 token_details,
             },
@@ -233,7 +233,7 @@ fn remove_mint_instance() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::NewMintInstance {
+            &MultiMintOpenEditionMinterExecuteMsg::CreateMintInstance {
                 config,
                 token_details,
             },
@@ -276,7 +276,7 @@ fn remove_mint_instance() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::NewMintInstance {
+            &MultiMintOpenEditionMinterExecuteMsg::CreateMintInstance {
                 config,
                 token_details,
             },
@@ -339,7 +339,7 @@ fn remove_mint_instance() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::NewMintInstance {
+            &MultiMintOpenEditionMinterExecuteMsg::CreateMintInstance {
                 config,
                 token_details,
             },
@@ -491,7 +491,7 @@ fn remove_non_active_mint_instance() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::NewMintInstance {
+            &MultiMintOpenEditionMinterExecuteMsg::CreateMintInstance {
                 config,
                 token_details,
             },
@@ -523,7 +523,7 @@ fn remove_non_active_mint_instance() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::NewMintInstance {
+            &MultiMintOpenEditionMinterExecuteMsg::CreateMintInstance {
                 config,
                 token_details,
             },
@@ -557,7 +557,7 @@ fn remove_non_active_mint_instance() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::NewMintInstance {
+            &MultiMintOpenEditionMinterExecuteMsg::CreateMintInstance {
                 config,
                 token_details,
             },
@@ -813,7 +813,7 @@ fn remove_first_mint_instance() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::NewMintInstance {
+            &MultiMintOpenEditionMinterExecuteMsg::CreateMintInstance {
                 config,
                 token_details,
             },
@@ -980,7 +980,7 @@ fn add_mint_instance() {
         .execute_contract(
             collector.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::NewMintInstance {
+            &MultiMintOpenEditionMinterExecuteMsg::CreateMintInstance {
                 config: mint_instance.config.clone(),
                 token_details: mint_instance.token_details.clone(),
             },
@@ -1003,7 +1003,7 @@ fn add_mint_instance() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::NewMintInstance {
+            &MultiMintOpenEditionMinterExecuteMsg::CreateMintInstance {
                 config: new_mint_instance.config.clone(),
                 token_details: new_mint_instance.token_details.clone(),
             },
@@ -1028,7 +1028,7 @@ fn add_mint_instance() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::NewMintInstance {
+            &MultiMintOpenEditionMinterExecuteMsg::CreateMintInstance {
                 config: new_mint_instance.config.clone(),
                 token_details: new_mint_instance.token_details.clone(),
             },
@@ -1054,7 +1054,7 @@ fn add_mint_instance() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::NewMintInstance {
+            &MultiMintOpenEditionMinterExecuteMsg::CreateMintInstance {
                 config: new_mint_instance.config.clone(),
                 token_details: new_mint_instance.token_details.clone(),
             },
@@ -1080,7 +1080,7 @@ fn add_mint_instance() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::NewMintInstance {
+            &MultiMintOpenEditionMinterExecuteMsg::CreateMintInstance {
                 config: new_mint_instance.config.clone(),
                 token_details: new_mint_instance.token_details.clone(),
             },
@@ -1106,7 +1106,7 @@ fn add_mint_instance() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::NewMintInstance {
+            &MultiMintOpenEditionMinterExecuteMsg::CreateMintInstance {
                 config: new_mint_instance.config.clone(),
                 token_details: new_mint_instance.token_details.clone(),
             },
@@ -1132,7 +1132,7 @@ fn add_mint_instance() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::NewMintInstance {
+            &MultiMintOpenEditionMinterExecuteMsg::CreateMintInstance {
                 config: new_mint_instance.config.clone(),
                 token_details: new_mint_instance.token_details.clone(),
             },
@@ -1158,7 +1158,7 @@ fn add_mint_instance() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::NewMintInstance {
+            &MultiMintOpenEditionMinterExecuteMsg::CreateMintInstance {
                 config: new_mint_instance.config.clone(),
                 token_details: new_mint_instance.token_details.clone(),
             },
@@ -1184,7 +1184,7 @@ fn add_mint_instance() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::NewMintInstance {
+            &MultiMintOpenEditionMinterExecuteMsg::CreateMintInstance {
                 config: new_mint_instance.config.clone(),
                 token_details: new_mint_instance.token_details.clone(),
             },
@@ -1211,7 +1211,7 @@ fn add_mint_instance() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::NewMintInstance {
+            &MultiMintOpenEditionMinterExecuteMsg::CreateMintInstance {
                 config: new_mint_instance.config.clone(),
                 token_details: new_mint_instance.token_details.clone(),
             },
@@ -1239,7 +1239,7 @@ fn add_mint_instance() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::NewMintInstance {
+            &MultiMintOpenEditionMinterExecuteMsg::CreateMintInstance {
                 config: new_mint_instance.config.clone(),
                 token_details: new_mint_instance.token_details.clone(),
             },
@@ -1266,7 +1266,7 @@ fn add_mint_instance() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::NewMintInstance {
+            &MultiMintOpenEditionMinterExecuteMsg::CreateMintInstance {
                 config: new_mint_instance.config.clone(),
                 token_details: new_mint_instance.token_details.clone(),
             },
@@ -1293,7 +1293,7 @@ fn add_mint_instance() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::NewMintInstance {
+            &MultiMintOpenEditionMinterExecuteMsg::CreateMintInstance {
                 config: new_mint_instance.config.clone(),
                 token_details: new_mint_instance.token_details.clone(),
             },
@@ -1317,7 +1317,7 @@ fn add_mint_instance() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::NewMintInstance {
+            &MultiMintOpenEditionMinterExecuteMsg::CreateMintInstance {
                 config: mint_instance.config.clone(),
                 token_details: mint_instance.token_details.clone(),
             },
@@ -1453,7 +1453,7 @@ fn update_mint_price() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::NewMintInstance {
+            &MultiMintOpenEditionMinterExecuteMsg::CreateMintInstance {
                 config: mint_instance.config.clone(),
                 token_details: mint_instance.token_details.clone(),
             },
@@ -1640,7 +1640,7 @@ fn update_royalty_ratio() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::NewMintInstance {
+            &MultiMintOpenEditionMinterExecuteMsg::CreateMintInstance {
                 config: mint_instance.config.clone(),
                 token_details: mint_instance.token_details.clone(),
             },
