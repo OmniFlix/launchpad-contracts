@@ -12,7 +12,7 @@ use omniflix_multi_mint_open_edition_minter::error::ContractError as MultiMintOp
 use omniflix_multi_mint_open_edition_minter::msg::ExecuteMsg as MultiMintOpenEditionMinterExecuteMsg;
 use omniflix_multi_mint_open_edition_minter::msg::QueryMsgExtension as MultiMintOpenEditionMinterQueryMsgExtension;
 
-use omniflix_multi_mint_open_edition_minter::drop::Drop;
+use omniflix_multi_mint_open_edition_minter::mint_instance::MintInstance;
 use omniflix_open_edition_minter_factory::msg::{
     ExecuteMsg as OpenEditionMinterFactoryExecuteMsg, MultiMinterCreateMsg,
 };
@@ -96,7 +96,7 @@ fn test_scenario_2() {
     // Creator unpauses the contract with set pausers execution
     // Creator also decides to change royalty ratio to 20%
     // Creator also changes payment collector and admin addresses
-    // Now Creator 2 decides create a new drop
+    // Now Creator 2 decides create a new mint_instance
     let res = setup();
     let admin = res.test_accounts.admin;
     let creator = res.test_accounts.creator;
@@ -206,7 +206,7 @@ fn test_scenario_2() {
         collection_name: "Multi mint test".to_string(),
         description: Some("COLLECTION DESCRIPTION".to_string()),
         preview_uri: Some("Preview uri of COLLECTION".to_string()),
-        schema: Some("Some schema for drop 1".to_string()),
+        schema: Some("Some schema for mint_instance 1".to_string()),
         symbol: "MMOEM".to_string(),
         id: "MMOEM test 1".to_string(),
         uri: Some("Some uri".to_string()),
@@ -237,47 +237,47 @@ fn test_scenario_2() {
         .unwrap();
     let multi_minter_addr = get_contract_address_from_res(res);
 
-    // Query all drops
-    let res: Result<Vec<(u32, Drop)>, _> = app.wrap().query_wasm_smart(
+    // Query all mint_instances
+    let res: Result<Vec<(u32, MintInstance)>, _> = app.wrap().query_wasm_smart(
         multi_minter_addr.clone(),
         &MultiMintOpenEditionMinterQueryMsg::Extension(
-            MultiMintOpenEditionMinterQueryMsgExtension::AllDrops {},
+            MultiMintOpenEditionMinterQueryMsgExtension::AllMintInstances {},
         ),
     );
     assert_eq!(res.unwrap().len(), 0);
-    let current_drop_number: u32 = app
+    let current_mint_instance_number: u32 = app
         .wrap()
         .query_wasm_smart(
             multi_minter_addr.clone(),
             &MultiMintOpenEditionMinterQueryMsg::Extension(
-                MultiMintOpenEditionMinterQueryMsgExtension::ActiveDropId {},
+                MultiMintOpenEditionMinterQueryMsgExtension::ActiveMintInstanceId {},
             ),
         )
         .unwrap();
-    assert_eq!(current_drop_number, 0);
+    assert_eq!(current_mint_instance_number, 0);
 
     let tokens_remaining_error: Result<u32, _> = app.wrap().query_wasm_smart(
         multi_minter_addr.clone(),
         &MultiMintOpenEditionMinterQueryMsg::Extension(
-            MultiMintOpenEditionMinterQueryMsgExtension::TokensRemainingInDrop { drop_id: Some(1) },
+            MultiMintOpenEditionMinterQueryMsgExtension::TokensRemainingInMintInstance { mint_instance_id: Some(1) },
         ),
     );
     assert_eq!(
         tokens_remaining_error.unwrap_err(),
-        StdError::generic_err("Querier contract error: Generic error: Invalid drop id")
+        StdError::generic_err("Querier contract error: Generic error: Invalid mint_instance id")
     );
 
-    // Create first drop
+    // Create first mint_instance
     let token_details = TokenDetails {
-        token_name: "Drop number 1".to_string(),
-        description: Some("Drop number 1 description".to_string()),
-        preview_uri: Some("Drop number 1 prev uri".to_string()),
-        base_token_uri: "Drop number 1 base_token_uri".to_string(),
+        token_name: "MintInstance number 1".to_string(),
+        description: Some("MintInstance number 1 description".to_string()),
+        preview_uri: Some("MintInstance number 1 prev uri".to_string()),
+        base_token_uri: "MintInstance number 1 base_token_uri".to_string(),
         transferable: true,
         royalty_ratio: Decimal::percent(10),
         extensible: true,
         nsfw: false,
-        data: Some("Drop number 1 data".to_string()),
+        data: Some("MintInstance number 1 data".to_string()),
     };
     let config = Config {
         mint_price: coin(5_000_000, "uflix"),
@@ -292,7 +292,7 @@ fn test_scenario_2() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::NewDrop {
+            &MultiMintOpenEditionMinterExecuteMsg::NewMintInstance {
                 token_details,
                 config,
             },
@@ -668,17 +668,17 @@ fn test_scenario_2() {
             &[],
         )
         .unwrap();
-    // Creator 2 decides create a new drop
+    // Creator 2 decides create a new mint_instance
     let new_token_details = TokenDetails {
-        token_name: "Drop number 2".to_string(),
-        description: Some("Drop number 2 description".to_string()),
-        preview_uri: Some("Drop number 2 prev uri".to_string()),
-        base_token_uri: "Drop number 2 base_token_uri".to_string(),
+        token_name: "MintInstance number 2".to_string(),
+        description: Some("MintInstance number 2 description".to_string()),
+        preview_uri: Some("MintInstance number 2 prev uri".to_string()),
+        base_token_uri: "MintInstance number 2 base_token_uri".to_string(),
         transferable: true,
         royalty_ratio: Decimal::percent(10),
         extensible: true,
         nsfw: false,
-        data: Some("Drop number 2 data".to_string()),
+        data: Some("MintInstance number 2 data".to_string()),
     };
     let new_config = Config {
         mint_price: coin(5_000_000, "uflix"),
@@ -688,7 +688,7 @@ fn test_scenario_2() {
         whitelist_address: None,
         num_tokens: Some(100),
     };
-    let new_drop_msg = MultiMintOpenEditionMinterExecuteMsg::NewDrop {
+    let new_mint_instance_msg = MultiMintOpenEditionMinterExecuteMsg::NewMintInstance {
         token_details: new_token_details,
         config: new_config,
     };
@@ -696,13 +696,13 @@ fn test_scenario_2() {
         .execute_contract(
             new_admin.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &new_drop_msg,
+            &new_mint_instance_msg,
             &[],
         )
         .unwrap();
-    // New drop is created
+    // New mint_instance is created
 
-    // Try minting for older drop.
+    // Try minting for older mint_instance.
     // Public mint is active
     // Public mint price was 5_000_000 uflix but creator changed it to 1_000_000 uflix
     // Creator also changed payment collector and admin addresses
@@ -716,7 +716,7 @@ fn test_scenario_2() {
         .execute_contract(
             collector.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::Mint { drop_id: Some(1) },
+            &MultiMintOpenEditionMinterExecuteMsg::Mint { mint_instance_id: Some(1) },
             &[coin(1000000, "uflix")],
         )
         .unwrap();
@@ -730,12 +730,12 @@ fn test_scenario_2() {
     );
     let collection = query_onft_collection(app.storage(), multi_minter_addr.clone());
     assert_eq!(collection.onfts.len(), 86);
-    // Now first drop is mintable but second drop is not mintable because public mint is not active
+    // Now first mint_instance is mintable but second mint_instance is not mintable because public mint is not active
     let res = app
         .execute_contract(
             collector.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::Mint { drop_id: Some(2) },
+            &MultiMintOpenEditionMinterExecuteMsg::Mint { mint_instance_id: Some(2) },
             &[coin(1000000, "uflix")],
         )
         .unwrap_err();
@@ -756,12 +756,12 @@ fn test_scenario_2() {
         height: 1_000,
         time: Timestamp::from_nanos(20_000_000 + 1),
     });
-    // Now second drop is mintable
+    // Now second mint_instance is mintable
     let _res = app
         .execute_contract(
             collector.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::Mint { drop_id: Some(2) },
+            &MultiMintOpenEditionMinterExecuteMsg::Mint { mint_instance_id: Some(2) },
             &[coin(5000000, "uflix")],
         )
         .unwrap();
@@ -769,6 +769,6 @@ fn test_scenario_2() {
     assert_eq!(collection.onfts.len(), 87);
     assert_eq!(
         collection.onfts[86].metadata.as_ref().unwrap().name,
-        "Drop number 2 #1".to_string()
+        "MintInstance number 2 #1".to_string()
     );
 }

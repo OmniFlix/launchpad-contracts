@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod drops_configuration;
+mod mint_instances_configuration;
 #[cfg(test)]
 mod mm_oem_creation;
 

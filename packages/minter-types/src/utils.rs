@@ -93,20 +93,20 @@ pub fn generate_multi_minter_mint_message(
     token_id: String,
     minter_address: Addr,
     recipient: Addr,
-    drop_id: String,
-    drop_token_id: String,
+    mint_instance_id: String,
+    mint_instance_token_id: String,
 ) -> Result<MsgMintOnft, serde_json::Error> {
     let data = NftData {
         creator_token_data: token_details.data.clone().unwrap_or("".to_string()),
         multi_mint_data: Some(MultiMintData {
-            drop_id,
-            drop_token_id: drop_token_id.clone(),
+            mint_instance_id,
+            mint_instance_token_id: mint_instance_token_id.clone(),
             token_name: token_details.token_name.clone(),
         }),
     };
     let json_data = serde_json::to_string(&data)?;
     let metadata = Metadata {
-        name: format!("{} #{}", token_details.token_name.clone(), drop_token_id),
+        name: format!("{} #{}", token_details.token_name.clone(), mint_instance_token_id),
         description: token_details.description.clone().unwrap_or("".to_string()),
         media_uri: token_details.base_token_uri.clone(),
         preview_uri: token_details

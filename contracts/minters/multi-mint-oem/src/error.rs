@@ -76,14 +76,14 @@ pub enum ContractError {
     #[error("Token limit not set")]
     TokenLimitNotSet {},
 
-    #[error("No drop available")]
-    NoDropAvailable {},
+    #[error("No mint_instance available")]
+    NoMintInstanceAvailable {},
 
-    #[error("Invalid drop id")]
-    InvalidDropId {},
+    #[error("Invalid mint_instance id")]
+    InvalidMintInstanceId {},
 
-    #[error("Drop cannot be removed, tokens are minted from this drop")]
-    DropCantBeRemoved,
+    #[error("MintInstance cannot be removed, tokens are minted from this mint_instance")]
+    MintInstanceCantBeRemoved,
 }
 impl From<ContractError> for StdError {
     fn from(err: ContractError) -> StdError {
