@@ -12,37 +12,37 @@ export interface OmniflixMultiMintOpenEditionMinterMsg {
   contractAddress: string;
   sender: string;
   mint: ({
-    dropId
+    mintInstanceId
   }: {
-    dropId?: number;
+    mintInstanceId?: number;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   mintAdmin: ({
-    dropId,
+    mintInstanceId,
     recipient
   }: {
-    dropId?: number;
+    mintInstanceId?: number;
     recipient: string;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   updateRoyaltyRatio: ({
-    dropId,
+    mintInstanceId,
     ratio
   }: {
-    dropId?: number;
+    mintInstanceId?: number;
     ratio: string;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   updateMintPrice: ({
-    dropId,
+    mintInstanceId,
     mintPrice
   }: {
-    dropId?: number;
+    mintInstanceId?: number;
     mintPrice: Coin;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   updateWhitelistAddress: ({
     address,
-    dropId
+    mintInstanceId
   }: {
     address: string;
-    dropId?: number;
+    mintInstanceId?: number;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   pause: (_funds?: Coin[]) => MsgExecuteContractEncodeObject;
   unpause: (_funds?: Coin[]) => MsgExecuteContractEncodeObject;
@@ -51,17 +51,17 @@ export interface OmniflixMultiMintOpenEditionMinterMsg {
   }: {
     pausers: string[];
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
-  newDrop: ({
+  createMintInstance: ({
     config,
     tokenDetails
   }: {
     config: Config;
     tokenDetails: TokenDetails;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
-  removeDrop: ({
-    dropId
+  removeMintInstance: ({
+    mintInstanceId
   }: {
-    dropId: number;
+    mintInstanceId: number;
   }, _funds?: Coin[]) => MsgExecuteContractEncodeObject;
   updateRoyaltyReceivers: ({
     receivers
@@ -104,8 +104,8 @@ export class OmniflixMultiMintOpenEditionMinterMsgComposer implements OmniflixMu
     this.pause = this.pause.bind(this);
     this.unpause = this.unpause.bind(this);
     this.setPausers = this.setPausers.bind(this);
-    this.newDrop = this.newDrop.bind(this);
-    this.removeDrop = this.removeDrop.bind(this);
+    this.createMintInstance = this.createMintInstance.bind(this);
+    this.removeMintInstance = this.removeMintInstance.bind(this);
     this.updateRoyaltyReceivers = this.updateRoyaltyReceivers.bind(this);
     this.updateDenom = this.updateDenom.bind(this);
     this.purgeDenom = this.purgeDenom.bind(this);
@@ -114,9 +114,9 @@ export class OmniflixMultiMintOpenEditionMinterMsgComposer implements OmniflixMu
   }
 
   mint = ({
-    dropId
+    mintInstanceId
   }: {
-    dropId?: number;
+    mintInstanceId?: number;
   }, _funds?: Coin[]): MsgExecuteContractEncodeObject => {
     return {
       typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
@@ -125,7 +125,7 @@ export class OmniflixMultiMintOpenEditionMinterMsgComposer implements OmniflixMu
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
           mint: {
-            drop_id: dropId
+            mint_instance_id: mintInstanceId
           }
         })),
         funds: _funds
@@ -133,10 +133,10 @@ export class OmniflixMultiMintOpenEditionMinterMsgComposer implements OmniflixMu
     };
   };
   mintAdmin = ({
-    dropId,
+    mintInstanceId,
     recipient
   }: {
-    dropId?: number;
+    mintInstanceId?: number;
     recipient: string;
   }, _funds?: Coin[]): MsgExecuteContractEncodeObject => {
     return {
@@ -146,7 +146,7 @@ export class OmniflixMultiMintOpenEditionMinterMsgComposer implements OmniflixMu
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
           mint_admin: {
-            drop_id: dropId,
+            mint_instance_id: mintInstanceId,
             recipient
           }
         })),
@@ -155,10 +155,10 @@ export class OmniflixMultiMintOpenEditionMinterMsgComposer implements OmniflixMu
     };
   };
   updateRoyaltyRatio = ({
-    dropId,
+    mintInstanceId,
     ratio
   }: {
-    dropId?: number;
+    mintInstanceId?: number;
     ratio: string;
   }, _funds?: Coin[]): MsgExecuteContractEncodeObject => {
     return {
@@ -168,7 +168,7 @@ export class OmniflixMultiMintOpenEditionMinterMsgComposer implements OmniflixMu
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
           update_royalty_ratio: {
-            drop_id: dropId,
+            mint_instance_id: mintInstanceId,
             ratio
           }
         })),
@@ -177,10 +177,10 @@ export class OmniflixMultiMintOpenEditionMinterMsgComposer implements OmniflixMu
     };
   };
   updateMintPrice = ({
-    dropId,
+    mintInstanceId,
     mintPrice
   }: {
-    dropId?: number;
+    mintInstanceId?: number;
     mintPrice: Coin;
   }, _funds?: Coin[]): MsgExecuteContractEncodeObject => {
     return {
@@ -190,7 +190,7 @@ export class OmniflixMultiMintOpenEditionMinterMsgComposer implements OmniflixMu
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
           update_mint_price: {
-            drop_id: dropId,
+            mint_instance_id: mintInstanceId,
             mint_price: mintPrice
           }
         })),
@@ -200,10 +200,10 @@ export class OmniflixMultiMintOpenEditionMinterMsgComposer implements OmniflixMu
   };
   updateWhitelistAddress = ({
     address,
-    dropId
+    mintInstanceId
   }: {
     address: string;
-    dropId?: number;
+    mintInstanceId?: number;
   }, _funds?: Coin[]): MsgExecuteContractEncodeObject => {
     return {
       typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
@@ -213,7 +213,7 @@ export class OmniflixMultiMintOpenEditionMinterMsgComposer implements OmniflixMu
         msg: toUtf8(JSON.stringify({
           update_whitelist_address: {
             address,
-            drop_id: dropId
+            mint_instance_id: mintInstanceId
           }
         })),
         funds: _funds
@@ -265,7 +265,7 @@ export class OmniflixMultiMintOpenEditionMinterMsgComposer implements OmniflixMu
       })
     };
   };
-  newDrop = ({
+  createMintInstance = ({
     config,
     tokenDetails
   }: {
@@ -278,7 +278,7 @@ export class OmniflixMultiMintOpenEditionMinterMsgComposer implements OmniflixMu
         sender: this.sender,
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
-          new_drop: {
+          create_mint_instance: {
             config,
             token_details: tokenDetails
           }
@@ -287,10 +287,10 @@ export class OmniflixMultiMintOpenEditionMinterMsgComposer implements OmniflixMu
       })
     };
   };
-  removeDrop = ({
-    dropId
+  removeMintInstance = ({
+    mintInstanceId
   }: {
-    dropId: number;
+    mintInstanceId: number;
   }, _funds?: Coin[]): MsgExecuteContractEncodeObject => {
     return {
       typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
@@ -298,8 +298,8 @@ export class OmniflixMultiMintOpenEditionMinterMsgComposer implements OmniflixMu
         sender: this.sender,
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
-          remove_drop: {
-            drop_id: dropId
+          remove_mint_instance: {
+            mint_instance_id: mintInstanceId
           }
         })),
         funds: _funds

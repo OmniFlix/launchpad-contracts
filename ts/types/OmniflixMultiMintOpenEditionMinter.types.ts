@@ -62,27 +62,27 @@ export interface TokenDetails {
 }
 export type ExecuteMsg = {
   mint: {
-    drop_id?: number | null;
+    mint_instance_id?: number | null;
   };
 } | {
   mint_admin: {
-    drop_id?: number | null;
+    mint_instance_id?: number | null;
     recipient: string;
   };
 } | {
   update_royalty_ratio: {
-    drop_id?: number | null;
+    mint_instance_id?: number | null;
     ratio: string;
   };
 } | {
   update_mint_price: {
-    drop_id?: number | null;
+    mint_instance_id?: number | null;
     mint_price: Coin;
   };
 } | {
   update_whitelist_address: {
     address: string;
-    drop_id?: number | null;
+    mint_instance_id?: number | null;
   };
 } | {
   pause: {};
@@ -93,13 +93,13 @@ export type ExecuteMsg = {
     pausers: string[];
   };
 } | {
-  new_drop: {
+  create_mint_instance: {
     config: Config;
     token_details: TokenDetails;
   };
 } | {
-  remove_drop: {
-    drop_id: number;
+  remove_mint_instance: {
+    mint_instance_id: number;
   };
 } | {
   update_royalty_receivers: {
@@ -157,33 +157,33 @@ export type QueryMsg = {
 };
 export type QueryMsgExtension = {
   token_details: {
-    drop_id?: number | null;
+    mint_instance_id?: number | null;
   };
 } | {
   config: {
-    drop_id?: number | null;
+    mint_instance_id?: number | null;
   };
 } | {
   user_minting_details: {
     address: string;
-    drop_id?: number | null;
+    mint_instance_id?: number | null;
   };
 } | {
-  tokens_remaining_in_drop: {
-    drop_id?: number | null;
+  tokens_remaining_in_mint_instance: {
+    mint_instance_id?: number | null;
   };
 } | {
-  tokens_minted_in_drop: {
-    drop_id?: number | null;
+  tokens_minted_in_mint_instance: {
+    mint_instance_id?: number | null;
   };
 } | {
-  active_drop_id: {};
+  active_mint_instance_id: {};
 } | {
-  all_drops: {};
+  all_mint_instances: {};
 } | {
   mint_history: {
     address: string;
-    drop_id?: number | null;
+    mint_instance_id?: number | null;
   };
 };
 export type Uint32 = number;
