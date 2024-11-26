@@ -4,7 +4,7 @@ use cw_multi_test::Executor;
 use minter_types::collection_details::CollectionDetails;
 use minter_types::msg::QueryMsg as CommonMinterQueryMsg;
 use minter_types::types::AuthDetails;
-use omniflix_multi_mint_open_edition_minter::drop::Drop;
+use omniflix_multi_mint_open_edition_minter::mint_instance::MintInstance;
 use omniflix_multi_mint_open_edition_minter::msg::QueryMsgExtension as MultiMintOpenEditionMinterQueryMsgExtension;
 use omniflix_open_edition_minter_factory::error::ContractError as OpenEditionMinterFactoryError;
 use omniflix_open_edition_minter_factory::msg::{
@@ -159,16 +159,16 @@ fn multi_mint_oem_creation() {
         .unwrap();
     assert_eq!(collection, collection_details);
 
-    let active_drop_id: u32 = app
+    let active_mint_instance_id: u32 = app
         .wrap()
         .query_wasm_smart(
             &multi_mint_open_edition_minter_address,
             &MultiMintOpenEditionMinterQueryMsg::Extension(
-                MultiMintOpenEditionMinterQueryMsgExtension::ActiveDropId {},
+                MultiMintOpenEditionMinterQueryMsgExtension::ActiveMintInstanceId {},
             ),
         )
         .unwrap();
-    assert_eq!(active_drop_id, 0);
+    assert_eq!(active_mint_instance_id, 0);
 
     let minted_count: u32 = app
         .wrap()
@@ -179,14 +179,14 @@ fn multi_mint_oem_creation() {
         .unwrap();
     assert_eq!(minted_count, 0);
 
-    let drops: Vec<Drop> = app
+    let mint_instances: Vec<MintInstance> = app
         .wrap()
         .query_wasm_smart(
             &multi_mint_open_edition_minter_address,
             &MultiMintOpenEditionMinterQueryMsg::Extension(
-                MultiMintOpenEditionMinterQueryMsgExtension::AllDrops {},
+                MultiMintOpenEditionMinterQueryMsgExtension::AllMintInstances {},
             ),
         )
         .unwrap();
-    assert_eq!(drops.len(), 0);
+    assert_eq!(mint_instances.len(), 0);
 }

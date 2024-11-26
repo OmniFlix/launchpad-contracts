@@ -1,4 +1,4 @@
-use crate::drop::Drop;
+use crate::mint_instance::MintInstance;
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::Coin;
 use minter_types::{
@@ -9,35 +9,35 @@ use omniflix_std::types::omniflix::onft::v1beta1::WeightedAddress;
 #[cw_serde]
 pub enum ExecuteMsg {
     Mint {
-        drop_id: Option<u32>,
+        mint_instance_id: Option<u32>,
     },
     MintAdmin {
         recipient: String,
-        drop_id: Option<u32>,
+        mint_instance_id: Option<u32>,
     },
     UpdateRoyaltyRatio {
         ratio: String,
-        drop_id: Option<u32>,
+        mint_instance_id: Option<u32>,
     },
     UpdateMintPrice {
         mint_price: Coin,
-        drop_id: Option<u32>,
+        mint_instance_id: Option<u32>,
     },
     UpdateWhitelistAddress {
         address: String,
-        drop_id: Option<u32>,
+        mint_instance_id: Option<u32>,
     },
     Pause {},
     Unpause {},
     SetPausers {
         pausers: Vec<String>,
     },
-    NewDrop {
+    CreateMintInstance {
         token_details: TokenDetails,
         config: Config,
     },
-    RemoveDrop {
-        drop_id: u32,
+    RemoveMintInstance {
+        mint_instance_id: u32,
     },
     UpdateRoyaltyReceivers {
         receivers: Vec<WeightedAddress>,
@@ -60,25 +60,25 @@ pub enum ExecuteMsg {
 #[derive(QueryResponses)]
 pub enum QueryMsgExtension {
     #[returns(TokenDetails)]
-    TokenDetails { drop_id: Option<u32> },
+    TokenDetails { mint_instance_id: Option<u32> },
     #[returns(Config)]
-    Config { drop_id: Option<u32> },
+    Config { mint_instance_id: Option<u32> },
     #[returns(UserDetails)]
     UserMintingDetails {
         address: String,
-        drop_id: Option<u32>,
+        mint_instance_id: Option<u32>,
     },
     #[returns(u32)]
-    TokensRemainingInDrop { drop_id: Option<u32> },
+    TokensRemainingInMintInstance { mint_instance_id: Option<u32> },
     #[returns(u32)]
-    TokensMintedInDrop { drop_id: Option<u32> },
+    TokensMintedInMintInstance { mint_instance_id: Option<u32> },
     #[returns(u32)]
-    ActiveDropId {},
-    #[returns(Vec<(u32,Drop)>)]
-    AllDrops {},
+    ActiveMintInstanceId {},
+    #[returns(Vec<(u32,MintInstance)>)]
+    AllMintInstances {},
     #[returns(MintHistoryResponse)]
     MintHistory {
         address: String,
-        drop_id: Option<u32>,
+        mint_instance_id: Option<u32>,
     },
 }

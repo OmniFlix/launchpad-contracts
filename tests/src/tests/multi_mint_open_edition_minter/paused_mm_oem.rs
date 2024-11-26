@@ -86,17 +86,17 @@ fn paused_mm_oem() {
         .unwrap();
     let multi_minter_addr = get_contract_address_from_res(res);
 
-    // Create first drop
+    // Create first mint_instance
     let token_details = TokenDetails {
-        token_name: "Drop number 1".to_string(),
-        description: Some("Drop number 1 description".to_string()),
-        preview_uri: Some("Drop number 1 prev uri".to_string()),
-        base_token_uri: "Drop number 1 base_token_uri".to_string(),
+        token_name: "MintInstance number 1".to_string(),
+        description: Some("MintInstance number 1 description".to_string()),
+        preview_uri: Some("MintInstance number 1 prev uri".to_string()),
+        base_token_uri: "MintInstance number 1 base_token_uri".to_string(),
         transferable: true,
         royalty_ratio: Decimal::percent(10),
         extensible: true,
         nsfw: false,
-        data: Some("Drop number 1 data".to_string()),
+        data: Some("MintInstance number 1 data".to_string()),
     };
     let config = Config {
         mint_price: coin(5_000_000, "uflix"),
@@ -110,7 +110,7 @@ fn paused_mm_oem() {
         .execute_contract(
             creator.clone(),
             Addr::unchecked(multi_minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::NewDrop {
+            &MultiMintOpenEditionMinterExecuteMsg::CreateMintInstance {
                 config,
                 token_details,
             },
@@ -118,16 +118,16 @@ fn paused_mm_oem() {
         )
         .unwrap();
 
-    let active_drop: u32 = app
+    let active_mint_instance: u32 = app
         .wrap()
         .query_wasm_smart(
             multi_minter_addr.clone(),
             &MultiMintOpenEditionMinterQueryMsg::Extension(
-                MultiMintOpenEditionMinterQueryMsgExtension::ActiveDropId {},
+                MultiMintOpenEditionMinterQueryMsgExtension::ActiveMintInstanceId {},
             ),
         )
         .unwrap();
-    assert_eq!(active_drop, 1);
+    assert_eq!(active_mint_instance, 1);
 
     // Ensure that minter is not paused
     let query_msg = MultiMintOpenEditionMinterQueryMsg::IsPaused {};
@@ -176,7 +176,9 @@ fn paused_mm_oem() {
     assert!(is_paused);
 
     // Ensure that the minter can not mint
-    let mint_msg = MultiMintOpenEditionMinterExecuteMsg::Mint { drop_id: None };
+    let mint_msg = MultiMintOpenEditionMinterExecuteMsg::Mint {
+        mint_instance_id: None,
+    };
 
     let error = app
         .execute_contract(
@@ -195,7 +197,7 @@ fn paused_mm_oem() {
     );
     let admin_mint_msg = MultiMintOpenEditionMinterExecuteMsg::MintAdmin {
         recipient: creator.to_string(),
-        drop_id: None,
+        mint_instance_id: None,
     };
     // Ensure that MintAdmin cannot mint
     let error = app

@@ -131,18 +131,18 @@ fn multi_mint_oem_private_minting() {
         .unwrap();
     let round_whitelist_addr = get_contract_address_from_res(res);
 
-    // Create a drop
-    // Create first drop
+    // Create a mint_instance
+    // Create first mint_instance
     let token_details = TokenDetails {
-        token_name: "Drop number 1".to_string(),
-        description: Some("Drop number 1 description".to_string()),
-        preview_uri: Some("Drop number 1 prev uri".to_string()),
-        base_token_uri: "Drop number 1 base_token_uri".to_string(),
+        token_name: "MintInstance number 1".to_string(),
+        description: Some("MintInstance number 1 description".to_string()),
+        preview_uri: Some("MintInstance number 1 prev uri".to_string()),
+        base_token_uri: "MintInstance number 1 base_token_uri".to_string(),
         transferable: true,
         royalty_ratio: Decimal::percent(10),
         extensible: true,
         nsfw: false,
-        data: Some("Drop number 1 data".to_string()),
+        data: Some("MintInstance number 1 data".to_string()),
     };
     let config = Config {
         mint_price: coin(5_000_000, "uflix"),
@@ -153,12 +153,12 @@ fn multi_mint_oem_private_minting() {
         num_tokens: Some(100),
     };
 
-    // Create a drop
+    // Create a mint_instance
     let _res = app
         .execute_contract(
             creator.clone(),
             Addr::unchecked(minter_addr.clone()),
-            &MultiMintOpenEditionMinterExecuteMsg::NewDrop {
+            &MultiMintOpenEditionMinterExecuteMsg::CreateMintInstance {
                 token_details: token_details.clone(),
                 config: config.clone(),
             },
@@ -168,7 +168,7 @@ fn multi_mint_oem_private_minting() {
 
     // Private minting havent started yet
     // Try to mint
-    let mint_msg = MultiMintOpenEditionMinterExecuteMsg::Mint { drop_id: None };
+    let mint_msg = MultiMintOpenEditionMinterExecuteMsg::Mint { mint_instance_id: None };
     let res = app
         .execute_contract(
             creator.clone(),
@@ -195,7 +195,7 @@ fn multi_mint_oem_private_minting() {
     app.set_block(block);
 
     // Try to mint creator is not whitelisted for the first round
-    let mint_msg = MultiMintOpenEditionMinterExecuteMsg::Mint { drop_id: None };
+    let mint_msg = MultiMintOpenEditionMinterExecuteMsg::Mint { mint_instance_id: None };
     let res = app
         .execute_contract(
             creator.clone(),
@@ -214,7 +214,7 @@ fn multi_mint_oem_private_minting() {
     );
 
     // Collector can mint but first send wrong payment
-    let mint_msg = MultiMintOpenEditionMinterExecuteMsg::Mint { drop_id: None };
+    let mint_msg = MultiMintOpenEditionMinterExecuteMsg::Mint { mint_instance_id: None };
     let res = app
         .execute_contract(
             collector.clone(),
@@ -235,7 +235,7 @@ fn multi_mint_oem_private_minting() {
     );
 
     // Collector can mint
-    let mint_msg = MultiMintOpenEditionMinterExecuteMsg::Mint { drop_id: None };
+    let mint_msg = MultiMintOpenEditionMinterExecuteMsg::Mint { mint_instance_id: None };
     let _res = app
         .execute_contract(
             collector.clone(),
@@ -279,35 +279,35 @@ fn multi_mint_oem_private_minting() {
         1.to_string()
     );
 
-    let minted_count_in_drop: u32 = app
+    let minted_count_in_mint_instance: u32 = app
         .wrap()
         .query_wasm_smart(
             minter_addr.clone(),
             &MultiMintOpenEditionMinterQueryMsg::Extension(
-                MultiMintOpenEditionMinterQueryMsgExtension::TokensMintedInDrop {
-                    drop_id: Some(1),
+                MultiMintOpenEditionMinterQueryMsgExtension::TokensMintedInMintInstance {
+                    mint_instance_id: Some(1),
                 },
             ),
         )
         .unwrap();
-    assert_eq!(minted_count_in_drop, 1);
+    assert_eq!(minted_count_in_mint_instance, 1);
 
-    let tokens_remaining_in_drop: u32 = app
+    let tokens_remaining_in_mint_instance: u32 = app
         .wrap()
         .query_wasm_smart(
             minter_addr.clone(),
             &MultiMintOpenEditionMinterQueryMsg::Extension(
-                MultiMintOpenEditionMinterQueryMsgExtension::TokensRemainingInDrop {
-                    drop_id: None,
+                MultiMintOpenEditionMinterQueryMsgExtension::TokensRemainingInMintInstance {
+                    mint_instance_id: None,
                 },
             ),
         )
         .unwrap();
-    assert_eq!(tokens_remaining_in_drop, 99);
+    assert_eq!(tokens_remaining_in_mint_instance, 99);
 
     // Try minting again with the same collector
     // Should fail
-    let mint_msg = MultiMintOpenEditionMinterExecuteMsg::Mint { drop_id: None };
+    let mint_msg = MultiMintOpenEditionMinterExecuteMsg::Mint { mint_instance_id: None };
     let res = app
         .execute_contract(
             collector.clone(),

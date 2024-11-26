@@ -92,8 +92,8 @@ pub struct Token {
 #[cw_serde]
 pub struct MultiMintData {
     pub token_name: String,
-    pub drop_id: String,
-    pub drop_token_id: String,
+    pub mint_instance_id: String,
+    pub mint_instance_token_id: String,
 }
 #[cw_serde]
 pub struct NftData {
