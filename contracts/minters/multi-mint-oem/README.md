@@ -1,114 +1,147 @@
 # Overview of the Multi Mint Open Edition Minter (MM-OEM) Contract
 
-The Multi Mint Open Edition Minter (MM-OEM) contract is an advanced version of the Open Edition Minter (OEM) contract, designed to support multiple NFT mints within the same collection. This contract introduces the concept of "drops," allowing for greater flexibility and configurability in the minting process.
+The Multi Mint Open Edition Minter (MM-OEM) contract is an advanced version of the Open Edition Minter (OEM) contract, designed to support multiple NFT mint instances within the same collection. This contract introduces the concept of **"mint_instances"**, providing greater flexibility and configurability in the minting process.
 
-Key features of the MM-OEM contract include:
+## Key Features of MM-OEM
 
-- **Configurable Drops**: Unlike typical OEM contracts that manage a single mint, the MM-OEM contract allows users to configure multiple NFT mints, known as "drops," within the same contract and collection. Each drop can have its own parameters, providing enhanced flexibility for creators.
-- **Predefined Metadata**: Uses predefined metadata for each drop, ensuring consistency and simplifying the minting process.
-- **Integration with Whitelisting Contracts**: MM-OEM contracts are compatible with whitelisting contracts, enabling private minting rounds before opening to the public. This feature supports controlled access and tiered release strategies.
-- **Public and Private Minting Rounds**: Facilitates both private and public minting rounds for each drop, giving creators the ability to manage and sequence their NFT releases effectively.
-- **Single Contract Management**: Manages multiple NFT mints under a single contract, streamlining the deployment and management processes.
+- **Multiple Mint Instances**: Manage several NFT configurations, called **mint_instances**, within a single contract and collection.
+- **Custom Parameters Per Mint Instance**: Each mint_instance can have unique attributes like price, supply, and access controls.
+- **Predefined Metadata**: Ensures each mint_instance has consistent and pre-set metadata.
+- **Public and Private Minting**: Allows both private (whitelisted) and public minting phases, configurable for each mint_instance.
+- **Single Contract Management**: Streamlines operations by managing all mint_instances and their NFTs under one contract.
 
-This contract is ideal for creators looking to release multiple NFT drops within a single collection, leveraging the benefits of both private and public minting phases while maintaining control over the minting parameters for each drop.
+This contract is ideal for creators looking to release multiple NFT configurations within a single collection, leveraging the benefits of both private and public minting phases while maintaining control over minting parameters for each mint_instance.
 
-#### Drop
+---
 
-Drop is a configuration for a set of tokens. It includes the following parameters:
+## Mint Instance
+
+A **mint instance** is a configuration for a specific set of tokens. It includes the following parameters:
 
 - `token_details`: Token details such as name, description, and preview_uri.
 - `price`: The price of the token.
-- `start_time`: The start time of the trading.
-- `end_time`: The end time of the trading.
-- `num_tokens`: The maximum supply of the token.
-- `per_address_limit` : The maximum number of tokens that can be minted by a single address.
+- `start_time`: The start time of minting.
+- `end_time`: The end time of minting.
+- `num_tokens`: The maximum supply of tokens in this mint_instance.
+- `per_address_limit`: The maximum number of tokens that can be minted by a single address.
 
-#### Instantiate
+---
 
-Similar to the Minter contract, the creator is required to send Collection details. This process initiates the creation of an NFT collection. It's important to note that the contract begins without any drop, meaning neither the creator nor the user can mint an NFT without the creator initiating the first drop.
+## Contract Interactions
 
-### NewDrop
+This section outlines how users and administrators interact with the MM-OEM contract. While some actions are part of the initial setup (e.g., instantiation), others are executable messages that modify or interact with the contract during its lifecycle.
 
-- This function allows the `admin` to create a new drop with the given parameters. The `admin` can create multiple drops with different parameters. Active drop will be changed to the new drop. But the previous drop will be still active for minting.
-    - `token_details`: New token details such as name, symbol, description, and preview_uri.
-    - `config`: New configuration for the new drop. It includes the following parameters:
-        - `price`: The price of the token.
-        - `start_time`: The start time of the trading.
-        - `end_time`: The end time of the trading.
-        - `num_tokens`: The maximum supply of the token.
-        - `per_address_limit` : The maximum number of tokens that can be minted by a single address.
+### Instantiate
+
+The instantiation process initializes the contract. This step sets up the NFT collection metadata and prepares the contract for future interactions. It is important to note that **instantiation is not an executable message**; it is a one-time action performed when deploying the contract.
+
+**Details:**
+- The creator must provide the collection's details during instantiation.
+- After instantiation, the contract does not include any mint instances. The creator must initiate the first mint_instance before NFTs can be minted.
+
+---
+
+### CreateMintInstance
+
+This function allows the `admin` to create a new mint_instance with the given parameters. Once created, the mint_instance is added to the collection and becomes the active mint_instance. However, previous mint_instances remain active for minting unless explicitly paused or removed.
+
+**Details:**
+- `token_details`: Includes the name, symbol, description, and preview URI of the new NFT series.
+- `config`: Specifies the parameters for the mint_instance, such as price, supply, and timeframes.
+
+---
 
 ### Mint
 
-- There are two types of minting: `Mint{}` and `AdminMint{}`
-- `Mint{}`: This option is for users who want to own the NFT, and they need to pay the active price at that time.
-    - `drop_id`: The id of the drop to mint. OPTIONAL. If not provided, it will mint the active drop.
-- `AdminMint{}`: As the name suggests, this option is specifically for admin to mint a token. Admins have the ability to determine the recipient. Admins are not subject to address limits or private mint checks, and this action does not require a payment.
-    - `drop_id`: The id of the drop to mint. OPTIONAL. If not provided, it will mint the active drop.
-    - `recipient`: The address of the recipient.
+There are two types of minting actions:
 
+1. **`Mint{}`**: Users mint NFTs by paying the specified price for the active mint_instance.
+    - **Example Input**:
+      ```json
+      {
+        "mint_instance_id": "1"
+      }
+      ```
 
-### UpdateRoyaltyRatio
+2. **`AdminMint{}`**: Admins mint NFTs without payment or restrictions, optionally specifying the recipient.
 
-- This function allows the `admin` to update the royalty ratio for the NFTs. The `admin` can set the royalty ratio for the NFTs. The ratio is a string of decimal number. Every drop can have a different ratio.
-    - `ratio`: The ratio of the royalty.
-    - `drop_id`: The id of the drop to mint. OPTIONAL. If not provided, it will update the active drop.
+---
 
+### Administrative Functions
 
-### UpdateMintPrice
+#### UpdateRoyaltyRatio
+- This function allows the `admin` to update the royalty ratio for the NFTs.
+    - `ratio`: The new royalty ratio (as a string representing a decimal number).
+    - `mint_instance_id`: The id of the instance. OPTIONAL. If not provided, it updates the active instance.
 
-- This function allows the `admin` to update the mint price of the specified drop.
-    - `mint_price`: The price of the token.
-    - `drop_id`: The id of the drop to mint. OPTIONAL. If not provided, it will update the active drop.
+#### UpdateMintPrice
+- This function allows the `admin` to update the mint price for the specified mint_instance.
+    - `mint_price`: The new price of the token.
+    - `mint_instance_id`: The id of the mint_instance to update. OPTIONAL. If not provided, it updates the active mint_instance.
 
-### UpdateWhitelistAddress
-
-- This function allows the `admin` to update the whitelist address for the specified drop. Provided address should correspond to a whitelist contract and private minting should not be initiated yet.
+#### UpdateWhitelistAddress
+- This function allows the `admin` to set or update the whitelist contract address for the specified mint_instance.
     - `address`: The address of the whitelist contract.
-    - `drop_id`: The id of the drop to mint. OPTIONAL. If not provided, it will update the active drop.
+    - `mint_instance_id`: The id of the mint_instance to update. OPTIONAL. If not provided, it updates the active mint_instance.
 
-### Pause
+#### Pause / Unpause
+- **Pause**: Allows the `admin` to pause the minting process. When paused, no new tokens can be minted.
+- **Unpause**: Allows the `admin` to resume minting after it has been paused.
 
-- This function allows the `admin` to pause the minting process. When paused, no new tokens can be minted.
+#### SetPausers
+- This function allows the `admin` to designate specific accounts as "pausers."
+    - `pausers`: A list of pauser addresses.
 
-### Unpause
+#### RemoveMintInstance
+- This function allows the `admin` to remove a mint_instance. This is only possible if no tokens have been minted for that instance.
+    - Upon removal, the active mint_instance will switch to the previous one. Removed mint_instance IDs will not be reused.
 
-- This function allows the `admin` to resume the minting process after it has been paused.
+#### UpdateRoyaltyReceivers
+- Allows the `admin` to set or update the royalty receivers and their respective weights.
+    - `receivers`: List of receiver addresses with corresponding weights.
 
-### SetPausers
-
-- This function allows the `admin` to set the pausers list. The pausers are the addresses that can pause and unpause the minting process. Full list of pausers should be sent at every update.
-    - `pausers`: List of pausers.
-
-### RemoveDrop
-
-- This function allows the `admin` to remove the drop. The `admin` can remove the drop with the given id. The `admin` can remove the drop only if the drop has not minted any NFTs. Upon removal, the active drop will be changed to the previous drop. Drop id of removed drop will not be reused.
-
-### UpdateRoyaltyReceivers
-
-- This function allows the `admin` to update the royalty receivers for the NFTs. Royalty receivers are the addresses that will receive the royalty with their corresponding weights.
-    - `receivers`: The list of receivers with their weights.
-
-### UpdateDenom
-
-- This function allows the `admin` to update the denom details. The `admin` can update the name, description, and preview_uri of the denom.
-
+#### UpdateDenom
+- This function allows the `admin` to modify metadata for the NFT collection (denom).
     - `collection_name`: The name of the collection.
     - `description`: The description of the collection.
-    - `preview_uri`: The URI for the preview image of the collection.
+    - `preview_uri`: URI for the collection's preview image.
 
-### PurgeDenom
+#### PurgeDenom
+- This function permanently removes the collection (denom). Only possible if no NFTs have been minted in the collection.
 
-- This function allows the `admin` to purge the collection. The `admin` can purge the collection only if the collection has not minted any NFTs. Upon purging, the collection will be removed.
+#### UpdateAdmin
+- Changes the admin address to a new one.
+    - `admin`: The new admin's address.
 
-### UpdateAdmin
+#### UpdatePaymentCollector
+- Updates the address that collects payments for minting.
+    - `payment_collector`: The new payment collector's address.
 
-- This function allows the `admin` to update the admin address.
+---
 
-    - `admin`: The address of the new admin.
+## Terminology Reference
 
-### UpdatePaymentCollector
+### Active Mint Instance
+The most recently created mint_instance. Its ID is the highest and is automatically set as the active one.
 
-- This function allows the `admin` to update the payment collector address.
+### Whitelist Contract
+An external contract that manages private access for specific minting phases, enabling controlled or early access to certain users.
 
-    - `payment_collector`: The address of the new payment collector.
+### Denom
+Short for **denomination**, representing the entire NFT collection managed by the contract. Includes metadata like name, description, and preview URI.
+
+### Royalty Ratio
+A percentage or proportion of secondary sales revenue allocated to the royalty receivers.
+
+### Pausers
+Designated accounts authorized to pause and resume minting operations.
+
+### Royalty Receivers
+Addresses that receive royalties from secondary sales, with assigned weights determining their share.
+
+### Admin
+The address with administrative control over the contract, including creating mint_instances and updating contract parameters.
+
+---
+
+This contract empowers creators with versatile minting tools, ensuring streamlined NFT drops, robust configurations, and dynamic management capabilities.
