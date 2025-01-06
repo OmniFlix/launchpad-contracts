@@ -4,37 +4,37 @@ members = [
     "contracts/whitelists/*",
     "contracts/factories/*",
     "tests",
-    "packages/*"
+    "packages/*",
 ]
 resolver = "2"
 
 [workspace.package]
-version    = "1.0.0-beta"
-edition    = "2021"
-homepage   = ""
+version = "1.0.1-beta"
+edition = "2021"
+homepage = ""
 repository = ""
-license    = "Apache-2.0"
+license = "Apache-2.0"
 
 [workspace.dependencies]
-cosmwasm-schema      = "1.5.3"
-cosmwasm-std         = "1.5.3"
-omniflix-std         = "1.0.0-beta"
-cw-controllers       = "1.1.0"
-cw2                  = "1.1.0"
-cw4                  = "1.1.0"
-cw4-group            = "1.1.0"
-cw721                = "0.18.0"
-cw721-base           = "0.18.0"
-cw-storage-plus      = "1.1.0"
-cw-utils             = "1.0.1"
-schemars             = "0.8.11"
-thiserror            = "1.0.31"
-semver               = "1"
-cw-ownable           = "0.5.1"
-cosmwasm-storage     = "1.5.0"
-serde                = { version = "1.0.145", default-features = false, features = ["derive"] }
-whitelist-types = {  path = "packages/whitelist-types" }
+cosmwasm-schema = "1.5.3"
+cosmwasm-std = "1.5.3"
+omniflix-std = "1.0.0-beta"
+cw-controllers = "1.1.0"
+cw2 = "1.1.0"
+cw4 = "1.1.0"
+cw4-group = "1.1.0"
+cw721 = "0.18.0"
+cw721-base = "0.18.0"
+cw-storage-plus = "1.1.0"
+cw-utils = "1.0.1"
+schemars = "0.8.11"
+thiserror = "1.0.31"
+semver = "1"
+cw-ownable = "0.5.1"
+cosmwasm-storage = "1.5.0"
+serde = { version = "1.0.145", default-features = false, features = ["derive"] }
+whitelist-types = { path = "packages/whitelist-types" }
 minter-types = { path = "packages/minter-types" }
 factory-types = { path = "packages/factory-types" }
-pauser = {  path = "packages/pauser" }
+pauser = { path = "packages/pauser" }
 serde_json = "1.0"
